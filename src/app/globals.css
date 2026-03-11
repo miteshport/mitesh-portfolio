@@ -1,0 +1,81 @@
+:root {
+  --bg-color: #000000;
+  --text-color: #ffffff;
+  --accent: #27c93f;
+  /* IT Terminal Green for subtle highlights */
+
+  /* Brutalist Font Stack */
+  --font-primary: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-display: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  /* Physics-based Ease */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  width: 100%;
+  overscroll-behavior: none;
+  /* Prevents native bounce effect on Mac to let Lenis handle physics */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Awwwards Text Highlighting Inversion */
+::selection {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+}
+
+/* Typography Reset */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  /* Brutalist serifs look best at standard or light weights */
+  letter-spacing: -0.02em;
+}
+
+p,
+span,
+a,
+button,
+li,
+input,
+textarea {
+  font-family: var(--font-primary);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+ul {
+  list-style: none;
+}
+
+/* Mandatory for Lenis Smooth Scroll Immersion */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
