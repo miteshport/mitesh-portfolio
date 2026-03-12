@@ -79,3 +79,17 @@ body {
   scrollbar-width: none;
   /* Firefox */
 }
+
+/* --- MOBILE TOUCH SCROLL FIX --- */
+@media (max-width: 768px) {
+  html, body {
+    overscroll-behavior: auto; /* Restores native bounce on mobile */
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important; /* Forces iOS momentum scroll */
+  }
+
+  /* Ensure the main container doesn't trap touch events */
+  main {
+    touch-action: pan-y !important;
+  }
+}

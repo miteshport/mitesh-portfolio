@@ -7,5 +7,18 @@ export default function SmoothScrolling({
 }: {
   children: React.ReactNode;
 }) {
-  return <ReactLenis root>{children as any}</ReactLenis>;
+  return (
+    <ReactLenis
+      root
+      options={{
+        lerp: 0.1,
+        duration: 1.5,
+        smoothWheel: true,
+        smoothTouch: false, // CRITICAL: Disables Lenis on touch to allow native swiping
+        syncTouch: false, // CRITICAL: Prevents Lenis from fighting mobile momentum
+      } as any}
+    >
+      {children as any}
+    </ReactLenis>
+  );
 }

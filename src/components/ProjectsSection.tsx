@@ -32,19 +32,21 @@ export default function ProjectsSection() {
   return (
     <section
       ref={targetRef}
-      style={{ position: 'relative', height: '250vh', background: '#000', zIndex: 20 }}
+      className="projects-section-container"
+      style={{ background: '#000', zIndex: 20 }}
     >
-      <div style={{ position: 'sticky', top: 0, height: '100vh', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-        <motion.div style={{ x, display: 'flex', gap: '6vw', padding: '0 10vw', width: '250vw' }}>
+      <div className="projects-sticky-wrapper">
+        <motion.div className="projects-track" style={{ x }}>
 
           {/* Card 1: Coffee & Donut TV */}
-          <motion.a
-            style={{ skewX }}
-            href="https://www.coffeedonuttv.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="awwwards-project-card"
-          >
+          <div className="project-wrapper">
+            <motion.a
+              style={{ skewX }}
+              href="https://www.coffeedonuttv.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="awwwards-project-card"
+            >
             <motion.div
               style={{ x: bgX1, backgroundImage: "url(/coffeedonuttv.png)" }}
               className="awwwards-bg"
@@ -56,17 +58,19 @@ export default function ProjectsSection() {
                 <span className="awwwards-tag">Tech: SaaS, Streaming</span>
               </div>
             </div>
-            <div className="awwwards-view">View Project <span>→</span></div>
-          </motion.a>
+              <div className="awwwards-view">View Project <span>→</span></div>
+            </motion.a>
+          </div>
 
           {/* Card 2: Pratyaksh Gyan */}
-          <motion.a
-            style={{ skewX }}
-            href="https://pratyakshgyan.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="awwwards-project-card"
-          >
+          <div className="project-wrapper">
+            <motion.a
+              style={{ skewX }}
+              href="https://pratyakshgyan.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="awwwards-project-card"
+            >
             <motion.div
               style={{ x: bgX2, backgroundImage: "url(/pratyakshgyan.png)" }}
               className="awwwards-bg"
@@ -78,8 +82,9 @@ export default function ProjectsSection() {
                 <span className="awwwards-tag">Tech: WebGL, Agent-Driven</span>
               </div>
             </div>
-            <div className="awwwards-view">View Project <span>→</span></div>
-          </motion.a>
+              <div className="awwwards-view">View Project <span>→</span></div>
+            </motion.a>
+          </div>
 
         </motion.div>
       </div>
@@ -87,6 +92,31 @@ export default function ProjectsSection() {
       {/* Bulletproof CSS Injection */}
       <style dangerouslySetInnerHTML={{
         __html: `
+        .projects-section-container {
+          position: relative;
+          height: 300vh;
+        }
+        .projects-sticky-wrapper {
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          overflow: hidden;
+        }
+        .projects-track {
+          display: flex;
+          width: 200vw;
+        }
+        .project-wrapper {
+          width: 100vw;
+          height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
         .awwwards-project-card {
           width: 80vw;
           height: 75vh;
@@ -202,13 +232,35 @@ export default function ProjectsSection() {
         }
 
         @media (max-width: 768px) {
+          .projects-section-container {
+            height: auto !important;
+            padding: 4rem 0;
+          }
+          .projects-sticky-wrapper {
+            position: relative !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+          }
+          .projects-track {
+            width: 100% !important;
+            flex-direction: column !important;
+            gap: 4rem;
+            transform: none !important;
+          }
+          .project-wrapper {
+            width: 100% !important;
+            height: auto !important;
+          }
           .awwwards-project-card {
-            width: 85vw;
-            padding: 2rem;
-            height: 65vh;
+            width: 90vw !important;
+            padding: 1.5rem;
+            height: 60vh;
+            margin: 0 auto;
+            transform: none !important;
           }
           .awwwards-project-card h2 {
-            font-size: clamp(2rem, 8vw, 4rem);
+            font-size: clamp(1.8rem, 6vw, 3rem);
             transform: translateY(0);
           }
           .awwwards-meta {
