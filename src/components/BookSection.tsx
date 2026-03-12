@@ -120,10 +120,12 @@ export default function BookSection() {
         }
         @media (max-width: 992px) {
           .awwwards-book-container {
+            position: relative !important;
+            height: auto !important;
             flex-direction: column;
             justify-content: center;
-            gap: 2rem;
-            padding-top: 100px;
+            gap: 4rem;
+            padding: 120px 5vw 150px;
           }
           .awwwards-book-text {
             text-align: center;
@@ -133,17 +135,28 @@ export default function BookSection() {
           }
           .awwwards-book-mockup {
             transform: scale(0.8);
+            margin: 4rem 0;
           }
         }
         @media (max-width: 480px) {
            .awwwards-book-mockup {
-              transform: scale(0.65);
+              transform: scale(0.6);
            }
            .awwwards-heading {
-             font-size: 2.5rem !important;
+             font-size: clamp(2rem, 10vw, 3rem) !important;
+             white-space: normal;
+           }
+           .awwwards-subheading {
+             font-size: 0.9rem !important;
+             margin-bottom: 1.5rem !important;
            }
            .awwwards-copy {
-             font-size: 1rem !important;
+             font-size: 0.95rem !important;
+             line-height: 1.6 !important;
+             margin-bottom: 2rem !important;
+           }
+           .awwwards-book-container {
+             padding-bottom: 200px !important; /* Extra room for bottom nav and button */
            }
         }
         .awwwards-heading {
