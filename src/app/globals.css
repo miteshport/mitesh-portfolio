@@ -87,8 +87,9 @@ body {
   /* Firefox */
 }
 
-/* --- ALL TOUCH DEVICES SCROLL FIX (Phones, Tablets, Foldables) --- */
-@media (hover: none) and (pointer: coarse) {
+/* --- ALL TOUCH DEVICES & TABLETS SCROLL FIX (Phones, Foldables, iPads) --- */
+/* Uses a combined approach to catch wide foldables, iPads, and ANY true touch device */
+@media (max-width: 1200px), (pointer: coarse) {
   html, body {
     overscroll-behavior: auto; /* Restores native bounce on mobile */
     overflow-y: auto !important;
