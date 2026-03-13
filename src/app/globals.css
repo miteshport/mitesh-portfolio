@@ -87,8 +87,8 @@ body {
   /* Firefox */
 }
 
-/* --- MOBILE TOUCH SCROLL FIX --- */
-@media (max-width: 768px) {
+/* --- ALL TOUCH DEVICES SCROLL FIX (Phones, Tablets, Foldables) --- */
+@media (hover: none) and (pointer: coarse) {
   html, body {
     overscroll-behavior: auto; /* Restores native bounce on mobile */
     overflow-y: auto !important;
