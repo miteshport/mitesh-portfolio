@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import MagneticLink from "./MagneticLink";
 
 export default function Navigation() {
@@ -81,14 +82,13 @@ export default function Navigation() {
         </div>
 
         <div className="awwwards-nav-right">
-          {/* LINKEDIN URL INJECTED HERE */}
           <div data-magnetic="true" style={{ display: 'flex', alignItems: 'center' }}>
-            <MagneticLink href="https://www.linkedin.com/in/miteshbshah">
+            <Link href="/card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                CONNECT
+                ID CARD
                 <span style={{ width: '4px', height: '4px', backgroundColor: '#27c93f', borderRadius: '50%', boxShadow: '0 0 5px #27c93f' }}></span>
               </span>
-            </MagneticLink>
+            </Link>
           </div>
         </div>
       </nav>

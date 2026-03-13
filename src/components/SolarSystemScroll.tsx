@@ -91,8 +91,8 @@ export default function SolarSystemScroll() {
         @media (max-width: 768px) {
           .solar-system-wrapper {
             transform: scale(0.6);
-            bottom: 1rem;
-            right: 1rem; /* Adjust back to edge organically on mobile */
+            bottom: 6rem;
+            left: 1rem;
           }
         }
         `
