@@ -10,6 +10,9 @@ import MagneticLink from "@/components/MagneticLink";
 import Preloader from "@/components/Preloader";
 import SystemClock from "@/components/SystemClock";
 import SmoothScrolling from "@/components/SmoothScrolling";
+import SystemCore from "@/components/SystemCore";
+import CustomCursor from "@/components/CustomCursor";
+import SolarSystemScroll from "@/components/SolarSystemScroll";
 
 export default function Home() {
   // The Dev Console Easter Egg
@@ -23,10 +26,13 @@ export default function Home() {
 
   return (
     <SmoothScrolling>
-      <main className="main-container" style={{ backgroundColor: "#000", minHeight: "100vh", position: "relative" }}>
+      <main className="main-container" style={{ minHeight: "100vh", position: "relative" }}>
         {/* Global Overlays */}
+        <CustomCursor />
         <Preloader />
         <SystemClock />
+        <SolarSystemScroll />
+        <SystemCore />
 
         <div id="hero"><HeroSection /></div>
         <div id="it"><ITSection /></div>

@@ -41,24 +41,28 @@ export default function Navigation() {
 
         <div className="awwwards-nav-controls">
           <button
+            data-magnetic="true"
             onClick={() => scrollTo("hero")}
             className={`awwwards-nav-btn ${activeSection === "hero" ? "active" : ""}`}
           >
             01. Origin
           </button>
           <button
+            data-magnetic="true"
             onClick={() => scrollTo("it")}
             className={`awwwards-nav-btn ${activeSection === "it" ? "active" : ""}`}
           >
             02. Engine
           </button>
           <button
+            data-magnetic="true"
             onClick={() => scrollTo("projects")}
             className={`awwwards-nav-btn ${activeSection === "projects" ? "active" : ""}`}
           >
             03. Proof
           </button>
           <button
+            data-magnetic="true"
             onClick={() => scrollTo("book")}
             className={`awwwards-nav-btn ${activeSection === "book" ? "active" : ""}`}
           >
@@ -78,9 +82,14 @@ export default function Navigation() {
 
         <div className="awwwards-nav-right">
           {/* LINKEDIN URL INJECTED HERE */}
-          <MagneticLink href="https://www.linkedin.com/in/miteshbshah">
-            Connect
-          </MagneticLink>
+          <div data-magnetic="true" style={{ display: 'flex', alignItems: 'center' }}>
+            <MagneticLink href="https://www.linkedin.com/in/miteshbshah">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                CONNECT
+                <span style={{ width: '4px', height: '4px', backgroundColor: '#27c93f', borderRadius: '50%', boxShadow: '0 0 5px #27c93f' }}></span>
+              </span>
+            </MagneticLink>
+          </div>
         </div>
       </nav>
 
@@ -91,38 +100,37 @@ export default function Navigation() {
           bottom: 2rem;
           left: 50%;
           transform: translateX(-50%);
-          width: 90vw;
-          max-width: 1200px;
-          background: rgba(10, 10, 10, 0.7);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: rgba(10, 10, 10, 0.6);
+          backdrop-filter: blur(15px);
+          -webkit-backdrop-filter: blur(15px);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 100px;
-          padding: 0.5rem 1rem 0.5rem 2.5rem;
+          border-radius: 50px;
+          padding: 0.5rem 1.5rem;
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: center;
+          gap: 2rem;
           z-index: 1000;
           box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
         .awwwards-nav-controls {
           display: flex;
-          gap: 2rem;
+          gap: 1.5rem;
         }
         .awwwards-nav-btn {
           background: none;
           border: none;
           color: rgba(255, 255, 255, 0.4);
           font-family: monospace;
-          font-size: 0.85rem;
+          font-size: 10px;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          cursor: pointer;
           transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           padding: 0;
+          outline: none;
         }
         .awwwards-nav-btn:hover {
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(255, 255, 255, 0.9);
           transform: translateY(-2px);
         }
         .awwwards-nav-btn.active {
@@ -130,49 +138,33 @@ export default function Navigation() {
           font-weight: bold;
         }
         .awwwards-nav-center {
-          flex: 1;
-          margin: 0 4rem;
-          display: flex;
-          align-items: center;
-        }
-        .awwwards-timeline-track {
-          width: 100%;
-          height: 2px;
-          background: rgba(255,255,255,0.1);
-          border-radius: 2px;
-          overflow: hidden;
-          position: relative;
-        }
-        .awwwards-timeline-fill {
-          height: 100%;
-          background: #fff;
-          transition: width 0.1s linear;
-          box-shadow: 0 0 10px rgba(255,255,255,0.5);
+          display: none;
         }
         .awwwards-nav-right {
           display: flex;
           align-items: center;
+          font-size: 10px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.7);
+        }
+        .awwwards-nav-right:hover {
+          color: #fff;
         }
         
         @media (max-width: 768px) {
           .awwwards-bottom-nav { 
-            padding: 0.25rem 0.5rem; 
+            padding: 0.5rem 1rem; 
             border-radius: 40px; 
-            width: 95vw;
             bottom: 1rem;
+            width: max-content;
+            gap: 1rem;
           }
           .awwwards-nav-controls {
-            display: flex;
             gap: 0.75rem;
           }
           .awwwards-nav-btn {
-            font-size: 0.65rem;
-          }
-          .awwwards-nav-center { 
-            display: none;
-          }
-          .awwwards-nav-right {
-             transform: scale(0.85);
+            font-size: 8px;
           }
         }
       `}} />

@@ -1,5 +1,5 @@
 :root {
-  --bg-color: #000000;
+  --bg-color: #0a0a0a; /* Soft Matte Black */
   --text-color: #ffffff;
   --accent: #27c93f;
   /* IT Terminal Green for subtle highlights */
@@ -16,6 +16,13 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Hide native cursor on desktop to favor CustomCursor */
+@media (hover: hover) and (pointer: fine) {
+  * {
+    cursor: none !important;
+  }
 }
 
 html,
