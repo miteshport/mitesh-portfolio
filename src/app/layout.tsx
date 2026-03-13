@@ -14,8 +14,20 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Mitesh Shah - Portfolio",
-  description: "IT Operations Lead, Author, Creator. High-end personal portfolio.",
+  title: "Mitesh Shah | The Architect",
+  description: "Engineer of order out of chaos. Building flawless digital experiences and enterprise IT operations.",
+  openGraph: {
+    title: "Mitesh Shah | The Architect",
+    description: "Engineer of order out of chaos. Building flawless digital experiences and enterprise IT operations.",
+    url: "https://www.miteshshah.xyz",
+    siteName: "Mitesh Shah Portfolio",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mitesh Shah | The Architect",
+    description: "Building flawless digital experiences and enterprise IT operations.",
+  },
 };
 
 export default function RootLayout({
