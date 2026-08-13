@@ -158,8 +158,8 @@ export default function ITSection() {
             zIndex: 10,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: "0.45rem", marginRight: "1.2rem" }}>
+          <div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
+            <div style={{ display: "flex", gap: "0.45rem", marginRight: "0.8rem", flexShrink: 0 }}>
               <span style={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: "#ff5f56" }} />
               <span style={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: "#ffbd2e" }} />
               <span style={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: "#27c93f" }} />
@@ -167,13 +167,16 @@ export default function ITSection() {
             <span
               style={{
                 fontFamily: "monospace",
-                fontSize: "0.8rem",
+                fontSize: "0.75rem",
                 color: isBreachActive && breachStep < 4 ? "#ef4444" : "rgba(255, 255, 255, 0.6)",
                 letterSpacing: "0.05em",
                 fontWeight: isBreachActive ? "bold" : "normal",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
-              {isBreachActive && breachStep < 4 ? "root@incident-command:~/ALERT" : "mitesh@system:~/operations"}
+              {isBreachActive && breachStep < 4 ? "root@incident:~/ALERT" : "mitesh@system:~/operations"}
             </span>
           </div>
 
@@ -185,15 +188,17 @@ export default function ITSection() {
                 border: "1px solid #ef4444",
                 color: "#ef4444",
                 fontFamily: "monospace",
-                fontSize: "0.7rem",
-                padding: "0.3rem 0.8rem",
+                fontSize: "0.65rem",
+                padding: "0.25rem 0.6rem",
                 borderRadius: "4px",
                 cursor: "pointer",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
+                flexShrink: 0,
+                marginLeft: "0.5rem",
               }}
             >
-              [ INITIATE P1 BREACH SIMULATION ]
+              [ P1 BREACH SIMULATION ]
             </button>
           ) : (
             <button
@@ -203,12 +208,14 @@ export default function ITSection() {
                 border: "1px solid rgba(255, 255, 255, 0.2)",
                 color: "#ffffff",
                 fontFamily: "monospace",
-                fontSize: "0.7rem",
-                padding: "0.3rem 0.8rem",
+                fontSize: "0.65rem",
+                padding: "0.25rem 0.6rem",
                 borderRadius: "4px",
                 cursor: "pointer",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
+                flexShrink: 0,
+                marginLeft: "0.5rem",
               }}
             >
               [ RESET SYSTEM ]
@@ -216,10 +223,10 @@ export default function ITSection() {
           )}
         </div>
 
-        {/* Terminal Body Prompt Row (Always Visible 45px Bar) */}
+        {/* Terminal Body Prompt Row */}
         <div
           style={{
-            padding: "1.2rem 2.5rem 0.8rem 2.5rem",
+            padding: "1.2rem 1.8rem 0.8rem 1.8rem",
             fontFamily: "monospace",
             fontSize: "0.95rem",
             lineHeight: 1.9,
@@ -242,7 +249,7 @@ export default function ITSection() {
           />
         </div>
 
-        {/* PHYSICAL LIQUID WINDOW FRAME EXPANSION (gridTemplateRows: 0fr -> 1fr) */}
+        {/* PHYSICAL LIQUID WINDOW FRAME EXPANSION */}
         <motion.div
           animate={{
             gridTemplateRows: isBreachActive || showOutput ? "1fr" : "0fr",
@@ -250,14 +257,14 @@ export default function ITSection() {
           }}
           transition={{
             duration: 0.8,
-            ease: [0.22, 1, 0.36, 1], // Christopher Nolan Liquid Physics
+            ease: [0.22, 1, 0.36, 1],
           }}
           style={{
             display: "grid",
             willChange: "grid-template-rows, opacity",
           }}
         >
-          <div style={{ overflow: "hidden", padding: "0 2.5rem 2rem 2.5rem" }}>
+          <div style={{ overflow: "hidden", padding: "0 1.8rem 1.8rem 1.8rem" }}>
             {!isBreachActive ? (
               <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {OUTPUT_LINES.map((line, idx) => (

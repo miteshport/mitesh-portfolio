@@ -49,6 +49,33 @@ export default function ContentTicker() {
         overflow: "hidden",
       }}
     >
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .ticker-tab-btn {
+          font-family: monospace;
+          font-size: 0.55rem;
+          padding: 0.1rem 0.4rem;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 420px) {
+          .ticker-tab-btn {
+            font-size: 0.46rem !important;
+            padding: 0.08rem 0.2rem !important;
+          }
+          .ticker-tabs-wrap {
+            flex-wrap: wrap !important;
+            gap: 0.2rem !important;
+          }
+        }
+      `,
+        }}
+      />
+
       {/* Header & Monospace Interactive Category Tabs (ZERO EMOJIS) */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
@@ -66,7 +93,7 @@ export default function ContentTicker() {
         </div>
 
         {/* Category Tabs */}
-        <div style={{ display: "flex", gap: "0.3rem" }}>
+        <div className="ticker-tabs-wrap" style={{ display: "flex", gap: "0.3rem" }}>
           {(["PUBLISHING", "SYSTEMS", "ARCHITECTURE"] as StreamCategory[]).map((cat) => (
             <button
               key={cat}
@@ -75,16 +102,11 @@ export default function ContentTicker() {
                 setCategory(cat);
                 setIndex(0);
               }}
+              className="ticker-tab-btn"
               style={{
                 backgroundColor: category === cat ? "rgba(34, 197, 94, 0.15)" : "transparent",
                 border: category === cat ? "1px solid #22c55e" : "1px solid rgba(255, 255, 255, 0.1)",
                 color: category === cat ? "#22c55e" : "rgba(255, 255, 255, 0.4)",
-                fontFamily: "monospace",
-                fontSize: "0.55rem",
-                padding: "0.1rem 0.4rem",
-                borderRadius: "4px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
               }}
             >
               [ {cat} ]

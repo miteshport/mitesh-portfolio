@@ -411,6 +411,7 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
     shaderMaterial.uniforms.uMouse3D.value.copy(mouse3D);
 
     if (pointsRef.current) {
+      const isMobile = window.innerWidth < 768;
       const scrollRotationMultiplier = globalScroll > 0.05 ? (globalScroll - 0.05) * Math.PI * 4 : 0;
       const targetRotationY = scrollRotationMultiplier;
       const targetRotationX = Math.sin(globalScroll * Math.PI) * 0.25;
@@ -418,12 +419,17 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
       pointsRef.current.rotation.y = THREE.MathUtils.lerp(pointsRef.current.rotation.y, targetRotationY, 0.1);
       pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, targetRotationX, 0.1);
 
-      const targetX = globalScroll < 0.25 ? 1.0 : 0.0;
+      // On narrow mobile screens, center X position to 0; on desktop shift to right half (1.0)
+      const targetX = globalScroll < 0.25 ? (isMobile ? 0.0 : 1.0) : 0.0;
       pointsRef.current.position.x = THREE.MathUtils.lerp(pointsRef.current.position.x, targetX, 0.08);
+
+      // Dynamically scale down 'M' particle group on narrow mobile screens (0.65) so it fits 100% with zero clipping!
+      const targetScale = isMobile ? 0.65 : 1.0;
+      pointsRef.current.scale.setScalar(THREE.MathUtils.lerp(pointsRef.current.scale.x, targetScale, 0.1));
     }
   });
 
-  return <points ref={pointsRef} geometry={geometry} material={shaderMaterial} position={[1.0, 0, 0]} />;
+  return <points ref={pointsRef} geometry={geometry} material={shaderMaterial} position={[0, 0, 0]} />;
 }
 
 /**
