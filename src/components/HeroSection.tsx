@@ -59,22 +59,22 @@ export default function HeroSection() {
           justify-content: center;
           text-align: center;
           width: 90%;
-          max-width: 960px;
+          max-width: 860px;
           margin: 0 auto;
-          gap: 1.6rem;
+          gap: 1.2rem;
           z-index: 10;
           pointer-events: auto;
         }
 
         .hero-title {
           font-family: 'Inter', sans-serif;
-          font-size: clamp(3.2rem, 7.5vw, 6.2rem);
+          font-size: clamp(2.4rem, 5.5vw, 4.4rem);
           font-weight: 700;
-          line-height: 1.0;
+          line-height: 1.05;
           color: #ffffff;
           margin: 0;
-          letter-spacing: -0.03em;
-          text-shadow: 0 4px 30px rgba(0, 0, 0, 0.95), 0 0 60px rgba(0, 0, 0, 0.9);
+          letter-spacing: -0.02em;
+          text-shadow: 0 4px 28px rgba(0, 0, 0, 0.95), 0 0 50px rgba(0, 0, 0, 0.85);
           user-select: none;
         }
 
@@ -82,48 +82,52 @@ export default function HeroSection() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 0.75rem;
-          padding: 0.8rem 1.8rem;
+          gap: 0.6rem;
+          padding: 0.65rem 1.5rem;
           border-radius: 9999px;
-          background: rgba(6, 4, 12, 0.6) !important;
-          border: 1px solid rgba(255, 255, 255, 0.18) !important;
+          background: rgba(6, 4, 12, 0.55) !important;
+          border: 1px solid rgba(255, 255, 255, 0.16) !important;
           backdrop-filter: blur(24px) saturate(160%) !important;
           -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-          box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.2);
           max-width: 100%;
         }
 
         .hero-pill-dot {
-          width: 7px;
-          height: 7px;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           background: #22c55e;
-          box-shadow: 0 0 10px #22c55e;
+          box-shadow: 0 0 8px #22c55e;
           flex-shrink: 0;
         }
 
         .hero-tagline {
           font-family: monospace;
-          font-size: clamp(0.72rem, 1.8vw, 0.92rem);
+          font-size: clamp(0.68rem, 1.4vw, 0.82rem);
           letter-spacing: 0.12em;
-          color: rgba(255, 255, 255, 0.9);
+          color: rgba(255, 255, 255, 0.88);
           margin: 0;
           text-transform: uppercase;
           line-height: 1.4;
           white-space: normal;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
           .hero-editorial-layout {
-            gap: 1.2rem;
-            padding: 0 1rem;
+            gap: 0.9rem;
+            padding: 0 0.8rem;
+          }
+          .hero-title {
+            font-size: clamp(2.1rem, 9vw, 2.9rem) !important;
           }
           .hero-pill-badge {
-            padding: 0.65rem 1.2rem;
-            border-radius: 16px;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            gap: 0.45rem;
           }
           .hero-tagline {
-            font-size: 0.75rem !important;
+            font-size: 0.68rem !important;
             letter-spacing: 0.08em;
           }
         }
@@ -131,7 +135,7 @@ export default function HeroSection() {
         }}
       />
 
-      {/* MONUMENTAL ARCHITECTURAL HERO CENTERPIECE */}
+      {/* REFINED ARCHITECTURAL HERO CENTERPIECE */}
       <motion.div style={{ opacity, y }} className="hero-editorial-layout">
         {/* Main Monogram Authority Name */}
         <h1 ref={textRef} className="hero-title">
@@ -142,7 +146,7 @@ export default function HeroSection() {
         <div className="hero-pill-badge">
           <div className="hero-pill-dot" />
           <p className="hero-tagline">
-            Enterprise IT Architecture · Major Incident Command · High-Scale Systems
+            Enterprise IT Architecture · Incident Command · Scaled Systems
           </p>
         </div>
       </motion.div>

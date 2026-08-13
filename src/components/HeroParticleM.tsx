@@ -232,7 +232,7 @@ const ParticleMShader = {
   `,
 };
 
-function generateMParticleData(totalParticles = 4200) {
+function generateMParticleData(totalParticles = 4400) {
   const positions = new Float32Array(totalParticles * 3);
   const geodesicCorePositions = new Float32Array(totalParticles * 3);
   const cosmicPlanetPositions = new Float32Array(totalParticles * 3);
@@ -241,49 +241,85 @@ function generateMParticleData(totalParticles = 4200) {
 
   let count = 0;
 
-  const addPoint = (x: number, y: number, z: number) => {
-    if (count >= totalParticles) return;
-    positions[count * 3] = x + (Math.random() - 0.5) * 0.09;
-    positions[count * 3 + 1] = y + (Math.random() - 0.5) * 0.09;
-    positions[count * 3 + 2] = z + (Math.random() - 0.5) * 0.14;
+  // True Bilateral Symmetry ($x \leftrightarrow -x$) Point Generator
+  const addSymmetricPair = (x: number, y: number, z: number, jitter = 0.075) => {
+    if (count >= totalParticles - 1) return;
 
-    const phi = Math.acos(-1 + (2 * count) / totalParticles);
-    const theta = Math.sqrt(totalParticles * Math.PI) * phi;
-    const coreRadius = 1.3 + (Math.random() - 0.5) * 0.18;
-    geodesicCorePositions[count * 3] = Math.cos(theta) * Math.sin(phi) * coreRadius;
-    geodesicCorePositions[count * 3 + 1] = Math.sin(theta) * Math.sin(phi) * coreRadius;
-    geodesicCorePositions[count * 3 + 2] = Math.cos(phi) * coreRadius;
+    // Gaussian radial jitter
+    const jx = (Math.random() - 0.5) * jitter;
+    const jy = (Math.random() - 0.5) * jitter;
+    const jz = (Math.random() - 0.5) * jitter * 1.5;
 
-    const planetAngle = (count / totalParticles) * Math.PI * 2;
-    const planetRadius = 1.8 + (Math.random() - 0.5) * 0.5;
-    cosmicPlanetPositions[count * 3] = Math.cos(planetAngle) * planetRadius;
-    cosmicPlanetPositions[count * 3 + 1] = Math.sin(planetAngle * 2.0) * 0.5;
-    cosmicPlanetPositions[count * 3 + 2] = Math.sin(planetAngle) * planetRadius;
+    // Left Point (-x)
+    const leftX = -Math.abs(x) + jx;
+    const leftY = y + jy;
+    const leftZ = z + jz;
+
+    positions[count * 3] = leftX;
+    positions[count * 3 + 1] = leftY;
+    positions[count * 3 + 2] = leftZ;
+
+    const phi1 = Math.acos(-1 + (2 * count) / totalParticles);
+    const theta1 = Math.sqrt(totalParticles * Math.PI) * phi1;
+    const coreRadius1 = 1.3 + (Math.random() - 0.5) * 0.18;
+    geodesicCorePositions[count * 3] = Math.cos(theta1) * Math.sin(phi1) * coreRadius1;
+    geodesicCorePositions[count * 3 + 1] = Math.sin(theta1) * Math.sin(phi1) * coreRadius1;
+    geodesicCorePositions[count * 3 + 2] = Math.cos(phi1) * coreRadius1;
+
+    const planetAngle1 = (count / totalParticles) * Math.PI * 2;
+    const planetRadius1 = 1.8 + (Math.random() - 0.5) * 0.5;
+    cosmicPlanetPositions[count * 3] = Math.cos(planetAngle1) * planetRadius1;
+    cosmicPlanetPositions[count * 3 + 1] = Math.sin(planetAngle1 * 2.0) * 0.5;
+    cosmicPlanetPositions[count * 3 + 2] = Math.sin(planetAngle1) * planetRadius1;
 
     seeds[count] = Math.random();
-    sizes[count] = Math.random() * 0.025 + 0.035;
+    sizes[count] = Math.random() * 0.018 + 0.035;
+    count++;
+
+    // Right Mirrored Point (+x) - Exact Twin
+    const rightX = Math.abs(x) - jx;
+    const rightY = leftY;
+    const rightZ = leftZ;
+
+    positions[count * 3] = rightX;
+    positions[count * 3 + 1] = rightY;
+    positions[count * 3 + 2] = rightZ;
+
+    const phi2 = Math.acos(-1 + (2 * count) / totalParticles);
+    const theta2 = Math.sqrt(totalParticles * Math.PI) * phi2;
+    const coreRadius2 = 1.3 + (Math.random() - 0.5) * 0.18;
+    geodesicCorePositions[count * 3] = Math.cos(theta2) * Math.sin(phi2) * coreRadius2;
+    geodesicCorePositions[count * 3 + 1] = Math.sin(theta2) * Math.sin(phi2) * coreRadius2;
+    geodesicCorePositions[count * 3 + 2] = Math.cos(phi2) * coreRadius2;
+
+    const planetAngle2 = (count / totalParticles) * Math.PI * 2;
+    const planetRadius2 = 1.8 + (Math.random() - 0.5) * 0.5;
+    cosmicPlanetPositions[count * 3] = Math.cos(planetAngle2) * planetRadius2;
+    cosmicPlanetPositions[count * 3 + 1] = Math.sin(planetAngle2 * 2.0) * 0.5;
+    cosmicPlanetPositions[count * 3 + 2] = Math.sin(planetAngle2) * planetRadius2;
+
+    seeds[count] = Math.random();
+    sizes[count] = sizes[count - 1];
     count++;
   };
 
-  const stemPoints = Math.floor(totalParticles * 0.28);
-  for (let i = 0; i < stemPoints; i++) {
-    addPoint(-1.05 + (Math.random() - 0.5) * 0.28, (Math.random() - 0.5) * 2.7, (Math.random() - 0.5) * 0.28);
+  const totalPairs = Math.floor(totalParticles / 2);
+  const stemPairs = Math.floor(totalPairs * 0.52);
+  const diagPairs = totalPairs - stemPairs;
+
+  // 1. Symmetrical Outer Stems (Left & Right)
+  for (let i = 0; i < stemPairs; i++) {
+    const t = i / stemPairs;
+    const y = -1.35 + t * 2.7;
+    addSymmetricPair(1.22, y, 0, 0.075);
   }
 
-  const diagPoints1 = Math.floor(totalParticles * 0.22);
-  for (let i = 0; i < diagPoints1; i++) {
-    const t = Math.random();
-    addPoint(-1.05 * (1 - t) + 0.0 * t, 1.35 * (1 - t) + (-0.3) * t, (Math.random() - 0.5) * 0.28);
-  }
-
-  const diagPoints2 = Math.floor(totalParticles * 0.22);
-  for (let i = 0; i < diagPoints2; i++) {
-    const t = Math.random();
-    addPoint(0.0 * (1 - t) + 1.05 * t, (-0.3) * (1 - t) + 1.35 * t, (Math.random() - 0.5) * 0.28);
-  }
-
-  while (count < totalParticles) {
-    addPoint(1.05 + (Math.random() - 0.5) * 0.28, (Math.random() - 0.5) * 2.7, (Math.random() - 0.5) * 0.28);
+  // 2. Symmetrical Inner Diagonals (Left & Right meeting in center)
+  for (let i = 0; i < diagPairs; i++) {
+    const t = i / diagPairs;
+    const x = 1.22 * (1 - t) + 0.00 * t;
+    const y = 1.35 * (1 - t) + (-0.32) * t;
+    addSymmetricPair(x, y, 0, 0.075);
   }
 
   return { positions, geodesicCorePositions, cosmicPlanetPositions, seeds, sizes };
@@ -319,24 +355,24 @@ function AuroraWaveMesh() {
 }
 
 /**
- * Subtractive Ricardo Chance Twinkling Micro-Starfield (1,200 Fine Micro-Stars)
+ * Subtractive Ricardo Chance Twinkling Micro-Starfield Component
  */
 function TwinklingStarfield() {
   const pointsRef = useRef<THREE.Points>(null!);
 
-  const [geometry, material] = useMemo(() => {
-    const totalStars = 1200; // Subtractive Refinement: 1,200 fine stars (Zero Clutter!)
-    const positions = new Float32Array(totalStars * 3);
-    const seeds = new Float32Array(totalStars);
-    const sizes = new Float32Array(totalStars);
+  const { geometry, shaderMaterial } = useMemo(() => {
+    const starCount = 1200;
+    const positions = new Float32Array(starCount * 3);
+    const seeds = new Float32Array(starCount);
+    const sizes = new Float32Array(starCount);
 
-    for (let i = 0; i < totalStars; i++) {
+    for (let i = 0; i < starCount; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 22;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 15;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 12 - 1;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 16;
+      positions[i * 3 + 2] = -2 - Math.random() * 8;
 
       seeds[i] = Math.random();
-      sizes[i] = Math.random() * 0.02 + 0.012;
+      sizes[i] = Math.random() * 0.035 + 0.015;
     }
 
     const geo = new THREE.BufferGeometry();
@@ -353,29 +389,36 @@ function TwinklingStarfield() {
       blending: THREE.AdditiveBlending,
     });
 
-    return [geo, mat];
+    return { geometry: geo, shaderMaterial: mat };
   }, []);
 
   useFrame((state) => {
-    if (material) {
-      material.uniforms.uTime.value = state.clock.elapsedTime;
+    if (shaderMaterial) {
+      shaderMaterial.uniforms.uTime.value = state.clock.elapsedTime;
     }
   });
 
-  return <points ref={pointsRef} geometry={geometry} material={material} />;
+  return <points ref={pointsRef} geometry={geometry} material={shaderMaterial} />;
 }
 
 /**
- * 3D Particle Mesh Component supporting 3 Scroll Morph States
+ * 3-State Morphing 3D Particle 'M' WebGL Core Component
  */
 function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: number }; globalScroll: number }) {
   const pointsRef = useRef<THREE.Points>(null!);
   const { camera } = useThree();
 
-  const particleData = useMemo(() => generateMParticleData(4200), []);
+  const { geometry, shaderMaterial } = useMemo(() => {
+    const data = generateMParticleData(4400);
 
-  const shaderMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(data.positions, 3));
+    geo.setAttribute("aGeodesicCorePosition", new THREE.BufferAttribute(data.geodesicCorePositions, 3));
+    geo.setAttribute("aCosmicPlanetPosition", new THREE.BufferAttribute(data.cosmicPlanetPositions, 3));
+    geo.setAttribute("aRandomSeed", new THREE.BufferAttribute(data.seeds, 1));
+    geo.setAttribute("aParticleSize", new THREE.BufferAttribute(data.sizes, 1));
+
+    const mat = new THREE.ShaderMaterial({
       vertexShader: ParticleMShader.vertexShader,
       fragmentShader: ParticleMShader.fragmentShader,
       uniforms: THREE.UniformsUtils.clone(ParticleMShader.uniforms),
@@ -383,18 +426,9 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-  }, []);
 
-  const geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(particleData.positions, 3));
-    geo.setAttribute("aGeodesicCorePosition", new THREE.BufferAttribute(particleData.geodesicCorePositions, 3));
-    geo.setAttribute("aCosmicPlanetPosition", new THREE.BufferAttribute(particleData.cosmicPlanetPositions, 3));
-    geo.setAttribute("aRandomSeed", new THREE.BufferAttribute(particleData.seeds, 1));
-    geo.setAttribute("aParticleSize", new THREE.BufferAttribute(particleData.sizes, 1));
-    geo.center();
-    return geo;
-  }, [particleData]);
+    return { geometry: geo, shaderMaterial: mat };
+  }, []);
 
   useFrame((state) => {
     if (!shaderMaterial) return;
@@ -411,7 +445,8 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
     shaderMaterial.uniforms.uMouse3D.value.copy(mouse3D);
 
     if (pointsRef.current) {
-      const isMobile = window.innerWidth < 768;
+      const isMobile = window.innerWidth < 640;
+      const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
       const scrollRotationMultiplier = globalScroll > 0.05 ? (globalScroll - 0.05) * Math.PI * 4 : 0;
       const targetRotationY = scrollRotationMultiplier;
       const targetRotationX = Math.sin(globalScroll * Math.PI) * 0.25;
@@ -419,11 +454,13 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
       pointsRef.current.rotation.y = THREE.MathUtils.lerp(pointsRef.current.rotation.y, targetRotationY, 0.1);
       pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, targetRotationX, 0.1);
 
-      // Monumental Full-Viewport 3D 'M' Architectural Frame
-      // Centered across all devices (mobile, tablet, desktop) creating a grand framing archway
+      // Symmetrical Archway Positioning: Centered on all viewports
       const targetX = 0.0;
-      const targetY = globalScroll < 0.25 ? 0.05 : 0.0;
-      const targetScale = globalScroll < 0.25 ? (isMobile ? 1.22 : 1.45) : (isMobile ? 0.75 : 1.0);
+      const targetY = 0.0;
+      // Precision viewport responsive scaling matrix
+      const targetScale = globalScroll < 0.25
+        ? (isMobile ? 0.94 : (isTablet ? 1.15 : 1.35))
+        : (isMobile ? 0.65 : 0.95);
 
       pointsRef.current.position.x = THREE.MathUtils.lerp(pointsRef.current.position.x, targetX, 0.08);
       pointsRef.current.position.y = THREE.MathUtils.lerp(pointsRef.current.position.y, targetY, 0.08);
