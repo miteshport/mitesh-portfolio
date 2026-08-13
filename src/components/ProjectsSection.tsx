@@ -91,19 +91,44 @@ export default function ProjectsSection() {
           max-width: 1280px;
         }
 
+        .bento-card-item {
+          position: relative;
+          border-radius: 16px;
+          background-color: rgba(15, 12, 30, 0.75);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          padding: 1.1rem 1.3rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          overflow: hidden;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+          transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
         @media (max-width: 1024px) {
           .bento-grid-container {
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: auto;
-            height: auto;
+            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-rows: auto !important;
+            height: auto !important;
+          }
+          .bento-card-item {
+            min-height: 280px !important;
           }
         }
 
         @media (max-width: 768px) {
           .bento-grid-container {
-            grid-template-columns: 1fr;
-            grid-template-rows: auto;
-            height: auto;
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto !important;
+            height: auto !important;
+            gap: 1.5rem !important;
+          }
+          .bento-card-item {
+            grid-column: span 1 !important;
+            min-height: 340px !important;
+            height: 340px !important;
           }
         }
       `,
@@ -136,9 +161,12 @@ export default function ProjectsSection() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                 transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                className="bento-card-item"
                 style={{
-                  position: "relative",
                   perspective: "1000px",
+                  padding: 0,
+                  border: "none",
+                  backgroundColor: "transparent",
                 }}
               >
                 <motion.div
@@ -287,21 +315,9 @@ export default function ProjectsSection() {
                   window.open(project.url, "_blank", "noopener,noreferrer");
                 }
               }}
+              className="bento-card-item"
               style={{
-                position: "relative",
-                borderRadius: "16px",
-                backgroundColor: "rgba(15, 12, 30, 0.75)",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                padding: "1.1rem 1.3rem",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                overflow: "hidden",
-                boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
                 cursor: project.url ? "pointer" : "default",
-                transition: "border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease",
               }}
               whileHover={{
                 borderColor: "rgba(255, 255, 255, 0.3)",

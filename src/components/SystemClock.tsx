@@ -1,88 +1,106 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 export default function SystemClock() {
-  const [time, setTime] = useState("");
-  const [mounted, setMounted] = useState(false);
+  const [timeStr, setTimeStr] = useState<string>("");
 
   useEffect(() => {
-    setMounted(true);
-    const updateClock = () => {
+    const updateTime = () => {
       const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-      setTime(`${hh}:${mm}:${ss}`);
+      const hrs = String(now.getHours()).padStart(2, "0");
+      const mins = String(now.getMinutes()).padStart(2, "0");
+      const secs = String(now.getSeconds()).padStart(2, "0");
+      setTimeStr(`${hrs}:${mins}:${secs}`);
     };
-    
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  if (!mounted) return null;
-
   return (
-    <>
-      <div className="awwwards-sys-clock">
-        <div className="sys-status-indicator"></div>
-        <div className="sys-text">SYS: OPTIMAL</div>
-        <div className="sys-time">{time}</div>
-      </div>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .awwwards-sys-clock {
-          position: fixed;
-          top: 1.1rem;
-          left: 2rem;
-          z-index: 1000;
-          background: rgba(10, 10, 10, 0.7);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 100px;
-          padding: 0.4rem 0.9rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-family: monospace;
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 0.72rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .sys-status-indicator {
-          width: 8px;
-          height: 8px;
-          background-color: #27c93f;
-          border-radius: 50%;
-          box-shadow: 0 0 10px #27c93f;
-          animation: sys-pulse 2s infinite;
-        }
-        .sys-text {
-          color: rgba(255, 255, 255, 0.9);
-          font-weight: bold;
-        }
-        .sys-time {
-          color: #27c93f;
-        }
-        @keyframes sys-pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.4; }
-          100% { opacity: 1; }
-        }
+    <div
+      style={{
+        position: "fixed",
+        top: "1.1rem",
+        left: "2rem",
+        zIndex: 9999,
+        pointerEvents: "auto",
+      }}
+    >
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @media (max-width: 768px) {
-          .awwwards-sys-clock {
-            top: 1rem;
-            right: 1rem;
-            padding: 0.4rem 0.8rem;
-            font-size: 0.65rem;
+          .system-clock-pill {
+            top: 0.8rem !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            padding: 0.25rem 0.6rem !important;
+          }
+          .system-clock-text {
+            font-size: 0.6rem !important;
           }
         }
-        `
-      }} />
-    </>
+      `,
+        }}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="system-clock-pill"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.6rem",
+          backgroundColor: "rgba(10, 8, 22, 0.75)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderRadius: "9999px",
+          padding: "0.35rem 0.85rem",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.4)",
+        }}
+      >
+        <span
+          style={{
+            width: "7px",
+            height: "7px",
+            borderRadius: "50%",
+            backgroundColor: "#22c55e",
+            boxShadow: "0 0 8px #22c55e",
+            display: "inline-block",
+          }}
+        />
+        <span
+          className="system-clock-text"
+          style={{
+            fontFamily: "monospace",
+            fontSize: "0.68rem",
+            letterSpacing: "0.12em",
+            color: "rgba(255, 255, 255, 0.85)",
+            textTransform: "uppercase",
+            fontWeight: 600,
+          }}
+        >
+          SYS: OPTIMAL
+        </span>
+        <span
+          className="system-clock-text"
+          style={{
+            fontFamily: "monospace",
+            fontSize: "0.68rem",
+            color: "#22c55e",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {timeStr}
+        </span>
+      </motion.div>
+    </div>
   );
 }

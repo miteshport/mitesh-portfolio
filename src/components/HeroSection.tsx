@@ -49,57 +49,74 @@ export default function HeroSection() {
         zIndex: 10,
       }}
     >
-      {/* 50/50 2-COLUMN LUXURY GRID LAYOUT */}
-      <motion.div
-        style={{
-          opacity,
-          y,
-          width: "100%",
-          maxWidth: "1400px",
-          padding: "0 4rem",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          alignItems: "center",
-          gap: "2rem",
-          zIndex: 10,
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .hero-grid-layout {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          align-items: center;
+          gap: 2rem;
+          width: 100%;
+          max-width: 1400px;
+          padding: 0 4rem;
+          z-index: 10;
+        }
+
+        .hero-title {
+          font-family: 'Inter', sans-serif;
+          font-size: clamp(3.5rem, 5.5vw, 6.8rem);
+          line-height: 0.95;
+          color: #ffffff;
+          margin: 0;
+          letter-spacing: -0.03em;
+        }
+
+        .hero-tagline {
+          font-family: monospace;
+          font-size: 0.95rem;
+          line-height: 1.7;
+          color: rgba(255, 255, 255, 0.65);
+          margin: 0;
+        }
+
+        @media (max-width: 768px) {
+          .hero-grid-layout {
+            grid-template-columns: 1fr;
+            padding: 0 1.5rem;
+            gap: 1rem;
+            text-align: left;
+          }
+          .hero-title {
+            font-size: clamp(2.4rem, 8vw, 3.8rem) !important;
+          }
+          .hero-tagline {
+            font-size: 0.85rem !important;
+            line-height: 1.5 !important;
+          }
+        }
+      `,
         }}
-      >
-        {/* LEFT COLUMN: Locked to 520px Max-Width (Zero Collision with Right 3D 'M') */}
+      />
+
+      {/* 50/50 2-COLUMN LUXURY GRID LAYOUT */}
+      <motion.div style={{ opacity, y }} className="hero-grid-layout">
+        {/* LEFT COLUMN: Locked to 520px Max-Width */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "1.8rem",
+            gap: "1.2rem",
             maxWidth: "520px",
           }}
         >
           {/* Main Title */}
-          <h1
-            ref={textRef}
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: "clamp(3.5rem, 5.5vw, 6.8rem)",
-              lineHeight: 0.95,
-              color: "#ffffff",
-              margin: 0,
-              textTransform: "none",
-              letterSpacing: "-0.03em",
-              willChange: "font-weight, letter-spacing",
-            }}
-          >
+          <h1 ref={textRef} className="hero-title">
             Mitesh Shah
           </h1>
 
-          {/* Single Truth Tagline (Strictly Left-Aligned, Clean Boundaries) */}
-          <p
-            style={{
-              fontFamily: "monospace",
-              fontSize: "0.95rem",
-              lineHeight: 1.7,
-              color: "rgba(255, 255, 255, 0.65)",
-              margin: 0,
-            }}
-          >
+          {/* Single Truth Tagline */}
+          <p className="hero-tagline">
             Architecting enterprise IT infrastructure at scale. Engineering world-class websites, high-performance native apps, and mindful literature.
           </p>
         </div>
