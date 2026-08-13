@@ -15,12 +15,13 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://miteshshah.xyz"),
   title: "Mitesh Shah | The Architect",
   description: "Engineer of order out of chaos. Building flawless digital experiences and enterprise IT operations.",
   openGraph: {
     title: "Mitesh Shah | The Architect",
     description: "Engineer of order out of chaos. Building flawless digital experiences and enterprise IT operations.",
-    url: "https://www.miteshshah.xyz",
+    url: "https://miteshshah.xyz",
     siteName: "Mitesh Shah Portfolio",
     type: "website",
   },
