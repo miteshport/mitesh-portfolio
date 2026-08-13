@@ -176,12 +176,12 @@ const ParticleMShader = {
 
       if (distToMouse < uRepulsionRadius) {
         float factor = 1.0 - (distToMouse / uRepulsionRadius);
-        float springWobble = sin(factor * 16.0 - uTime * 10.0) * exp(-factor * uSpringDamping);
-        displacement = (pow(factor, 2.5) * 0.42) + (springWobble * 0.1);
+        // Velvet Fluid Displacement (Smooth Quadratic Deceleration matching WorldMapRadar)
+        displacement = pow(factor, 2.0) * 0.36;
 
         vec3 pushDir = normalize(dirToMouse);
-        pushDir.z += (aRandomSeed - 0.5) * 0.25;
-        displacedPos += pushDir * displacement;
+        pushDir.z = factor * 0.12; // Gentle organic depth lift
+        displacedPos += normalize(pushDir) * displacement;
       }
 
       vDisplacement = displacement;
@@ -189,8 +189,9 @@ const ParticleMShader = {
       vec4 mvPosition = modelViewMatrix * vec4(displacedPos, 1.0);
       gl_Position = projectionMatrix * mvPosition;
 
-      float sizeBoost = 1.0 + (displacement * 2.2);
-      gl_PointSize = clamp(aParticleSize * sizeBoost * (480.0 / -mvPosition.z), 4.0, 12.0);
+      // Refined starlight sizing with zero pixel explosion
+      float sizeBoost = 1.0 + (displacement * 0.75);
+      gl_PointSize = clamp(aParticleSize * sizeBoost * (480.0 / -mvPosition.z), 3.5, 8.5);
     }
   `,
   fragmentShader: `
@@ -222,9 +223,11 @@ const ParticleMShader = {
 
       vec3 color = mix(baseGradient, uTopColor, vHeightRatio * 0.4);
 
-      if (vDisplacement > 0.04) {
-        color = mix(color, vec3(1.0, 1.0, 1.0), clamp(vDisplacement * 2.2, 0.0, 1.0));
-        alpha = min(alpha * 1.3, 1.0);
+      // Soft Velvet Luminescence on cursor contact (Smooth transition, zero noise)
+      if (vDisplacement > 0.015) {
+        vec3 glowColor = mix(uCyanColor, vec3(1.0, 1.0, 1.0), 0.45);
+        color = mix(color, glowColor, clamp(vDisplacement * 2.8, 0.0, 0.8));
+        alpha = min(alpha * 1.2, 1.0);
       }
 
       gl_FragColor = vec4(color, alpha * 0.95);
