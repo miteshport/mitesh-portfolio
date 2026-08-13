@@ -48,7 +48,6 @@ export default function CardPage() {
     // Mobile Gyroscope DeviceOrientation Event Listener
     const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
       if (e.gamma !== null && e.beta !== null) {
-        // gamma: left-to-right tilt (-90 to 90), beta: front-to-back tilt (-180 to 180)
         const normX = Math.min(Math.max(e.gamma / 45, -0.5), 0.5);
         const normY = Math.min(Math.max(e.beta / 45, -0.5), 0.5);
         x.set(normX);
@@ -106,6 +105,29 @@ export default function CardPage() {
   const handleMouseLeave = () => {
     x.set(0);
     y.set(0);
+  };
+
+  // Instant vCard (.vcf) Address Book Download Handler
+  const downloadVCard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const vcardData = `BEGIN:VCARD
+VERSION:3.0
+FN:Mitesh Shah
+TITLE:Enterprise IT & Native App Architect
+EMAIL;TYPE=INTERNET,WORK:mitesh@miteshshah.xyz
+TEL;TYPE=CELL,VOICE:+16395904445
+URL:https://miteshshah.xyz
+NOTE:Operating at the critical intersection of enterprise system architecture, major incident command, and creative storytelling.
+END:VCARD`;
+
+    const blob = new Blob([vcardData], { type: "text/vcard;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Mitesh_Shah_Executive_Contact.vcf");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -176,6 +198,8 @@ export default function CardPage() {
           position: absolute;
           transform-style: preserve-3d;
         }
+
+        /* APPLE LIQUID GLASS EXECUTIVE CARD FACE STYLING */
         .card-face {
           position: absolute;
           inset: 0;
@@ -185,11 +209,11 @@ export default function CardPage() {
           flex-direction: column;
           padding: 2.2rem;
           border-radius: 24px;
-          background: rgba(15, 12, 30, 0.75);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(25px);
-          -webkit-backdrop-filter: blur(25px);
-          box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.2);
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.14) !important;
+          backdrop-filter: blur(24px) saturate(160%) !important;
+          -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+          box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.25);
           overflow: hidden;
         }
         .card-front {
@@ -199,16 +223,22 @@ export default function CardPage() {
           transform: rotateY(180deg);
           justify-content: center;
           align-items: center;
-          gap: 1.2rem;
+          gap: 0.9rem;
         }
         .sys-online {
           display: flex;
           align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          transform: translateZ(30px);
+        }
+        .sys-badge {
+          display: flex;
+          align-items: center;
           gap: 8px;
           font-family: monospace;
-          font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.7);
-          transform: translateZ(30px);
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.8);
           letter-spacing: 0.1em;
         }
         .dot {
@@ -223,6 +253,21 @@ export default function CardPage() {
           0% { opacity: 0.3; }
           100% { opacity: 1; box-shadow: 0 0 14px #22c55e; }
         }
+
+        /* Metallic Gold NFC Chip Graphic */
+        .nfc-chip {
+          width: 32px;
+          height: 24px;
+          border-radius: 4px;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          position: relative;
+          box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
         .identity {
           text-align: center;
           transform: translateZ(50px);
@@ -240,32 +285,39 @@ export default function CardPage() {
         .subtitle {
           font-family: monospace;
           font-size: 0.75rem;
-          letter-spacing: 0.15em;
-          color: rgba(255, 255, 255, 0.65);
+          letter-spacing: 0.12em;
+          color: rgba(255, 255, 255, 0.7);
           line-height: 1.6;
+        }
+        .contact-details-row {
+          font-family: monospace;
+          font-size: 0.68rem;
+          color: #38bdf8;
+          margin-top: 0.6rem;
+          letter-spacing: 0.08em;
         }
         .barcode-container {
           display: flex;
           justify-content: center;
           align-items: center;
           transform: translateZ(20px);
-          padding-bottom: 0.5rem;
+          padding-bottom: 0.3rem;
         }
         .barcode {
           width: 80%;
-          height: 38px;
+          height: 36px;
           color: rgba(255, 255, 255, 0.4);
         }
         .brutalist-button {
           width: 100%;
-          padding: 1.1rem;
-          background: transparent;
-          border: 1px solid rgba(255,255,255,0.2);
+          padding: 0.9rem 1.1rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           color: white;
           font-family: monospace;
-          font-size: 0.85rem;
+          font-size: 0.78rem;
           font-weight: bold;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
@@ -275,6 +327,7 @@ export default function CardPage() {
           display: flex;
           align-items: center;
           justify-content: center;
+          white-space: nowrap;
         }
         .brutalist-button:hover {
           background: white;
@@ -282,6 +335,15 @@ export default function CardPage() {
           border-color: white;
           transform: translateZ(50px) scale(1.02);
           box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+        .save-vcard-btn {
+          background: rgba(34, 197, 94, 0.15) !important;
+          border: 1px solid #22c55e !important;
+          color: #22c55e !important;
+        }
+        .save-vcard-btn:hover {
+          background: #22c55e !important;
+          color: #000000 !important;
         }
       `,
         }}
@@ -331,15 +393,26 @@ export default function CardPage() {
               }}
             />
 
+            {/* Top Bar with Online Status & Metallic Gold NFC Chip */}
             <div className="sys-online">
-              <div className="dot"></div>
-              SYS: OPTIMAL
+              <div className="sys-badge">
+                <div className="dot" />
+                SYS: OPTIMAL // NFC ACTIVE
+              </div>
+              <div className="nfc-chip" title="NFC Contact Chip">
+                <svg width="16" height="14" viewBox="0 0 16 14" fill="none">
+                  <path d="M1 4h14M1 7h14M1 10h14" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+                </svg>
+              </div>
             </div>
 
             <div className="identity">
               <h1 className="name">Mitesh Shah</h1>
               <div className="subtitle">
-                I operate at the critical intersection of enterprise system architecture, major incident command, and creative storytelling. Built with precision, scale, and care.
+                Enterprise IT Architecture, Major Incident Command & Native Apps. Built with precision and scale.
+              </div>
+              <div className="contact-details-row">
+                mitesh@miteshshah.xyz // +1 639 590 4445
               </div>
             </div>
 
@@ -391,8 +464,13 @@ export default function CardPage() {
               }}
             />
 
+            {/* Instant vCard Saver Button */}
+            <button className="brutalist-button save-vcard-btn" onClick={downloadVCard}>
+              [ 💾 SAVE CONTACT TO PHONE (.VCF) ]
+            </button>
+
             <a
-              href="https://www.linkedin.com/in/miteshbshah"
+              href="https://www.linkedin.com/in/mitesh-shah-6415777a/"
               target="_blank"
               rel="noopener noreferrer"
               className="brutalist-button"
