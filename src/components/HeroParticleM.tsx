@@ -419,12 +419,15 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
       pointsRef.current.rotation.y = THREE.MathUtils.lerp(pointsRef.current.rotation.y, targetRotationY, 0.1);
       pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, targetRotationX, 0.1);
 
-      // On narrow mobile screens, center X position to 0; on desktop shift to right half (1.0)
+      // Responsive positioning:
+      // Mobile Hero: Anchor in lower zone (Y: -0.38, scale: 0.58) so text in upper zone never collides.
+      // Desktop Hero: Shift to right column (X: 1.0, Y: 0.0, scale: 1.0).
       const targetX = globalScroll < 0.25 ? (isMobile ? 0.0 : 1.0) : 0.0;
-      pointsRef.current.position.x = THREE.MathUtils.lerp(pointsRef.current.position.x, targetX, 0.08);
+      const targetY = globalScroll < 0.25 ? (isMobile ? -0.38 : 0.0) : 0.0;
+      const targetScale = globalScroll < 0.25 ? (isMobile ? 0.58 : 1.0) : (isMobile ? 0.75 : 1.0);
 
-      // Dynamically scale down 'M' particle group on narrow mobile screens (0.65) so it fits 100% with zero clipping!
-      const targetScale = isMobile ? 0.65 : 1.0;
+      pointsRef.current.position.x = THREE.MathUtils.lerp(pointsRef.current.position.x, targetX, 0.08);
+      pointsRef.current.position.y = THREE.MathUtils.lerp(pointsRef.current.position.y, targetY, 0.08);
       pointsRef.current.scale.setScalar(THREE.MathUtils.lerp(pointsRef.current.scale.x, targetScale, 0.1));
     }
   });

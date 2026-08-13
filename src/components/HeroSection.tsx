@@ -83,16 +83,21 @@ export default function HeroSection() {
         @media (max-width: 768px) {
           .hero-grid-layout {
             grid-template-columns: 1fr;
-            padding: 0 1.5rem;
-            gap: 1rem;
+            padding: 5.5rem 1.5rem 0 1.5rem;
+            gap: 0.8rem;
+            align-items: flex-start;
             text-align: left;
           }
           .hero-title {
-            font-size: clamp(2.4rem, 8vw, 3.8rem) !important;
+            font-size: clamp(2.6rem, 9vw, 3.8rem) !important;
+            text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 0, 0, 0.8);
           }
           .hero-tagline {
-            font-size: 0.85rem !important;
-            line-height: 1.5 !important;
+            font-size: 0.82rem !important;
+            line-height: 1.6 !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+            text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95);
+            letter-spacing: 0.08em;
           }
         }
       `,
@@ -101,12 +106,12 @@ export default function HeroSection() {
 
       {/* 50/50 2-COLUMN LUXURY GRID LAYOUT */}
       <motion.div style={{ opacity, y }} className="hero-grid-layout">
-        {/* LEFT COLUMN: Locked to 520px Max-Width */}
+        {/* LEFT / UPPER COLUMN: Locked to 520px Max-Width */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "1.2rem",
+            gap: "1rem",
             maxWidth: "520px",
           }}
         >
@@ -115,13 +120,13 @@ export default function HeroSection() {
             Mitesh Shah
           </h1>
 
-          {/* Single Truth Tagline */}
+          {/* Single Truth Executive Tagline */}
           <p className="hero-tagline">
-            Architecting enterprise IT infrastructure at scale. Engineering world-class websites, high-performance native apps, and mindful literature.
+            Enterprise IT Architecture · Major Incident Command · High-Scale Systems
           </p>
         </div>
 
-        {/* RIGHT COLUMN: Dedicated Space for Centered 3D 'M' Monogram */}
+        {/* RIGHT / LOWER COLUMN: Dedicated Space for Centered 3D 'M' Monogram */}
         <div style={{ width: "100%", height: "100%" }} />
       </motion.div>
     </section>
