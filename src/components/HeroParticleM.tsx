@@ -419,12 +419,11 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
       pointsRef.current.rotation.y = THREE.MathUtils.lerp(pointsRef.current.rotation.y, targetRotationY, 0.1);
       pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, targetRotationX, 0.1);
 
-      // Responsive positioning:
-      // Mobile Hero: Anchor in lower zone (Y: -0.38, scale: 0.58) so text in upper zone never collides.
-      // Desktop Hero: Shift to right column (X: 1.0, Y: 0.0, scale: 1.0).
-      const targetX = globalScroll < 0.25 ? (isMobile ? 0.0 : 1.0) : 0.0;
-      const targetY = globalScroll < 0.25 ? (isMobile ? -0.38 : 0.0) : 0.0;
-      const targetScale = globalScroll < 0.25 ? (isMobile ? 0.58 : 1.0) : (isMobile ? 0.75 : 1.0);
+      // Monumental Full-Viewport 3D 'M' Architectural Frame
+      // Centered across all devices (mobile, tablet, desktop) creating a grand framing archway
+      const targetX = 0.0;
+      const targetY = globalScroll < 0.25 ? 0.05 : 0.0;
+      const targetScale = globalScroll < 0.25 ? (isMobile ? 1.22 : 1.45) : (isMobile ? 0.75 : 1.0);
 
       pointsRef.current.position.x = THREE.MathUtils.lerp(pointsRef.current.position.x, targetX, 0.08);
       pointsRef.current.position.y = THREE.MathUtils.lerp(pointsRef.current.position.y, targetY, 0.08);
