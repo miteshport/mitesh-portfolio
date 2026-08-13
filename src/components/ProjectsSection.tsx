@@ -91,20 +91,27 @@ export default function ProjectsSection() {
           max-width: 1280px;
         }
 
+        /* APPLE LIQUID GLASS CARD STYLING (Translucent + Saturate 160%) */
         .bento-card-item {
           position: relative;
           border-radius: 16px;
-          background-color: rgba(15, 12, 30, 0.75);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background-color: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.12) !important;
+          backdrop-filter: blur(24px) saturate(160%) !important;
+          -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
           padding: 1.1rem 1.3rem;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
           overflow: hidden;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-          transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+          transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .bento-card-item:hover {
+          background-color: rgba(255, 255, 255, 0.07) !important;
+          border-color: rgba(168, 85, 247, 0.45) !important;
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(168, 85, 247, 0.25) !important;
         }
 
         @media (max-width: 1024px) {
@@ -187,15 +194,15 @@ export default function ProjectsSection() {
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                       borderRadius: "16px",
-                      backgroundColor: "rgba(15, 12, 30, 0.75)",
+                      backgroundColor: "rgba(255, 255, 255, 0.03)",
                       border: "1px solid rgba(255, 255, 255, 0.12)",
-                      backdropFilter: "blur(20px)",
-                      WebkitBackdropFilter: "blur(20px)",
+                      backdropFilter: "blur(24px) saturate(160%)",
+                      WebkitBackdropFilter: "blur(24px) saturate(160%)",
                       padding: "1.1rem 1.3rem",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
-                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4)",
                     }}
                   >
                     {/* Top Bar */}
@@ -248,15 +255,15 @@ export default function ProjectsSection() {
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                       borderRadius: "16px",
-                      backgroundColor: "rgba(15, 12, 30, 0.85)",
+                      backgroundColor: "rgba(255, 255, 255, 0.04)",
                       border: "1px solid rgba(168, 85, 247, 0.3)",
-                      backdropFilter: "blur(20px)",
-                      WebkitBackdropFilter: "blur(20px)",
+                      backdropFilter: "blur(24px) saturate(160%)",
+                      WebkitBackdropFilter: "blur(24px) saturate(160%)",
                       padding: "1.1rem 1.3rem",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
-                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4)",
                     }}
                   >
                     {/* Top Bar */}
@@ -319,11 +326,6 @@ export default function ProjectsSection() {
               style={{
                 cursor: project.url ? "pointer" : "default",
               }}
-              whileHover={{
-                borderColor: "rgba(255, 255, 255, 0.3)",
-                y: -3,
-                boxShadow: "0 25px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(168, 85, 247, 0.2)",
-              }}
             >
               {/* Top Bar: Micro-Label (Left) & Zero-Height Arrow Badge (Right) */}
               <div
@@ -349,7 +351,7 @@ export default function ProjectsSection() {
                   {project.title}
                 </span>
 
-                {/* Sleek Top-Right Arrow Badge (0 Vertical Space) */}
+                {/* Sleek Top-Right Arrow Badge */}
                 {project.url && (
                   <span
                     style={{
@@ -364,7 +366,7 @@ export default function ProjectsSection() {
                 )}
               </div>
 
-              {/* CARD 2: Matter.js 2D Interactive Physics Pills (Edge-to-Edge Canvas) */}
+              {/* CARD 2: Matter.js 2D Interactive Physics Pills */}
               {project.id === "skills-arsenal" && (
                 <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
                   <PhysicsPills />
@@ -378,7 +380,7 @@ export default function ProjectsSection() {
                 </div>
               )}
 
-              {/* CARD 4: Direct SVG Continent Path Dot Matrix Map (Edge-to-Edge Canvas) */}
+              {/* CARD 4: Direct SVG Continent Path Dot Matrix Map */}
               {project.id === "canada-base" && (
                 <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
                   <WorldMapRadar />

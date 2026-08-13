@@ -105,7 +105,7 @@ export default function ITSection() {
         </p>
       </div>
 
-      {/* Floating Glassmorphic macOS Terminal Window */}
+      {/* Floating Glassmorphic macOS Terminal Window (APPLE LIQUID GLASS) */}
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.96 }}
         animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.96 }}
@@ -113,14 +113,14 @@ export default function ITSection() {
         style={{
           width: "100%",
           maxWidth: "880px",
-          backgroundColor: isBreachActive && breachStep < 4 ? "rgba(45, 10, 15, 0.85)" : "rgba(10, 8, 22, 0.75)",
-          border: isBreachActive && breachStep < 4 ? "1px solid #ef4444" : "1px solid rgba(255, 255, 255, 0.14)",
+          backgroundColor: isBreachActive && breachStep < 4 ? "rgba(45, 10, 15, 0.55)" : "rgba(255, 255, 255, 0.03)",
+          border: isBreachActive && breachStep < 4 ? "1px solid #ef4444" : "1px solid rgba(255, 255, 255, 0.12)",
           borderRadius: "14px",
-          backdropFilter: "blur(25px)",
-          WebkitBackdropFilter: "blur(25px)",
+          backdropFilter: "blur(24px) saturate(160%)",
+          WebkitBackdropFilter: "blur(24px) saturate(160%)",
           boxShadow: isBreachActive && breachStep < 4
             ? "0 30px 80px rgba(239, 68, 68, 0.3), 0 0 50px rgba(239, 68, 68, 0.4)"
-            : "0 30px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(168, 85, 247, 0.15)",
+            : "0 30px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(168, 85, 247, 0.15)",
           overflow: "hidden",
           position: "relative",
           transition: "background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease",
