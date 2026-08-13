@@ -1,303 +1,391 @@
 "use client";
 
-import { useRef } from "react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useSpring,
-  useVelocity,
-} from "framer-motion";
+import { useState, useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import AimScopeSimulator from "@/components/AimScopeSimulator";
+import SankalpHabitRing from "@/components/SankalpHabitRing";
+import PhysicsPills from "@/components/PhysicsPills";
+import BookParallax from "@/components/BookParallax";
+import WorldMapRadar from "@/components/WorldMapRadar";
+import ContentTicker from "@/components/ContentTicker";
+import AudioEqualizer from "@/components/AudioEqualizer";
+
+interface Project {
+  id: string;
+  title: string;
+  category: string;
+  url?: string;
+}
+
+const PROJECTS: Project[] = [
+  {
+    id: "zero-sankalp",
+    title: "ZERØ & SANKALP",
+    category: "Native Android Flagships",
+    url: "https://play.google.com/store/apps/details?id=com.zeroapps.zero_crosshair",
+  },
+  {
+    id: "skills-arsenal",
+    title: "SKILLS & TECHNICAL STACK",
+    category: "Interactive 2D Physics",
+  },
+  {
+    id: "divine-doodles",
+    title: "DIVINE DOODLES",
+    category: "Literature & Illustration",
+    url: "https://www.amazon.com/Divine-Doodles-Toddler-Indian-Goddesses/dp/B0CFZGWJNB?ref_=ast_author_dp_rw&th=1&psc=1&dib=eyJ2IjoiMSJ9.aeTHMO6PQkdxe-TpIGnHdw.qWGqL0MqCuEC_OvVR2EYITYYJTI45lU6-V5_D1loFYc&dib_tag=AUTHOR",
+  },
+  {
+    id: "canada-base",
+    title: "BASED IN CANADA",
+    category: "Global Operations",
+  },
+  {
+    id: "pratyaksh-gyan",
+    title: "PRATYAKSH GYAN",
+    category: "Educational Publishing",
+    url: "https://pratyakshgyan.com",
+  },
+  {
+    id: "coffee-donut-tv",
+    title: "COFFEE DONUT TV",
+    category: "Creative Media Hub",
+    url: "https://www.coffeedonuttv.com/",
+  },
+];
 
 export default function ProjectsSection() {
-  const targetRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
 
-  const { scrollYProgress } = useScroll({
-    target: targetRef,
-  });
-
-  const scrollVelocity = useVelocity(scrollYProgress);
-  const smoothVelocity = useSpring(scrollVelocity, {
-    damping: 50,
-    stiffness: 400,
-  });
-
-  const velocitySkew = useTransform(smoothVelocity, [-1, 1], [5, -5]);
-  const skewX = useSpring(velocitySkew, { damping: 20, stiffness: 100 });
-
-  const x = useTransform(scrollYProgress, [0, 1], ["0%", "-50%"]);
-  const bgX1 = useTransform(scrollYProgress, [0, 1], ["-10%", "10%"]);
-  const bgX2 = useTransform(scrollYProgress, [0, 1], ["-15%", "5%"]);
+  // 3D Flip State for Card 1 (ZERØ Front vs Sankalp Back)
+  const [isCard1Flipped, setIsCard1Flipped] = useState(false);
 
   return (
     <section
-      ref={targetRef}
-      className="projects-section-container"
-      style={{ background: '#000', zIndex: 20 }}
+      ref={sectionRef}
+      id="projects"
+      style={{
+        width: "100vw",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        backgroundColor: "transparent",
+        padding: "3.2rem 2rem 5.5rem 2rem",
+        zIndex: 10,
+      }}
     >
-      <div className="projects-sticky-wrapper">
-        <motion.div className="projects-track" style={{ x }}>
-
-          {/* Card 1: Coffee & Donut TV */}
-          <div className="project-wrapper">
-            <motion.a
-              style={{ skewX }}
-              href="https://www.coffeedonuttv.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="awwwards-project-card"
-            >
-            <motion.div
-              style={{ x: bgX1, backgroundImage: "url(/coffeedonuttv.png)" }}
-              className="awwwards-bg"
-            />
-            <div className="awwwards-content">
-              <h2>Coffee & Donut TV</h2>
-              <div className="awwwards-meta">
-                <span className="awwwards-tag">Role: Developer</span>
-                <span className="awwwards-tag">Tech: SaaS, Streaming</span>
-              </div>
-            </div>
-              <div className="awwwards-view">View Project <span>→</span></div>
-            </motion.a>
-          </div>
-
-          {/* Card 2: Pratyaksh Gyan */}
-          <div className="project-wrapper">
-            <motion.a
-              style={{ skewX }}
-              href="https://pratyakshgyan.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="awwwards-project-card"
-            >
-            <motion.div
-              style={{ x: bgX2, backgroundImage: "url(/pratyakshgyan.png)" }}
-              className="awwwards-bg"
-            />
-            <div className="awwwards-content">
-              <h2>Pratyaksh Gyan</h2>
-              <div className="awwwards-meta">
-                <span className="awwwards-tag">Role: Developer</span>
-                <span className="awwwards-tag">Tech: WebGL, Agent-Driven</span>
-              </div>
-            </div>
-              <div className="awwwards-view">View Project <span>→</span></div>
-            </motion.a>
-          </div>
-
-        </motion.div>
-      </div>
-
-      {/* Bulletproof CSS Injection */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .projects-section-container {
-          position: relative;
-          height: 300vh;
-        }
-        .projects-sticky-wrapper {
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          overflow: hidden;
-        }
-        .projects-track {
-          display: flex;
-          width: 200vw;
-        }
-        .project-wrapper {
-          width: 100vw;
-          height: 100vh;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-shrink: 0;
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .bento-grid-container {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          grid-template-rows: repeat(2, 1fr);
+          gap: 1.2rem;
+          width: 100%;
+          height: calc(100vh - 165px);
+          max-width: 1280px;
         }
 
-        .awwwards-project-card {
-          width: 80vw;
-          height: 75vh;
-          flex-shrink: 0;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 4rem;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-          overflow: hidden;
-          position: relative;
-          background: #111;
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          text-decoration: none;
-          transform-origin: bottom center;
-        }
-        .awwwards-project-card:hover {
-          transform: scale(0.97);
-        }
-        .awwwards-bg {
-          position: absolute;
-          top: -10%;
-          left: -10%;
-          width: 120%;
-          height: 120%;
-          background-size: cover;
-          background-position: center;
-          opacity: 0.15;
-          filter: grayscale(100%);
-          transition: filter 0.8s ease, opacity 0.8s ease;
-          z-index: 0;
-        }
-        .awwwards-project-card:hover .awwwards-bg {
-          opacity: 0.6;
-          filter: grayscale(0%);
-        }
-        .awwwards-content {
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          gap: 1.5rem;
-          position: relative;
-          z-index: 1;
-        }
-        .awwwards-project-card h2 {
-          font-family: serif;
-          font-size: clamp(3rem, 6vw, 7rem);
-          line-height: 1;
-          color: #fff;
-          margin: 0;
-          transform: translateY(20px);
-          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .awwwards-project-card:hover h2 {
-          transform: translateY(0);
-        }
-        .awwwards-meta {
-          display: flex;
-          gap: 1.5rem;
-          opacity: 0;
-          transform: translateY(20px);
-          transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .awwwards-project-card:hover .awwwards-meta {
-          opacity: 1;
-          transform: translateY(0);
-          transition-delay: 0.1s;
-        }
-        .awwwards-tag {
-          font-family: monospace;
-          font-size: 1rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #fff;
-          padding: 0.5rem 1rem;
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(5px);
-          border-radius: 4px;
-        }
-        .awwwards-view {
-          position: absolute;
-          top: 3rem;
-          right: 3rem;
-          width: 100px;
-          height: 100px;
-          background: #fff;
-          color: #000;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          font-size: 0.9rem;
-          text-transform: uppercase;
-          opacity: 0;
-          transform: scale(0.5);
-          transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-          z-index: 2;
-        }
-        .awwwards-project-card:hover .awwwards-view {
-          opacity: 1;
-          transform: scale(1);
-        }
-        .awwwards-view span {
-          margin-left: 0.3rem;
-          transition: transform 0.3s ease;
-        }
-        .awwwards-project-card:hover .awwwards-view:hover span {
-          transform: translateX(5px);
+        @media (max-width: 1024px) {
+          .bento-grid-container {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: auto;
+            height: auto;
+          }
         }
 
         @media (max-width: 768px) {
-          .projects-section-container {
-            height: auto !important;
-            padding: 4rem 0;
-          }
-          .projects-sticky-wrapper {
-            position: relative !important;
-            height: auto !important;
-            overflow: visible !important;
-            display: block !important;
-          }
-          .projects-track {
-            width: 100% !important;
-            flex-direction: column !important;
-            gap: 4rem;
-            transform: none !important;
-          }
-          .project-wrapper {
-            width: 100% !important;
-            height: auto !important;
-          }
-          .awwwards-project-card {
-            width: 90vw !important;
-            padding: 1.5rem;
-            height: 60vh;
-            margin: 0 auto;
-            transform: none !important;
-          }
-          .awwwards-project-card h2 {
-            font-size: clamp(1.8rem, 6vw, 3rem);
-            transform: translateY(0);
-          }
-          .awwwards-meta {
-            opacity: 1;
-            transform: translateY(0);
-            flex-wrap: wrap;
-            gap: 0.5rem;
-          }
-          .awwwards-view {
-            opacity: 1;
-            transform: scale(0.85);
-            top: 1rem;
-            right: 1rem;
-            width: 80px;
-            height: 80px;
-          }
-          .awwwards-bg {
-             opacity: 0.3;
-             filter: grayscale(50%);
+          .bento-grid-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto;
+            height: auto;
           }
         }
+      `,
+        }}
+      />
 
-        @media (hover: none) and (pointer: coarse) {
-          .awwwards-project-card h2, .awwwards-meta {
-            transform: translateY(0);
-            opacity: 1;
+      {/* Section Header */}
+      <div style={{ textAlign: "center", marginBottom: "0.8rem" }}>
+        <h2
+          style={{
+            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontStyle: "italic",
+            fontSize: "clamp(1.8rem, 3.2vw, 3rem)",
+            color: "#ffffff",
+            margin: 0,
+          }}
+        >
+          Showroom
+        </h2>
+      </div>
+
+      {/* Multi-Device Responsive Lego Bento Grid */}
+      <div className="bento-grid-container">
+        {PROJECTS.map((project, idx) => {
+          // Special 3D Dual-Sided Flip Card for Card 1
+          if (project.id === "zero-sankalp") {
+            return (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+                transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  position: "relative",
+                  perspective: "1000px",
+                }}
+              >
+                <motion.div
+                  animate={{ rotateY: isCard1Flipped ? 180 : 0 }}
+                  transition={{ type: "spring", stiffness: 70, damping: 14 }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    position: "relative",
+                    transformStyle: "preserve-3d",
+                  }}
+                >
+                  {/* FRONT FACE: ZERØ CROSSHAIR APP */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backfaceVisibility: "hidden",
+                      WebkitBackfaceVisibility: "hidden",
+                      borderRadius: "16px",
+                      backgroundColor: "rgba(15, 12, 30, 0.75)",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      backdropFilter: "blur(20px)",
+                      WebkitBackdropFilter: "blur(20px)",
+                      padding: "1.1rem 1.3rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                    }}
+                  >
+                    {/* Top Bar */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "0.15em", color: "rgba(255, 255, 255, 0.45)", fontWeight: 600 }}>
+                        ZERØ CROSSHAIR
+                      </span>
+                      <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsCard1Flipped(true);
+                          }}
+                          style={{
+                            backgroundColor: "rgba(168, 85, 247, 0.15)",
+                            border: "1px solid #a855f7",
+                            color: "#a855f7",
+                            fontFamily: "monospace",
+                            fontSize: "10px",
+                            padding: "0.15rem 0.5rem",
+                            borderRadius: "12px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          [ 🗘 FLIP: SANKALP ]
+                        </button>
+                        <a
+                          href="https://play.google.com/store/apps/details?id=com.zeroapps.zero_crosshair"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontFamily: "monospace", fontSize: "12px", color: "#38bdf8", textDecoration: "none" }}
+                        >
+                          [ ↗ ]
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Scope Engine */}
+                    <div style={{ flex: 1, marginTop: "0.4rem", borderRadius: "8px", overflow: "hidden" }}>
+                      <AimScopeSimulator />
+                    </div>
+                  </div>
+
+                  {/* BACK FACE: SANKALP HABIT RINGS APP */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      transform: "rotateY(180deg)",
+                      backfaceVisibility: "hidden",
+                      WebkitBackfaceVisibility: "hidden",
+                      borderRadius: "16px",
+                      backgroundColor: "rgba(15, 12, 30, 0.85)",
+                      border: "1px solid rgba(168, 85, 247, 0.3)",
+                      backdropFilter: "blur(20px)",
+                      WebkitBackdropFilter: "blur(20px)",
+                      padding: "1.1rem 1.3rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                    }}
+                  >
+                    {/* Top Bar */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "0.15em", color: "rgba(255, 255, 255, 0.45)", fontWeight: 600 }}>
+                        SANKALP HABITS
+                      </span>
+                      <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsCard1Flipped(false);
+                          }}
+                          style={{
+                            backgroundColor: "rgba(56, 189, 248, 0.15)",
+                            border: "1px solid #38bdf8",
+                            color: "#38bdf8",
+                            fontFamily: "monospace",
+                            fontSize: "10px",
+                            padding: "0.15rem 0.5rem",
+                            borderRadius: "12px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          [ 🗘 FLIP: ZERØ ]
+                        </button>
+                        <a
+                          href="https://play.google.com/store/apps/details?id=com.zeroapps.sankalp"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontFamily: "monospace", fontSize: "12px", color: "#a855f7", textDecoration: "none" }}
+                        >
+                          [ ↗ ]
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Sankalp Engine */}
+                    <div style={{ flex: 1, marginTop: "0.4rem", borderRadius: "8px", overflow: "hidden" }}>
+                      <SankalpHabitRing />
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            );
           }
-          .awwwards-view {
-            opacity: 1;
-            transform: scale(0.85);
-          }
-          .awwwards-bg {
-             opacity: 0.4;
-             filter: grayscale(50%);
-          }
-        }
-      `}} />
+
+          return (
+            <motion.div
+              key={project.id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
+              onClick={() => {
+                if (project.url) {
+                  window.open(project.url, "_blank", "noopener,noreferrer");
+                }
+              }}
+              style={{
+                position: "relative",
+                borderRadius: "16px",
+                backgroundColor: "rgba(15, 12, 30, 0.75)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                padding: "1.1rem 1.3rem",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                overflow: "hidden",
+                boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                cursor: project.url ? "pointer" : "default",
+                transition: "border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease",
+              }}
+              whileHover={{
+                borderColor: "rgba(255, 255, 255, 0.3)",
+                y: -3,
+                boxShadow: "0 25px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(168, 85, 247, 0.2)",
+              }}
+            >
+              {/* Top Bar: Micro-Label (Left) & Zero-Height Arrow Badge (Right) */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  position: "relative",
+                  zIndex: 10,
+                  pointerEvents: "none",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "monospace",
+                    fontSize: "11px",
+                    letterSpacing: "0.15em",
+                    textTransform: "uppercase",
+                    color: "rgba(255, 255, 255, 0.45)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {project.title}
+                </span>
+
+                {/* Sleek Top-Right Arrow Badge (0 Vertical Space) */}
+                {project.url && (
+                  <span
+                    style={{
+                      fontFamily: "monospace",
+                      fontSize: "12px",
+                      color: "rgba(255, 255, 255, 0.6)",
+                      transition: "color 0.2s ease, transform 0.2s ease",
+                    }}
+                  >
+                    [ ↗ ]
+                  </span>
+                )}
+              </div>
+
+              {/* CARD 2: Matter.js 2D Interactive Physics Pills (Edge-to-Edge Canvas) */}
+              {project.id === "skills-arsenal" && (
+                <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
+                  <PhysicsPills />
+                </div>
+              )}
+
+              {/* CARD 3: 3D Parallax Book + Golden Aura */}
+              {project.id === "divine-doodles" && (
+                <div style={{ height: "100%", width: "100%", marginTop: "0.2rem", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <BookParallax />
+                </div>
+              )}
+
+              {/* CARD 4: Direct SVG Continent Path Dot Matrix Map (Edge-to-Edge Canvas) */}
+              {project.id === "canada-base" && (
+                <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
+                  <WorldMapRadar />
+                </div>
+              )}
+
+              {/* CARD 5: Glassmorphic Live Content Ticker */}
+              {project.id === "pratyaksh-gyan" && (
+                <div style={{ height: "130px", marginTop: "0.3rem", overflow: "hidden", borderRadius: "8px" }}>
+                  <ContentTicker />
+                </div>
+              )}
+
+              {/* CARD 6: Ambient Audio Spectrum Visualizer */}
+              {project.id === "coffee-donut-tv" && (
+                <div style={{ height: "125px", marginTop: "0.3rem", overflow: "hidden", borderRadius: "8px" }}>
+                  <AudioEqualizer />
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
     </section>
   );
 }

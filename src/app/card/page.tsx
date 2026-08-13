@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import Link from "next/link";
-import NoiseOverlay from "@/components/NoiseOverlay";
+import CustomCursor from "@/components/CustomCursor";
 
 export default function CardPage() {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -13,27 +13,92 @@ export default function CardPage() {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  // Smooth out the motion values for the tilt
+  // Smooth springs for fluid tilt
   const springX = useSpring(x, { stiffness: 300, damping: 30 });
   const springY = useSpring(y, { stiffness: 300, damping: 30 });
 
-  // Map mouse position to rotation values
+  // Map normalized coordinates to rotation degrees (-15deg to 15deg)
   const rotateX = useTransform(springY, [-0.5, 0.5], [15, -15]);
   const rotateY = useTransform(springX, [-0.5, 0.5], [-15, 15]);
+
+  // Holographic sheen position
+  const glareX = useTransform(springX, [-0.5, 0.5], ["0%", "100%"]);
+  const glareY = useTransform(springY, [-0.5, 0.5], ["0%", "100%"]);
+
+  useEffect(() => {
+    // Request Gyroscope Permission on Mobile Touch (iOS 13+)
+    const requestGyroPermission = async () => {
+      if (
+        typeof window !== "undefined" &&
+        typeof (DeviceOrientationEvent as any).requestPermission === "function"
+      ) {
+        try {
+          const response = await (DeviceOrientationEvent as any).requestPermission();
+          if (response === "granted") {
+            window.addEventListener("deviceorientation", handleDeviceOrientation, true);
+          }
+        } catch (err) {
+          console.log("Gyroscope permission denied or not supported:", err);
+        }
+      } else if (typeof window !== "undefined" && window.DeviceOrientationEvent) {
+        window.addEventListener("deviceorientation", handleDeviceOrientation, true);
+      }
+    };
+
+    // Mobile Gyroscope DeviceOrientation Event Listener
+    const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
+      if (e.gamma !== null && e.beta !== null) {
+        // gamma: left-to-right tilt (-90 to 90), beta: front-to-back tilt (-180 to 180)
+        const normX = Math.min(Math.max(e.gamma / 45, -0.5), 0.5);
+        const normY = Math.min(Math.max(e.beta / 45, -0.5), 0.5);
+        x.set(normX);
+        y.set(normY);
+      }
+    };
+
+    const handleFirstTouch = () => {
+      requestGyroPermission();
+      window.removeEventListener("touchstart", handleFirstTouch);
+    };
+
+    window.addEventListener("touchstart", handleFirstTouch, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleFirstTouch);
+      if (typeof window !== "undefined" && window.DeviceOrientationEvent) {
+        window.removeEventListener("deviceorientation", handleDeviceOrientation, true);
+      }
+    };
+  }, [x, y]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
-    
-    // Normalize mouse position between -0.5 and 0.5
+
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    
+
     const xPct = mouseX / width - 0.5;
     const yPct = mouseY / height - 0.5;
-    
+
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!containerRef.current || e.touches.length === 0) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    const touchX = e.touches[0].clientX - rect.left;
+    const touchY = e.touches[0].clientY - rect.top;
+
+    const xPct = touchX / width - 0.5;
+    const yPct = touchY / height - 0.5;
+
     x.set(xPct);
     y.set(yPct);
   };
@@ -43,71 +108,74 @@ export default function CardPage() {
     y.set(0);
   };
 
-  const glareX = useTransform(springX, [-0.5, 0.5], ["0%", "100%"]);
-  const glareY = useTransform(springY, [-0.5, 0.5], ["0%", "100%"]);
-
   return (
     <div className="card-page-container">
-      <NoiseOverlay />
-      <style dangerouslySetInnerHTML={{__html: `
+      {/* Global Sleek Awwwards Micro-Dot Cursor */}
+      <CustomCursor />
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         * {
           box-sizing: border-box;
         }
-
         body {
           margin: 0;
-          background: #050505;
+          background: radial-gradient(ellipse at 65% 45%, #181033 0%, #06040c 100%);
+          background-attachment: fixed;
+          overflow: hidden;
         }
-
         .card-page-container {
           width: 100vw;
           height: 100vh;
           overflow: hidden;
-          background: #050505;
+          background: radial-gradient(ellipse at 65% 45%, #181033 0%, #06040c 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           perspective: 1200px;
           color: white;
+          position: relative;
         }
-
         .card-wrapper {
           width: 90vw;
-          max-width: 400px;
-          height: 70vh;
-          max-height: 600px;
-          min-height: 500px;
+          max-width: 420px;
+          height: 72vh;
+          max-height: 620px;
+          min-height: 520px;
           position: relative;
           cursor: pointer;
           transform-style: preserve-3d;
         }
-
-        .floating-link {
+        .floating-escape-link {
           position: absolute;
-          top: 2rem;
-          left: 2rem;
+          top: 2.5rem;
+          left: 3rem;
           z-index: 50;
           font-family: monospace;
-          font-size: 0.7rem;
-          letter-spacing: 2px;
-          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.85rem;
+          letter-spacing: 0.15em;
+          color: #38bdf8;
           text-decoration: none;
-          transition: all 0.2s ease;
+          padding: 0.6rem 1.4rem;
+          border-radius: 50px;
+          background-color: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(10px);
+          transition: all 0.3s ease;
+          text-transform: uppercase;
         }
-
-        .floating-link:hover {
-          opacity: 1;
-          color: rgba(255, 255, 255, 1);
-          text-shadow: 0 0 8px rgba(255,255,255,0.8);
+        .floating-escape-link:hover {
+          background: #ffffff;
+          color: #000000;
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
         }
-
         .holographic-card {
           width: 100%;
           height: 100%;
           position: absolute;
           transform-style: preserve-3d;
         }
-
         .card-face {
           position: absolute;
           inset: 0;
@@ -115,131 +183,113 @@ export default function CardPage() {
           -webkit-backface-visibility: hidden;
           display: flex;
           flex-direction: column;
-          padding: 2rem;
+          padding: 2.2rem;
           border-radius: 24px;
-          background: rgba(20, 20, 20, 0.7);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          background: rgba(15, 12, 30, 0.75);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(25px);
+          -webkit-backdrop-filter: blur(25px);
+          box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.2);
           overflow: hidden;
         }
-
         .card-front {
           justify-content: space-between;
         }
-
         .card-back {
           transform: rotateY(180deg);
           justify-content: center;
           align-items: center;
-          gap: 1.5rem;
+          gap: 1.2rem;
         }
-
         .sys-online {
           display: flex;
           align-items: center;
           gap: 8px;
           font-family: monospace;
           font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(255, 255, 255, 0.7);
           transform: translateZ(30px);
+          letter-spacing: 0.1em;
         }
-
         .dot {
           width: 8px;
           height: 8px;
-          background: #00ff00;
+          background: #22c55e;
           border-radius: 50%;
-          box-shadow: 0 0 8px #00ff00;
+          box-shadow: 0 0 10px #22c55e;
           animation: blink 1.5s infinite alternate;
         }
-
         @keyframes blink {
           0% { opacity: 0.3; }
-          100% { opacity: 1; box-shadow: 0 0 12px #00ff00; }
+          100% { opacity: 1; box-shadow: 0 0 14px #22c55e; }
         }
-
         .identity {
           text-align: center;
           transform: translateZ(50px);
         }
-
         .name {
           font-family: "Georgia", serif;
-          font-size: 3rem;
+          font-style: italic;
+          font-size: 2.8rem;
           font-weight: 400;
           letter-spacing: -1px;
           line-height: 1.1;
-          margin-bottom: 0.5rem;
-          text-transform: uppercase;
-          text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+          margin-bottom: 0.6rem;
+          color: #ffffff;
         }
-
         .subtitle {
           font-family: monospace;
           font-size: 0.75rem;
-          letter-spacing: 2px;
-          color: rgba(255, 255, 255, 0.5);
+          letter-spacing: 0.15em;
+          color: rgba(255, 255, 255, 0.65);
+          line-height: 1.6;
         }
-
         .barcode-container {
           display: flex;
           justify-content: center;
           align-items: center;
           transform: translateZ(20px);
-          padding-bottom: 1rem;
+          padding-bottom: 0.5rem;
         }
-
         .barcode {
           width: 80%;
-          height: 40px;
-          animation: barcode-pulse 4s ease-in-out infinite alternate;
-          color: rgba(255, 255, 255, 0.3);
+          height: 38px;
+          color: rgba(255, 255, 255, 0.4);
         }
-
-        @keyframes barcode-pulse {
-          0% { transform: scaleX(0.95) scaleY(0.95); opacity: 0.7; }
-          100% { transform: scaleX(1.05) scaleY(1.05); opacity: 1; }
-        }
-
         .brutalist-button {
           width: 100%;
-          padding: 1.25rem;
+          padding: 1.1rem;
           background: transparent;
           border: 1px solid rgba(255,255,255,0.2);
           color: white;
           font-family: monospace;
-          font-size: 1rem;
+          font-size: 0.85rem;
           font-weight: bold;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
           border-radius: 8px;
           transform: translateZ(40px);
-          position: relative;
-          overflow: hidden;
           text-decoration: none;
           display: flex;
           align-items: center;
           justify-content: center;
         }
-
-        .brutalist-button:hover, .brutalist-button:active {
+        .brutalist-button:hover {
           background: white;
           color: #050505;
           border-color: white;
           transform: translateZ(50px) scale(1.02);
           box-shadow: 0 10px 20px rgba(0,0,0,0.4);
         }
+      `,
+        }}
+      />
 
-        .brutalist-button:active {
-          transform: translateZ(30px) scale(0.98);
-        }
-      `}} />
-
-      <Link href="/" className="floating-link">
-        &larr; PORTFOLIO
+      {/* Clear ESC Escape Button */}
+      <Link href="/" className="floating-escape-link">
+        [ ESC ] Return to System
       </Link>
 
       <motion.div
@@ -247,13 +297,15 @@ export default function CardPage() {
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleMouseLeave}
         onClick={() => setIsFlipped(!isFlipped)}
         initial={{ y: 50, opacity: 0, scale: 0.9 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20, mass: 1 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
         style={{
           rotateX,
-          rotateY
+          rotateY,
         }}
       >
         <motion.div
@@ -263,12 +315,13 @@ export default function CardPage() {
         >
           {/* Front Face */}
           <div className="card-face card-front">
-            {/* Holographic Glare */}
+            {/* Holographic Sheen Reflection Overlay */}
             <motion.div
               style={{
                 position: "absolute",
                 inset: 0,
-                background: "linear-gradient(105deg, transparent 20%, rgba(0, 255, 255, 0.15) 25%, rgba(255, 255, 255, 0.1) 27%, transparent 30%)",
+                background:
+                  "linear-gradient(105deg, transparent 20%, rgba(56, 189, 248, 0.2) 25%, rgba(255, 255, 255, 0.18) 27%, transparent 30%)",
                 backgroundSize: "200% 200%",
                 backgroundPositionX: glareX,
                 backgroundPositionY: glareY,
@@ -280,12 +333,14 @@ export default function CardPage() {
 
             <div className="sys-online">
               <div className="dot"></div>
-              SYS: ONLINE
+              SYS: OPTIMAL
             </div>
-            
+
             <div className="identity">
               <h1 className="name">Mitesh Shah</h1>
-              <div className="subtitle">THE ARCHITECT &bull; IT OPERATIONS & WEBGL</div>
+              <div className="subtitle">
+                I operate at the critical intersection of enterprise system architecture, major incident command, and creative storytelling. Built with precision, scale, and care.
+              </div>
             </div>
 
             <div className="barcode-container">
@@ -320,29 +375,47 @@ export default function CardPage() {
 
           {/* Back Face */}
           <div className="card-face card-back">
-            {/* Holographic Glare for Back */}
             <motion.div
               style={{
                 position: "absolute",
                 inset: 0,
-                background: "linear-gradient(105deg, transparent 20%, rgba(0, 255, 255, 0.15) 25%, rgba(255, 255, 255, 0.1) 27%, transparent 30%)",
+                background:
+                  "linear-gradient(105deg, transparent 20%, rgba(56, 189, 248, 0.2) 25%, rgba(255, 255, 255, 0.18) 27%, transparent 30%)",
                 backgroundSize: "200% 200%",
                 backgroundPositionX: glareX,
                 backgroundPositionY: glareY,
                 mixBlendMode: "screen",
                 pointerEvents: "none",
                 zIndex: 10,
-                transform: "rotateY(180deg)" /* Reverse the gradient direction for the mirrored back */
+                transform: "rotateY(180deg)",
               }}
             />
 
-            <a href="https://wa.me/qr/Y4BDLWGVOJ7WO1" target="_blank" rel="noopener noreferrer" className="brutalist-button" onClick={(e) => e.stopPropagation()}>
+            <a
+              href="https://www.linkedin.com/in/miteshbshah"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="brutalist-button"
+              onClick={(e) => e.stopPropagation()}
+            >
+              CONNECT ON LINKEDIN
+            </a>
+            <a
+              href="https://wa.me/qr/Y4BDLWGVOJ7WO1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="brutalist-button"
+              onClick={(e) => e.stopPropagation()}
+            >
               CONNECT VIA WHATSAPP
             </a>
-            <a href="https://www.fiverr.com/s/KeQ86aV" target="_blank" rel="noopener noreferrer" className="brutalist-button" onClick={(e) => e.stopPropagation()}>
-              HIRE ON FIVERR
-            </a>
-            <a href="https://www.instagram.com/mitesh.shah01?igsh=MWVsbHA2dnM5N2poMQ==" target="_blank" rel="noopener noreferrer" className="brutalist-button" onClick={(e) => e.stopPropagation()}>
+            <a
+              href="https://www.instagram.com/mitesh.shah01?igsh=MWVsbHA2dnM5N2poMQ=="
+              target="_blank"
+              rel="noopener noreferrer"
+              className="brutalist-button"
+              onClick={(e) => e.stopPropagation()}
+            >
               VIEW INSTAGRAM
             </a>
             <Link href="/" className="brutalist-button" onClick={(e) => e.stopPropagation()}>

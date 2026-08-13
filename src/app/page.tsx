@@ -4,15 +4,12 @@ import { useEffect } from "react";
 import HeroSection from "@/components/HeroSection";
 import ITSection from "@/components/ITSection";
 import ProjectsSection from "@/components/ProjectsSection";
-import BookSection from "@/components/BookSection";
-import Navigation from "@/components/Navigation";
 import MagneticLink from "@/components/MagneticLink";
 import Preloader from "@/components/Preloader";
 import SystemClock from "@/components/SystemClock";
 import SmoothScrolling from "@/components/SmoothScrolling";
-import SystemCore from "@/components/SystemCore";
 import CustomCursor from "@/components/CustomCursor";
-import SolarSystemScroll from "@/components/SolarSystemScroll";
+import HeroParticleM from "@/components/HeroParticleM";
 
 export default function Home() {
   // The Dev Console Easter Egg
@@ -31,19 +28,12 @@ export default function Home() {
         <CustomCursor />
         <Preloader />
         <SystemClock />
-        <SolarSystemScroll />
-        <SystemCore />
+        {/* Global 3D Particle Background Overlay (Ricardo Chance Architecture) */}
+        <HeroParticleM />
 
         <div id="hero"><HeroSection /></div>
         <div id="it"><ITSection /></div>
         <div id="projects"><ProjectsSection /></div>
-        <div id="book"><BookSection /></div>
-
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10vh 0 20vh 0', backgroundColor: 'var(--bg-color)' }}>
-          <MagneticLink href="https://www.instagram.com/mitesh.shah01?igsh=MWVsbHA2dnM5N2poMQ==">Follow on Instagram</MagneticLink>
-        </div>
-
-        <Navigation />
       </main>
     </SmoothScrolling>
   );

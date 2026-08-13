@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import SmoothScrolling from "@/components/SmoothScrolling";
+import Navigation from "@/components/Navigation";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,6 +42,8 @@ export default function RootLayout({
         <SmoothScrolling>
           {children}
         </SmoothScrolling>
+        {/* Root Viewport Centered Floating Navigation Pill Bar */}
+        <Navigation />
       </body>
     </html>
   );

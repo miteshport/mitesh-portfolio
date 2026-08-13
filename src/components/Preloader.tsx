@@ -1,111 +1,126 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const LOGS = [
-  "INITIALIZING_CORE...",
-  "LOADING_MESH_DATA...",
-  "ALLOCATING_MEMORY...",
-  "MOUNTING_DRIVES...",
-  "ESTABLISHING_UPLINK...",
-  "DECRYPTING_ASSETS...",
-  "COMPILING_SHADERS...",
-  "BYPASSING_SECURITY...",
-  "SYSTEM_READY_OK"
-];
-
-export default function Preloader() {
-  const [progress, setProgress] = useState(0);
-  const [logIndex, setLogIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+export default function Preloader({ onComplete }: { onComplete?: () => void }) {
+  const [phase, setPhase] = useState<"silent" | "pixelWipe" | "complete">("silent");
 
   useEffect(() => {
-    // 2 seconds to reach 100
-    // Updates every 20ms -> 100 steps
-    const intervalTime = 20;
-    const totalSteps = 2000 / intervalTime;
-    let currentStep = 0;
+    // Phase 1: Apple Silent Boot for 1.6 seconds
+    const timer1 = setTimeout(() => {
+      setPhase("pixelWipe");
+    }, 1600);
 
-    const timer = setInterval(() => {
-      currentStep++;
-      const currentProgress = Math.min(Math.floor((currentStep / totalSteps) * 100), 100);
-      setProgress(currentProgress);
-
-      if (currentStep % 10 === 0) {
-         setLogIndex(prev => Math.min(prev + 1, LOGS.length - 1));
-      }
-
-      if (currentStep >= totalSteps) {
-        clearInterval(timer);
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 200); // slight pause at 100%
-      }
-    }, intervalTime);
-
-    // Lock scroll during loading
-    document.body.style.overflow = 'hidden';
+    // Phase 2: Yuta Abe 8-Bit Pixel Wipe for 600ms
+    const timer2 = setTimeout(() => {
+      setPhase("complete");
+      if (onComplete) onComplete();
+    }, 2200);
 
     return () => {
-      clearInterval(timer);
-      document.body.style.overflow = 'auto'; // Unlock scroll
+      clearTimeout(timer1);
+      clearTimeout(timer2);
     };
-  }, []);
+  }, [onComplete]);
+
+  if (phase === "complete") return null;
 
   return (
     <AnimatePresence>
-      {isLoading && (
-        <motion.div
-          className="awwwards-preloader"
-          initial={{ y: 0 }}
-          exit={{ y: "-100vh" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // ease-out-expo
-        >
-          <div className="preloader-content">
-            <div className="preloader-percentage">
-              [ {String(progress).padStart(3, '0')}% ]
-            </div>
-            <div className="preloader-log">
-              {LOGS[logIndex]}
-            </div>
-          </div>
-          <style dangerouslySetInnerHTML={{
+      <motion.div
+        key="preloader"
+        initial={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "#06040c",
+          zIndex: 99999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        <style
+          dangerouslySetInnerHTML={{
             __html: `
-            .awwwards-preloader {
-              position: fixed;
-              inset: 0;
-              z-index: 9999;
-              background-color: #000;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: #fff;
+          @keyframes silentPulse {
+            0%, 100% {
+              transform: scale(0.96);
+              opacity: 0.7;
             }
-            .preloader-content {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 1.5rem;
+            50% {
+              transform: scale(1.04);
+              opacity: 1;
             }
-            .preloader-percentage {
-              font-family: monospace;
-              font-size: clamp(4rem, 10vw, 8rem);
-              font-weight: bold;
-              letter-spacing: 0.05em;
-              color: #fff;
-            }
-            .preloader-log {
-              font-family: monospace;
-              font-size: 1rem;
-              color: #27c93f;
-              text-transform: uppercase;
-              letter-spacing: 0.1em;
-            }
-            `
-          }} />
-        </motion.div>
-      )}
+          }
+        `,
+          }}
+        />
+
+        {/* PHASE 1: APPLE-TIER SILENT MONOGRAM BOOT */}
+        {phase === "silent" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              animation: "silentPulse 1.6s ease-in-out infinite",
+            }}
+          >
+            {/* Minimalist Monogram Vector 'M' Logo */}
+            <svg width="64" height="64" viewBox="0 0 100 100" fill="none">
+              <path
+                d="M 20,80 L 20,20 L 50,60 L 80,20 L 80,80"
+                stroke="#ffffff"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="50" cy="60" r="4" fill="#a855f7" />
+            </svg>
+          </motion.div>
+        )}
+
+        {/* PHASE 2: YUTA ABE 8-BIT COSMIC PIXEL WIPE */}
+        {phase === "pixelWipe" && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0.8 }}
+            animate={{ scale: 120, opacity: 1 }}
+            transition={{ duration: 0.6, ease: [0.7, 0, 0.84, 0] }}
+            style={{
+              position: "absolute",
+              width: "40px",
+              height: "40px",
+              backgroundColor: "#8b5cf6",
+              boxShadow: "0 0 50px #8b5cf6",
+              borderRadius: "0px",
+              imageRendering: "pixelated",
+              transformOrigin: "center center",
+            }}
+          >
+            {/* 8-Bit Pixel Grid Details */}
+            <svg
+              width="100%"
+              height="100%"
+              viewBox="0 0 20 20"
+              style={{ shapeRendering: "crispEdges" }}
+            >
+              <rect x="0" y="0" width="10" height="10" fill="#a855f7" />
+              <rect x="10" y="10" width="10" height="10" fill="#6366f1" />
+              <rect x="5" y="5" width="10" height="10" fill="#38bdf8" />
+            </svg>
+          </motion.div>
+        )}
+      </motion.div>
     </AnimatePresence>
   );
 }

@@ -1,8 +1,7 @@
 :root {
-  --bg-color: #0a0a0a; /* Soft Matte Black */
+  --bg-color: #06040c; /* Matte Obsidian Space */
   --text-color: #ffffff;
   --accent: #27c93f;
-  /* IT Terminal Green for subtle highlights */
 
   /* Brutalist Font Stack */
   --font-primary: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -18,7 +17,7 @@
   padding: 0;
 }
 
-/* Hide native cursor on desktop to favor CustomCursor */
+/* Hide native desktop cursor to favor CustomCursor micro-dot */
 @media (hover: hover) and (pointer: fine) {
   * {
     cursor: none !important;
@@ -27,11 +26,11 @@
 
 html,
 body {
-  background-color: var(--bg-color);
+  background: radial-gradient(ellipse at 65% 45%, #181033 0%, #06040c 100%) !important;
+  background-attachment: fixed !important;
   color: var(--text-color);
   width: 100%;
   overscroll-behavior: none;
-  /* Prevents native bounce effect on Mac to let Lenis handle physics */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -51,7 +50,6 @@ h5,
 h6 {
   font-family: var(--font-display);
   font-weight: 400;
-  /* Brutalist serifs look best at standard or light weights */
   letter-spacing: -0.02em;
 }
 
@@ -68,7 +66,6 @@ textarea {
 a {
   color: inherit;
   text-decoration: none;
-  cursor: pointer;
 }
 
 ul {
@@ -82,21 +79,17 @@ body::-webkit-scrollbar {
 
 body {
   -ms-overflow-style: none;
-  /* IE and Edge */
   scrollbar-width: none;
-  /* Firefox */
 }
 
-/* --- ALL TOUCH DEVICES & TABLETS SCROLL FIX (Phones, Foldables, iPads) --- */
-/* Uses a combined approach to catch wide foldables, iPads, and ANY true touch device */
+/* Touch Devices Scroll Fix */
 @media (max-width: 1200px), (pointer: coarse) {
   html, body {
-    overscroll-behavior: auto; /* Restores native bounce on mobile */
+    overscroll-behavior: auto;
     overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important; /* Forces iOS momentum scroll */
+    -webkit-overflow-scrolling: touch !important;
   }
 
-  /* Ensure the main container doesn't trap touch events */
   main {
     touch-action: pan-y !important;
   }

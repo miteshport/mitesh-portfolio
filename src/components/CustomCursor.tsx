@@ -1,106 +1,110 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function CustomCursor() {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isPointer, setIsPointer] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Mouse absolute position
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  // Smooth springs for the outer trailing circle
-  const springConfig = { stiffness: 300, damping: 24, mass: 0.5 };
-  const cursorX = useSpring(mouseX, springConfig);
-  const cursorY = useSpring(mouseY, springConfig);
+  const mousePos = useRef({ x: -100, y: -100 });
+  const lerpPos = useRef({ x: -100, y: -100 });
+  const dotRef = useRef<HTMLDivElement>(null);
+  const auraRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Force visibility to true immediately to test if it's a hook issue
-    setIsVisible(true);
-
     const handleMouseMove = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
+      mousePos.current = { x: e.clientX, y: e.clientY };
+      if (!isVisible) setIsVisible(true);
 
-    const handleMouseOver = (e: MouseEvent) => {
-      let target = e.target as HTMLElement;
-      
-      while (target && target !== document.body) {
-        if (
-          target.tagName.toLowerCase() === "a" ||
-          target.tagName.toLowerCase() === "button" ||
-          target.hasAttribute("data-magnetic") ||
-          window.getComputedStyle(target).cursor === "pointer"
-        ) {
-          setIsHovered(true);
-          return;
-        }
-        target = target.parentElement as HTMLElement;
+      const target = e.target as HTMLElement;
+      if (target) {
+        const isClickable =
+          target.tagName === "BUTTON" ||
+          target.tagName === "A" ||
+          target.closest("a") !== null ||
+          target.closest("button") !== null ||
+          target.onclick !== null ||
+          window.getComputedStyle(target).cursor === "pointer";
+
+        setIsPointer(isClickable);
       }
-      
-      setIsHovered(false);
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseover", handleMouseOver);
+    const handleMouseLeave = () => setIsVisible(false);
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    document.body.addEventListener("mouseleave", handleMouseLeave);
+
+    // 60fps Lerp Loop for Ambient Trailing Aura Ring
+    let animationFrameId: number;
+
+    const render = () => {
+      // 1. Center Micro-Dot: Instant tracking (0 lag)
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0) translate(-50%, -50%)`;
+      }
+
+      // 2. Outer Trailing Aura Ring: Smooth Lerp Interpolation
+      const ease = 0.16;
+      lerpPos.current.x += (mousePos.current.x - lerpPos.current.x) * ease;
+      lerpPos.current.y += (mousePos.current.y - lerpPos.current.y) * ease;
+
+      if (auraRef.current) {
+        auraRef.current.style.transform = `translate3d(${lerpPos.current.x}px, ${lerpPos.current.y}px, 0) translate(-50%, -50%)`;
+      }
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseover", handleMouseOver);
+      document.body.removeEventListener("mouseleave", handleMouseLeave);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [mouseX, mouseY]);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
   return (
     <>
-      {/* The Outer Spring Trailing Circle */}
-      <motion.div
+      {/* 1. Precision Center Micro-Dot (0 Lag, Instant Tracking) */}
+      <div
+        ref={dotRef}
         style={{
           position: "fixed",
           top: 0,
           left: 0,
-          width: 40,
-          height: 40,
-          border: "1px solid #ffffff",
-          backgroundColor: isHovered ? "#ffffff" : "transparent",
-          borderRadius: "50%",
-          pointerEvents: "none",
-          zIndex: 99999,
-          transform: "translate(-50%, -50%)",
-          x: cursorX,
-          y: cursorY,
-        }}
-        animate={{
-          scale: isHovered ? 1.5 : 1,
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      />
-      
-      {/* The Immediate Inner Dot */}
-      <motion.div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: 6,
-          height: 6,
+          width: "6px",
+          height: "6px",
           backgroundColor: "#ffffff",
           borderRadius: "50%",
           pointerEvents: "none",
-          zIndex: 100000,
-          transform: "translate(-50%, -50%)",
-          x: mouseX,
-          y: mouseY,
+          zIndex: 999999,
+          boxShadow: "0 0 10px #ffffff, 0 0 20px #ffffff",
+          willChange: "transform",
         }}
-        animate={{
-          opacity: isHovered ? 0 : 1, // Hides the inner dot when scaled
-          scale: isHovered ? 0 : 1
+      />
+
+      {/* 2. Delicate Trailing Ambient Aura Ring (60fps Lerp Drag) */}
+      <div
+        ref={auraRef}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: isPointer ? "42px" : "28px",
+          height: isPointer ? "42px" : "28px",
+          backgroundColor: isPointer ? "rgba(34, 197, 94, 0.08)" : "transparent",
+          border: isPointer ? "1.5px solid rgba(34, 197, 94, 0.85)" : "1px solid rgba(255, 255, 255, 0.25)",
+          borderRadius: "50%",
+          pointerEvents: "none",
+          zIndex: 999998,
+          transition: "width 0.22s ease-out, height 0.22s ease-out, background-color 0.22s ease-out, border-color 0.22s ease-out",
+          boxShadow: isPointer ? "0 0 20px rgba(34, 197, 94, 0.35)" : "none",
+          willChange: "transform",
         }}
-        transition={{ duration: 0.15 }}
       />
     </>
   );

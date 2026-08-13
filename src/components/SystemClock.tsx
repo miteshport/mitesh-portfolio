@@ -34,21 +34,21 @@ export default function SystemClock() {
         __html: `
         .awwwards-sys-clock {
           position: fixed;
-          top: 2rem;
-          right: 2rem;
+          top: 1.1rem;
+          left: 2rem;
           z-index: 1000;
           background: rgba(10, 10, 10, 0.7);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 100px;
-          padding: 0.5rem 1rem;
+          padding: 0.4rem 0.9rem;
           display: flex;
           align-items: center;
           gap: 0.75rem;
           font-family: monospace;
           color: rgba(255, 255, 255, 0.7);
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           box-shadow: 0 10px 30px rgba(0,0,0,0.5);
