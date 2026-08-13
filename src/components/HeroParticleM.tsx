@@ -406,10 +406,10 @@ function TwinklingStarfield() {
  */
 function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: number }; globalScroll: number }) {
   const pointsRef = useRef<THREE.Points>(null!);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
 
   const { geometry, shaderMaterial } = useMemo(() => {
-    const data = generateMParticleData(4400);
+    const data = generateMParticleData(5000);
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(data.positions, 3));
@@ -445,8 +445,7 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
     shaderMaterial.uniforms.uMouse3D.value.copy(mouse3D);
 
     if (pointsRef.current) {
-      const isMobile = window.innerWidth < 640;
-      const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+      const aspect = size.width / size.height;
       const scrollRotationMultiplier = globalScroll > 0.05 ? (globalScroll - 0.05) * Math.PI * 4 : 0;
       const targetRotationY = scrollRotationMultiplier;
       const targetRotationX = Math.sin(globalScroll * Math.PI) * 0.25;
@@ -454,13 +453,22 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
       pointsRef.current.rotation.y = THREE.MathUtils.lerp(pointsRef.current.rotation.y, targetRotationY, 0.1);
       pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, targetRotationX, 0.1);
 
-      // Symmetrical Archway Positioning: Centered on all viewports
+      // Centered Monumental Archway Positioning
       const targetX = 0.0;
       const targetY = 0.0;
-      // Precision viewport responsive scaling matrix
-      const targetScale = globalScroll < 0.25
-        ? (isMobile ? 0.94 : (isTablet ? 1.15 : 1.35))
-        : (isMobile ? 0.65 : 0.95);
+
+      // Mathematical IMAX 70mm Dynamic Aspect-Ratio Auto-Fitting
+      // Galaxy Z Fold cover screen (aspect ~0.43 - 0.6) auto-fits with zero cropping
+      // Tablets / Foldables open (aspect 0.65 - 1.15) scale to 1.15
+      // Widescreen PC Monitors (aspect > 1.15) command screen at 1.35
+      let heroBaseScale = 1.35;
+      if (aspect < 0.65) {
+        heroBaseScale = Math.max(aspect * 2.05, 0.72);
+      } else if (aspect < 1.15) {
+        heroBaseScale = 1.15;
+      }
+
+      const targetScale = globalScroll < 0.25 ? heroBaseScale : heroBaseScale * 0.72;
 
       pointsRef.current.position.x = THREE.MathUtils.lerp(pointsRef.current.position.x, targetX, 0.08);
       pointsRef.current.position.y = THREE.MathUtils.lerp(pointsRef.current.position.y, targetY, 0.08);

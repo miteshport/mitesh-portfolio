@@ -52,102 +52,69 @@ export default function HeroSection() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        .hero-editorial-layout {
+        .hero-cinema-container {
+          width: 100%;
+          height: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          text-align: center;
-          width: 90%;
-          max-width: 860px;
-          margin: 0 auto;
-          gap: 1.2rem;
+          justify-content: flex-end;
+          padding-bottom: 5.5rem;
+          pointer-events: none;
           z-index: 10;
-          pointer-events: auto;
         }
 
-        .hero-title {
-          font-family: 'Inter', sans-serif;
-          font-size: clamp(2.4rem, 5.5vw, 4.4rem);
-          font-weight: 700;
-          line-height: 1.05;
-          color: #ffffff;
-          margin: 0;
-          letter-spacing: -0.02em;
-          text-shadow: 0 4px 28px rgba(0, 0, 0, 0.95), 0 0 50px rgba(0, 0, 0, 0.85);
-          user-select: none;
-        }
-
-        .hero-pill-badge {
-          display: inline-flex;
+        .hero-scroll-indicator {
+          display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: center;
           gap: 0.6rem;
-          padding: 0.65rem 1.5rem;
-          border-radius: 9999px;
-          background: rgba(6, 4, 12, 0.55) !important;
-          border: 1px solid rgba(255, 255, 255, 0.16) !important;
-          backdrop-filter: blur(24px) saturate(160%) !important;
-          -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-          max-width: 100%;
+          opacity: 0.75;
+          transition: opacity 0.3s ease;
         }
 
-        .hero-pill-dot {
-          width: 6px;
+        .scroll-mouse-pill {
+          width: 20px;
+          height: 32px;
+          border-radius: 12px;
+          border: 1.5px solid rgba(255, 255, 255, 0.4);
+          display: flex;
+          justify-content: center;
+          padding-top: 5px;
+        }
+
+        .scroll-dot {
+          width: 3px;
           height: 6px;
-          border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 8px #22c55e;
-          flex-shrink: 0;
+          border-radius: 2px;
+          background: #38bdf8;
+          animation: scrollDown 2s infinite ease-in-out;
         }
 
-        .hero-tagline {
+        .scroll-label {
           font-family: monospace;
-          font-size: clamp(0.68rem, 1.4vw, 0.82rem);
-          letter-spacing: 0.12em;
-          color: rgba(255, 255, 255, 0.88);
-          margin: 0;
+          font-size: 0.68rem;
+          letter-spacing: 0.25em;
+          color: rgba(255, 255, 255, 0.5);
           text-transform: uppercase;
-          line-height: 1.4;
-          white-space: normal;
         }
 
-        @media (max-width: 640px) {
-          .hero-editorial-layout {
-            gap: 0.9rem;
-            padding: 0 0.8rem;
-          }
-          .hero-title {
-            font-size: clamp(2.1rem, 9vw, 2.9rem) !important;
-          }
-          .hero-pill-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            gap: 0.45rem;
-          }
-          .hero-tagline {
-            font-size: 0.68rem !important;
-            letter-spacing: 0.08em;
-          }
+        @keyframes scrollDown {
+          0% { transform: translateY(0); opacity: 1; }
+          60% { transform: translateY(12px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 0; }
         }
       `,
         }}
       />
 
-      {/* REFINED ARCHITECTURAL HERO CENTERPIECE */}
-      <motion.div style={{ opacity, y }} className="hero-editorial-layout">
-        {/* Main Monogram Authority Name */}
-        <h1 ref={textRef} className="hero-title">
-          Mitesh Shah
-        </h1>
-
-        {/* High-Legibility Liquid Glass Pillar Badge */}
-        <div className="hero-pill-badge">
-          <div className="hero-pill-dot" />
-          <p className="hero-tagline">
-            Enterprise IT Architecture · Incident Command · Scaled Systems
-          </p>
+      {/* IMAX 70MM PURE CINEMATIC HERO */}
+      <motion.div style={{ opacity }} className="hero-cinema-container">
+        <div className="hero-scroll-indicator">
+          <div className="scroll-mouse-pill">
+            <div className="scroll-dot" />
+          </div>
+          <span className="scroll-label">SYSTEM READY</span>
         </div>
       </motion.div>
     </section>
