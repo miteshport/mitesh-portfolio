@@ -113,18 +113,18 @@ export default function CardPage() {
     const vcardData = `BEGIN:VCARD
 VERSION:3.0
 FN:Mitesh Shah
-TITLE:Enterprise IT & Native App Architect
+TITLE:Enterprise IT Architecture · Major Incident Command · Senior Customer Operations Project Manager
 EMAIL;TYPE=INTERNET,WORK:mitesh@miteshshah.xyz
 TEL;TYPE=CELL,VOICE:+16395904445
 URL:https://miteshshah.xyz
-NOTE:Operating at the critical intersection of enterprise system architecture, major incident command, and creative storytelling.
+NOTE:Enterprise IT Architecture, Major Incident Command, and Senior Customer Operations Project Management.
 END:VCARD`;
 
     const blob = new Blob([vcardData], { type: "text/vcard;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "Mitesh_Shah_Executive_Contact.vcf");
+    link.setAttribute("download", "Mitesh_Shah_Executive_Pass.vcf");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -132,8 +132,13 @@ END:VCARD`;
 
   return (
     <div className="card-page-container">
-      {/* Global Sleek Awwwards Micro-Dot Cursor */}
+      {/* Global Sleek Micro-Dot Cursor */}
       <CustomCursor />
+
+      {/* Ambient Lighting Orbs for Apple Liquid Glass Refraction */}
+      <div className="ambient-orb orb-primary" />
+      <div className="ambient-orb orb-secondary" />
+      <div className="ambient-orb orb-tertiary" />
 
       <style
         dangerouslySetInnerHTML={{
@@ -143,7 +148,7 @@ END:VCARD`;
         }
         body {
           margin: 0;
-          background: radial-gradient(ellipse at 65% 45%, #181033 0%, #06040c 100%);
+          background: #020204;
           background-attachment: fixed;
           overflow: hidden;
         }
@@ -151,7 +156,7 @@ END:VCARD`;
           width: 100vw;
           height: 100vh;
           overflow: hidden;
-          background: radial-gradient(ellipse at 65% 45%, #181033 0%, #06040c 100%);
+          background: #020204;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -159,6 +164,49 @@ END:VCARD`;
           color: white;
           position: relative;
         }
+
+        /* Ambient Refraction Glows behind the card */
+        .ambient-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(90px);
+          opacity: 0.45;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .orb-primary {
+          width: 380px;
+          height: 380px;
+          background: radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, rgba(99, 102, 241, 0.15) 60%, transparent 80%);
+          top: 25%;
+          left: 55%;
+          animation: floatOrb 12s ease-in-out infinite alternate;
+        }
+        .orb-secondary {
+          width: 420px;
+          height: 420px;
+          background: radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(14, 165, 233, 0.1) 60%, transparent 80%);
+          bottom: 20%;
+          right: 55%;
+          animation: floatOrb2 16s ease-in-out infinite alternate;
+        }
+        .orb-tertiary {
+          width: 260px;
+          height: 260px;
+          background: radial-gradient(circle, rgba(234, 179, 8, 0.25) 0%, transparent 70%);
+          top: 35%;
+          right: 35%;
+        }
+
+        @keyframes floatOrb {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(-40px, 30px) scale(1.15); }
+        }
+        @keyframes floatOrb2 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(30px, -40px) scale(1.1); }
+        }
+
         .card-wrapper {
           width: 90vw;
           max-width: 420px;
@@ -168,6 +216,7 @@ END:VCARD`;
           position: relative;
           cursor: pointer;
           transform-style: preserve-3d;
+          z-index: 10;
         }
         .floating-escape-link {
           position: absolute;
@@ -181,9 +230,9 @@ END:VCARD`;
           text-decoration: none;
           padding: 0.6rem 1.4rem;
           border-radius: 50px;
-          background-color: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
+          background-color: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(16px);
           transition: all 0.3s ease;
           text-transform: uppercase;
         }
@@ -199,7 +248,7 @@ END:VCARD`;
           transform-style: preserve-3d;
         }
 
-        /* APPLE LIQUID GLASS EXECUTIVE CARD FACE STYLING */
+        /* APPLE VISION PRO LIQUID GLASS SPECULAR CARD FACE */
         .card-face {
           position: absolute;
           inset: 0;
@@ -207,13 +256,13 @@ END:VCARD`;
           -webkit-backface-visibility: hidden;
           display: flex;
           flex-direction: column;
-          padding: 2.2rem;
+          padding: 2.4rem 2.2rem;
           border-radius: 24px;
-          background: rgba(255, 255, 255, 0.03) !important;
-          border: 1px solid rgba(255, 255, 255, 0.14) !important;
-          backdrop-filter: blur(24px) saturate(160%) !important;
-          -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-          box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.25);
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
+          border: 1px solid rgba(255, 255, 255, 0.16) !important;
+          backdrop-filter: blur(32px) saturate(180%) !important;
+          -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+          box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 0 35px rgba(168, 85, 247, 0.15);
           overflow: hidden;
         }
         .card-front {
@@ -237,16 +286,16 @@ END:VCARD`;
           align-items: center;
           gap: 8px;
           font-family: monospace;
-          font-size: 0.75rem;
-          color: rgba(255, 255, 255, 0.8);
-          letter-spacing: 0.1em;
+          font-size: 0.72rem;
+          color: rgba(255, 255, 255, 0.75);
+          letter-spacing: 0.12em;
         }
         .dot {
-          width: 8px;
-          height: 8px;
+          width: 7px;
+          height: 7px;
           background: #22c55e;
           border-radius: 50%;
-          box-shadow: 0 0 10px #22c55e;
+          box-shadow: 0 0 8px #22c55e;
           animation: blink 1.5s infinite alternate;
         }
         @keyframes blink {
@@ -256,13 +305,13 @@ END:VCARD`;
 
         /* Metallic Gold NFC Chip Graphic */
         .nfc-chip {
-          width: 32px;
-          height: 24px;
+          width: 34px;
+          height: 25px;
           border-radius: 4px;
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
-          border: 1px solid rgba(255, 255, 255, 0.4);
+          background: linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #92400e 100%);
+          border: 1px solid rgba(255, 255, 255, 0.5);
           position: relative;
-          box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+          box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -271,48 +320,63 @@ END:VCARD`;
         .identity {
           text-align: center;
           transform: translateZ(50px);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.85rem;
         }
         .name {
           font-family: "Georgia", serif;
           font-style: italic;
-          font-size: 2.8rem;
+          font-size: 2.85rem;
           font-weight: 400;
-          letter-spacing: -1px;
+          letter-spacing: -0.5px;
           line-height: 1.1;
-          margin-bottom: 0.6rem;
+          margin: 0;
           color: #ffffff;
+          text-shadow: 0 4px 24px rgba(255, 255, 255, 0.2);
         }
-        .subtitle {
-          font-family: monospace;
-          font-size: 0.75rem;
-          letter-spacing: 0.12em;
-          color: rgba(255, 255, 255, 0.7);
-          line-height: 1.6;
+        .executive-titles {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.35rem;
+          width: 100%;
+          padding: 0 0.5rem;
         }
-        .contact-details-row {
+        .role-tag {
           font-family: monospace;
-          font-size: 0.68rem;
+          font-size: 0.76rem;
+          letter-spacing: 0.1em;
+          color: rgba(255, 255, 255, 0.85);
+          line-height: 1.4;
+          text-align: center;
+          text-transform: uppercase;
+        }
+        .role-sep {
           color: #38bdf8;
-          margin-top: 0.6rem;
-          letter-spacing: 0.08em;
+          font-size: 0.75rem;
+          opacity: 0.6;
+          line-height: 1;
         }
         .barcode-container {
           display: flex;
           justify-content: center;
           align-items: center;
           transform: translateZ(20px);
-          padding-bottom: 0.3rem;
+          padding-bottom: 0.2rem;
         }
         .barcode {
           width: 80%;
-          height: 36px;
-          color: rgba(255, 255, 255, 0.4);
+          height: 34px;
+          color: rgba(255, 255, 255, 0.35);
         }
         .brutalist-button {
           width: 100%;
           padding: 0.9rem 1.1rem;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.18);
           color: white;
           font-family: monospace;
           font-size: 0.78rem;
@@ -337,7 +401,7 @@ END:VCARD`;
           box-shadow: 0 10px 20px rgba(0,0,0,0.4);
         }
         .save-vcard-btn {
-          background: rgba(34, 197, 94, 0.15) !important;
+          background: rgba(34, 197, 94, 0.12) !important;
           border: 1px solid #22c55e !important;
           color: #22c55e !important;
         }
@@ -383,7 +447,7 @@ END:VCARD`;
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(105deg, transparent 20%, rgba(56, 189, 248, 0.2) 25%, rgba(255, 255, 255, 0.18) 27%, transparent 30%)",
+                  "linear-gradient(105deg, transparent 20%, rgba(56, 189, 248, 0.2) 25%, rgba(255, 255, 255, 0.2) 27%, transparent 30%)",
                 backgroundSize: "200% 200%",
                 backgroundPositionX: glareX,
                 backgroundPositionY: glareY,
@@ -406,16 +470,19 @@ END:VCARD`;
               </div>
             </div>
 
+            {/* Executive Identity - Pure Pillars, No Clutter */}
             <div className="identity">
               <h1 className="name">Mitesh Shah</h1>
-              <div className="subtitle">
-                Enterprise IT Architecture, Major Incident Command & Native Apps. Built with precision and scale.
-              </div>
-              <div className="contact-details-row">
-                mitesh@miteshshah.xyz // +1 639 590 4445
+              <div className="executive-titles">
+                <span className="role-tag">Enterprise IT Architecture</span>
+                <span className="role-sep">·</span>
+                <span className="role-tag">Major Incident Command</span>
+                <span className="role-sep">·</span>
+                <span className="role-tag">Senior Customer Operations Project Manager</span>
               </div>
             </div>
 
+            {/* Bottom Barcode */}
             <div className="barcode-container">
               <svg className="barcode" viewBox="0 0 200 40" preserveAspectRatio="none">
                 <rect x="0" y="0" width="4" height="40" fill="currentColor" />
@@ -453,7 +520,7 @@ END:VCARD`;
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(105deg, transparent 20%, rgba(56, 189, 248, 0.2) 25%, rgba(255, 255, 255, 0.18) 27%, transparent 30%)",
+                  "linear-gradient(105deg, transparent 20%, rgba(56, 189, 248, 0.2) 25%, rgba(255, 255, 255, 0.2) 27%, transparent 30%)",
                 backgroundSize: "200% 200%",
                 backgroundPositionX: glareX,
                 backgroundPositionY: glareY,
@@ -464,9 +531,9 @@ END:VCARD`;
               }}
             />
 
-            {/* Instant vCard Saver Button */}
+            {/* Instant vCard Saver Button (Zero Emoji) */}
             <button className="brutalist-button save-vcard-btn" onClick={downloadVCard}>
-              [ 💾 SAVE CONTACT TO PHONE (.VCF) ]
+              [ SAVE CONTACT TO ADDRESS BOOK (.VCF) ]
             </button>
 
             <a
