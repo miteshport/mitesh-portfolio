@@ -246,7 +246,7 @@ function generateMParticleData(totalParticles = 5000) {
   let count = 0;
 
   // True Bilateral Symmetry ($x \leftrightarrow -x$) Volumetric Generator
-  const addSymmetricPair = (x: number, y: number, z: number, jitter = 0.04) => {
+  const addSymmetricPair = (x: number, y: number, z: number, jitter = 0.035) => {
     if (count >= totalParticles - 1) return;
 
     const jx = (Math.random() - 0.5) * jitter;
@@ -262,26 +262,58 @@ function generateMParticleData(totalParticles = 5000) {
     positions[count * 3 + 1] = leftY;
     positions[count * 3 + 2] = leftZ;
 
-    // --- State 2: Sacred Torus Energy Singularity Vortex ($R=1.45, r=0.55$) ---
-    const u1 = (count / totalParticles) * Math.PI * 2;
-    const v1 = u1 * 3.5 + Math.random() * 0.4;
-    const R = 1.42;
-    const r = 0.52 + (Math.random() - 0.5) * 0.12;
-    
-    geodesicCorePositions[count * 3] = (R + r * Math.cos(v1)) * Math.cos(u1);
-    geodesicCorePositions[count * 3 + 1] = ((R + r * Math.cos(v1)) * Math.sin(u1)) * 0.78;
-    geodesicCorePositions[count * 3 + 2] = r * Math.sin(v1);
+    // --- State 2: Sculpted 8-Petal Blooming Sacred Lotus (Padma) ---
+    // Radial 8-fold symmetric blooming petals with concentric elevation
+    const particleIndex = count;
+    const thetaLotus = (particleIndex / totalParticles) * Math.PI * 2;
+    const tier = (particleIndex % 3); // 0: Outer Petals, 1: Mid Petals, 2: Inner Core
 
-    // --- State 3: Nirakar / Pure 3D Mobius Infinity Ribbon ($\infty$) ---
+    let lotusR = 0;
+    let lotusY = 0;
+    let lotusZ = 0;
+    let lotusX = 0;
+
+    if (tier === 0) {
+      // Outer 8 Petals: Wide, majestic opening
+      const petalWave = Math.pow(Math.abs(Math.cos(4 * thetaLotus)), 0.85);
+      const rad = (0.45 + 1.15 * petalWave) * (0.3 + 0.7 * Math.random());
+      lotusX = rad * Math.cos(thetaLotus);
+      lotusZ = rad * Math.sin(thetaLotus);
+      lotusY = -0.45 + Math.pow(rad / 1.6, 1.6) * 0.95; // Graceful bowl curve
+    } else if (tier === 1) {
+      // Mid 8 Petals: Offset by 22.5 deg, steeper upward reach
+      const thetaOffset = thetaLotus + (Math.PI / 8);
+      const petalWave = Math.pow(Math.abs(Math.cos(4 * thetaOffset)), 0.9);
+      const rad = (0.35 + 0.85 * petalWave) * (0.35 + 0.65 * Math.random());
+      lotusX = rad * Math.cos(thetaOffset);
+      lotusZ = rad * Math.sin(thetaOffset);
+      lotusY = -0.40 + Math.pow(rad / 1.2, 1.4) * 0.85;
+    } else {
+      // Inner Luminous Core / Stamen
+      const rad = Math.random() * 0.38;
+      const phi = Math.random() * Math.PI * 2;
+      lotusX = rad * Math.cos(phi);
+      lotusZ = rad * Math.sin(phi);
+      lotusY = -0.42 + Math.random() * 0.35;
+    }
+
+    geodesicCorePositions[count * 3] = lotusX;
+    geodesicCorePositions[count * 3 + 1] = lotusY;
+    geodesicCorePositions[count * 3 + 2] = lotusZ;
+
+    // --- State 3: Horizon-Locked Pure 3D Mobius Infinity Ribbon ($\infty$) ---
     const t1 = (count / totalParticles) * Math.PI * 2;
     const denom1 = 1 + Math.sin(t1) * Math.sin(t1);
-    const infScale = 2.15;
-    const ribbonWidth = (Math.random() - 0.5) * 0.18;
-    const ribbonDepth = (Math.random() - 0.5) * 0.16;
+    const infScale = 2.25;
+    const ribbonWidth = (Math.random() - 0.5) * 0.16;
+    const ribbonDepth = (Math.random() - 0.5) * 0.14;
 
-    cosmicPlanetPositions[count * 3] = (infScale * Math.cos(t1)) / denom1 + ribbonWidth;
-    cosmicPlanetPositions[count * 3 + 1] = ((infScale * Math.sin(t1) * Math.cos(t1)) / denom1) * 1.25 + ribbonWidth * 0.5;
-    cosmicPlanetPositions[count * 3 + 2] = Math.sin(t1 * 2.0) * 0.42 + ribbonDepth;
+    const baseInfX1 = (infScale * Math.cos(t1)) / denom1;
+    const baseInfY1 = ((infScale * Math.sin(t1) * Math.cos(t1)) / denom1) * 1.20;
+
+    cosmicPlanetPositions[count * 3] = baseInfX1 + ribbonWidth;
+    cosmicPlanetPositions[count * 3 + 1] = baseInfY1;
+    cosmicPlanetPositions[count * 3 + 2] = Math.sin(t1 * 2.0) * 0.28 + ribbonDepth;
 
     seeds[count] = Math.random();
     sizes[count] = Math.random() * 0.016 + 0.034;
@@ -296,19 +328,20 @@ function generateMParticleData(totalParticles = 5000) {
     positions[count * 3 + 1] = rightY;
     positions[count * 3 + 2] = rightZ;
 
-    // Torus Twin Point
-    const u2 = u1 + Math.PI;
-    const v2 = v1;
-    geodesicCorePositions[count * 3] = (R + r * Math.cos(v2)) * Math.cos(u2);
-    geodesicCorePositions[count * 3 + 1] = ((R + r * Math.cos(v2)) * Math.sin(u2)) * 0.78;
-    geodesicCorePositions[count * 3 + 2] = -r * Math.sin(v2);
+    // Lotus Symmetric Twin Point
+    geodesicCorePositions[count * 3] = -lotusX;
+    geodesicCorePositions[count * 3 + 1] = lotusY;
+    geodesicCorePositions[count * 3 + 2] = lotusZ;
 
-    // Mobius Ribbon Twin Point
+    // Mobius Ribbon Symmetric Twin Point
     const t2 = t1 + Math.PI;
     const denom2 = 1 + Math.sin(t2) * Math.sin(t2);
-    cosmicPlanetPositions[count * 3] = (infScale * Math.cos(t2)) / denom2 - ribbonWidth;
-    cosmicPlanetPositions[count * 3 + 1] = ((infScale * Math.sin(t2) * Math.cos(t2)) / denom2) * 1.25 - ribbonWidth * 0.5;
-    cosmicPlanetPositions[count * 3 + 2] = Math.sin(t2 * 2.0) * 0.42 - ribbonDepth;
+    const baseInfX2 = (infScale * Math.cos(t2)) / denom2;
+    const baseInfY2 = ((infScale * Math.sin(t2) * Math.cos(t2)) / denom2) * 1.20;
+
+    cosmicPlanetPositions[count * 3] = baseInfX2 - ribbonWidth;
+    cosmicPlanetPositions[count * 3 + 1] = baseInfY2;
+    cosmicPlanetPositions[count * 3 + 2] = Math.sin(t2 * 2.0) * 0.28 - ribbonDepth;
 
     seeds[count] = Math.random();
     sizes[count] = sizes[count - 1];
@@ -343,7 +376,6 @@ function generateMParticleData(totalParticles = 5000) {
     const baseX = startX * (1 - t) + endX * t;
     const baseY = startY * (1 - t) + endY * t;
 
-    // Perpendicular vector for diagonal beam thickness
     const dx = endX - startX;
     const dy = endY - startY;
     const len = Math.sqrt(dx * dx + dy * dy);
@@ -480,21 +512,34 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
 
     if (pointsRef.current) {
       const aspect = size.width / size.height;
-      const scrollRotationMultiplier = globalScroll > 0.05 ? (globalScroll - 0.05) * Math.PI * 4 : 0;
-      const targetRotationY = scrollRotationMultiplier;
-      const targetRotationX = Math.sin(globalScroll * Math.PI) * 0.25;
 
-      pointsRef.current.rotation.y = THREE.MathUtils.lerp(pointsRef.current.rotation.y, targetRotationY, 0.1);
-      pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, targetRotationX, 0.1);
+      // Restrained Cinematic Rotation (Zero erratic spinning)
+      let targetRotationY = 0.0;
+      let targetRotationX = 0.0;
+
+      if (globalScroll < 0.25) {
+        // State 1: Frontal Architectural M
+        targetRotationY = mousePos.x * 0.08;
+        targetRotationX = -mousePos.y * 0.08;
+      } else if (globalScroll >= 0.25 && globalScroll < 0.75) {
+        // State 2: Sacred Lotus (Tilted gently forward to showcase 3D blooming petals)
+        const lotusPhase = (globalScroll - 0.25) / 0.5;
+        targetRotationY = Math.sin(lotusPhase * Math.PI) * 0.2 + mousePos.x * 0.06;
+        targetRotationX = 0.38 + mousePos.y * 0.05;
+      } else {
+        // State 3: Horizon-Locked Pure Infinity Ribbon (0.0 tilt)
+        targetRotationY = mousePos.x * 0.05;
+        targetRotationX = -mousePos.y * 0.05;
+      }
+
+      pointsRef.current.rotation.y = THREE.MathUtils.lerp(pointsRef.current.rotation.y, targetRotationY, 0.08);
+      pointsRef.current.rotation.x = THREE.MathUtils.lerp(pointsRef.current.rotation.x, targetRotationX, 0.08);
 
       // Centered Monumental Archway Positioning
       const targetX = 0.0;
       const targetY = 0.0;
 
       // Mathematical IMAX 70mm Dynamic Aspect-Ratio Auto-Fitting
-      // Galaxy Z Fold cover screen (aspect ~0.43 - 0.6) auto-fits with zero cropping
-      // Tablets / Foldables open (aspect 0.65 - 1.15) scale to 1.15
-      // Widescreen PC Monitors (aspect > 1.15) command screen at 1.35
       let heroBaseScale = 1.35;
       if (aspect < 0.55) {
         heroBaseScale = Math.max(aspect * 1.55, 0.65);
@@ -506,7 +551,7 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
         heroBaseScale = 1.35;
       }
 
-      const targetScale = globalScroll < 0.25 ? heroBaseScale : heroBaseScale * 0.72;
+      const targetScale = globalScroll < 0.25 ? heroBaseScale : heroBaseScale * 0.75;
 
       pointsRef.current.position.x = THREE.MathUtils.lerp(pointsRef.current.position.x, targetX, 0.08);
       pointsRef.current.position.y = THREE.MathUtils.lerp(pointsRef.current.position.y, targetY, 0.08);
