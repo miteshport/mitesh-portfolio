@@ -208,11 +208,9 @@ END:VCARD`;
         }
 
         .card-wrapper {
-          width: 90vw;
-          max-width: 420px;
-          height: 72vh;
-          max-height: 620px;
-          min-height: 520px;
+          width: min(88vw, 390px);
+          height: min(78vh, 610px);
+          aspect-ratio: 1 / 1.58;
           position: relative;
           cursor: pointer;
           transform-style: preserve-3d;
@@ -220,15 +218,15 @@ END:VCARD`;
         }
         .floating-escape-link {
           position: absolute;
-          top: 2.5rem;
-          left: 3rem;
+          top: clamp(1.2rem, 3vh, 2.5rem);
+          left: clamp(1.2rem, 3.5vw, 3rem);
           z-index: 50;
           font-family: monospace;
-          font-size: 0.85rem;
-          letter-spacing: 0.15em;
+          font-size: clamp(0.7rem, 2.4vw, 0.82rem);
+          letter-spacing: 0.12em;
           color: #38bdf8;
           text-decoration: none;
-          padding: 0.6rem 1.4rem;
+          padding: 0.55rem 1.2rem;
           border-radius: 50px;
           background-color: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.15);
@@ -256,8 +254,8 @@ END:VCARD`;
           -webkit-backface-visibility: hidden;
           display: flex;
           flex-direction: column;
-          padding: 2.4rem 2.2rem;
-          border-radius: 24px;
+          padding: clamp(1.4rem, 3.5vh, 2.2rem) clamp(1.2rem, 3.5vw, 1.8rem);
+          border-radius: 22px;
           background: linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
           border: 1px solid rgba(255, 255, 255, 0.16) !important;
           backdrop-filter: blur(32px) saturate(180%) !important;
@@ -270,9 +268,9 @@ END:VCARD`;
         }
         .card-back {
           transform: rotateY(180deg);
-          justify-content: center;
+          justify-content: space-between;
           align-items: center;
-          gap: 0.9rem;
+          gap: 0.6rem;
         }
         .sys-online {
           display: flex;
@@ -286,9 +284,9 @@ END:VCARD`;
           align-items: center;
           gap: 8px;
           font-family: monospace;
-          font-size: 0.72rem;
+          font-size: clamp(0.64rem, 2vw, 0.72rem);
           color: rgba(255, 255, 255, 0.75);
-          letter-spacing: 0.12em;
+          letter-spacing: 0.1em;
         }
         .dot {
           width: 7px;
@@ -303,10 +301,21 @@ END:VCARD`;
           100% { opacity: 1; box-shadow: 0 0 14px #22c55e; }
         }
 
+        /* Laser-Etched Security Telemetry Header */
+        .telemetry-header {
+          font-family: monospace;
+          font-size: clamp(0.55rem, 1.8vw, 0.62rem);
+          letter-spacing: 0.15em;
+          color: rgba(56, 189, 248, 0.85);
+          text-transform: uppercase;
+          margin-top: 0.3rem;
+          transform: translateZ(25px);
+        }
+
         /* Metallic Gold NFC Chip Graphic */
         .nfc-chip {
-          width: 34px;
-          height: 25px;
+          width: 32px;
+          height: 24px;
           border-radius: 4px;
           background: linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #92400e 100%);
           border: 1px solid rgba(255, 255, 255, 0.5);
@@ -315,6 +324,7 @@ END:VCARD`;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         .identity {
@@ -324,15 +334,15 @@ END:VCARD`;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 0.85rem;
+          gap: 0.65rem;
         }
         .name {
           font-family: "Georgia", serif;
           font-style: italic;
-          font-size: 2.85rem;
+          font-size: clamp(1.95rem, 6.8vw, 2.75rem);
           font-weight: 400;
           letter-spacing: -0.5px;
-          line-height: 1.1;
+          line-height: 1.05;
           margin: 0;
           color: #ffffff;
           text-shadow: 0 4px 24px rgba(255, 255, 255, 0.2);
@@ -341,67 +351,89 @@ END:VCARD`;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.35rem;
+          gap: 0.25rem;
           width: 100%;
-          padding: 0 0.5rem;
+          padding: 0 0.2rem;
         }
         .role-tag {
           font-family: monospace;
-          font-size: 0.76rem;
-          letter-spacing: 0.1em;
+          font-size: clamp(0.64rem, 2.2vw, 0.72rem);
+          letter-spacing: 0.08em;
           color: rgba(255, 255, 255, 0.85);
-          line-height: 1.4;
+          line-height: 1.35;
           text-align: center;
           text-transform: uppercase;
         }
         .role-sep {
           color: #38bdf8;
-          font-size: 0.75rem;
+          font-size: 0.65rem;
           opacity: 0.6;
           line-height: 1;
         }
         .barcode-container {
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
           transform: translateZ(20px);
-          padding-bottom: 0.2rem;
+          gap: 0.4rem;
         }
         .barcode {
-          width: 80%;
-          height: 34px;
+          width: 75%;
+          height: 28px;
           color: rgba(255, 255, 255, 0.35);
+        }
+        .tap-flip-cue {
+          font-family: monospace;
+          font-size: clamp(0.55rem, 1.8vw, 0.62rem);
+          letter-spacing: 0.16em;
+          color: rgba(255, 255, 255, 0.45);
+          text-transform: uppercase;
+        }
+
+        /* TWO-TIER ACTION BUTTON ARCHITECTURE */
+        .actions-primary {
+          display: flex;
+          flex-direction: column;
+          gap: 0.55rem;
+          width: 100%;
+          transform: translateZ(35px);
+        }
+        .actions-secondary {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.45rem;
+          width: 100%;
+          transform: translateZ(35px);
         }
         .brutalist-button {
           width: 100%;
-          max-width: 100%;
-          padding: 0.75rem 0.6rem;
+          padding: clamp(0.6rem, 1.6vh, 0.75rem) 0.5rem;
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.18);
           color: white;
           font-family: monospace;
-          font-size: clamp(0.66rem, 3.2vw, 0.76rem);
+          font-size: clamp(0.62rem, 2.2vw, 0.72rem);
           font-weight: bold;
           letter-spacing: 0.06em;
           text-transform: uppercase;
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
           border-radius: 8px;
-          transform: translateZ(40px);
           text-decoration: none;
           display: flex;
           align-items: center;
           justify-content: center;
           text-align: center;
           white-space: normal;
-          line-height: 1.3;
+          line-height: 1.25;
           box-sizing: border-box;
         }
         .brutalist-button:hover {
           background: white;
           color: #050505;
           border-color: white;
-          transform: translateZ(50px) scale(1.02);
+          transform: scale(1.02);
           box-shadow: 0 10px 20px rgba(0,0,0,0.4);
         }
         .save-vcard-btn {
@@ -411,6 +443,15 @@ END:VCARD`;
         }
         .save-vcard-btn:hover {
           background: #22c55e !important;
+          color: #000000 !important;
+        }
+        .wallet-pass-btn {
+          background: rgba(56, 189, 248, 0.12) !important;
+          border: 1px solid #38bdf8 !important;
+          color: #38bdf8 !important;
+        }
+        .wallet-pass-btn:hover {
+          background: #38bdf8 !important;
           color: #000000 !important;
         }
       `,
@@ -441,7 +482,7 @@ END:VCARD`;
         <motion.div
           className="holographic-card"
           animate={{ rotateY: isFlipped ? 180 : 0 }}
-          transition={{ type: "spring", stiffness: 60, damping: 15 }}
+          transition={{ type: "spring", stiffness: 75, damping: 18 }}
         >
           {/* Front Face */}
           <div className="card-face card-front">
@@ -461,11 +502,16 @@ END:VCARD`;
               }}
             />
 
-            {/* Top Bar with Online Status & Metallic Gold NFC Chip */}
+            {/* Top Bar with Online Status, Telemetry & Metallic NFC Chip */}
             <div className="sys-online">
-              <div className="sys-badge">
-                <div className="dot" />
-                SYS: OPTIMAL // NFC ACTIVE
+              <div>
+                <div className="sys-badge">
+                  <div className="dot" />
+                  SYS: OPTIMAL // NFC ACTIVE
+                </div>
+                <div className="telemetry-header">
+                  CLEARANCE: ARCH-P1 · ID: MS-8849
+                </div>
               </div>
               <div className="nfc-chip" title="NFC Contact Chip">
                 <svg width="16" height="14" viewBox="0 0 16 14" fill="none">
@@ -486,38 +532,39 @@ END:VCARD`;
               </div>
             </div>
 
-            {/* Bottom Barcode */}
+            {/* Bottom Barcode & Interactive Flip Cue */}
             <div className="barcode-container">
-              <svg className="barcode" viewBox="0 0 200 40" preserveAspectRatio="none">
-                <rect x="0" y="0" width="4" height="40" fill="currentColor" />
-                <rect x="8" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="14" y="0" width="6" height="40" fill="currentColor" />
-                <rect x="24" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="30" y="0" width="8" height="40" fill="currentColor" />
-                <rect x="42" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="48" y="0" width="4" height="40" fill="currentColor" />
-                <rect x="56" y="0" width="10" height="40" fill="currentColor" />
-                <rect x="70" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="76" y="0" width="4" height="40" fill="currentColor" />
-                <rect x="84" y="0" width="6" height="40" fill="currentColor" />
-                <rect x="94" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="100" y="0" width="8" height="40" fill="currentColor" />
-                <rect x="112" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="118" y="0" width="4" height="40" fill="currentColor" />
-                <rect x="126" y="0" width="12" height="40" fill="currentColor" />
-                <rect x="142" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="148" y="0" width="4" height="40" fill="currentColor" />
-                <rect x="156" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="162" y="0" width="8" height="40" fill="currentColor" />
-                <rect x="174" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="180" y="0" width="6" height="40" fill="currentColor" />
-                <rect x="190" y="0" width="2" height="40" fill="currentColor" />
-                <rect x="196" y="0" width="4" height="40" fill="currentColor" />
+              <svg className="barcode" viewBox="0 0 200 35" preserveAspectRatio="none">
+                <rect x="0" y="0" width="4" height="35" fill="currentColor" />
+                <rect x="8" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="14" y="0" width="6" height="35" fill="currentColor" />
+                <rect x="24" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="30" y="0" width="8" height="35" fill="currentColor" />
+                <rect x="42" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="48" y="0" width="4" height="35" fill="currentColor" />
+                <rect x="56" y="0" width="10" height="35" fill="currentColor" />
+                <rect x="70" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="76" y="0" width="4" height="35" fill="currentColor" />
+                <rect x="84" y="0" width="6" height="35" fill="currentColor" />
+                <rect x="94" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="100" y="0" width="8" height="35" fill="currentColor" />
+                <rect x="112" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="118" y="0" width="4" height="35" fill="currentColor" />
+                <rect x="126" y="0" width="12" height="35" fill="currentColor" />
+                <rect x="142" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="148" y="0" width="4" height="35" fill="currentColor" />
+                <rect x="156" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="162" y="0" width="8" height="35" fill="currentColor" />
+                <rect x="174" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="180" y="0" width="6" height="35" fill="currentColor" />
+                <rect x="190" y="0" width="2" height="35" fill="currentColor" />
+                <rect x="196" y="0" width="4" height="35" fill="currentColor" />
               </svg>
+              <div className="tap-flip-cue">[ TAP CARD TO FLIP // ACTIONS ]</div>
             </div>
           </div>
 
-          {/* Back Face */}
+          {/* Back Face - Two-Tier Action Architecture */}
           <div className="card-face card-back">
             <motion.div
               style={{
@@ -535,41 +582,69 @@ END:VCARD`;
               }}
             />
 
-            {/* Instant vCard Saver Button (Zero Emoji & Zero Overflow) */}
-            <button className="brutalist-button save-vcard-btn" onClick={downloadVCard}>
-              [ SAVE CONTACT PASS (.VCF) ]
-            </button>
+            {/* Back Face Header */}
+            <div style={{ textAlign: "center", transform: "translateZ(30px)", width: "100%" }}>
+              <div style={{ fontFamily: "monospace", fontSize: "0.62rem", letterSpacing: "0.14em", color: "#38bdf8", textTransform: "uppercase" }}>
+                EXECUTIVE CONTACT INTERFACE
+              </div>
+            </div>
 
-            <a
-              href="https://www.linkedin.com/in/mitesh-shah-6415777a/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="brutalist-button"
-              onClick={(e) => e.stopPropagation()}
-            >
-              CONNECT ON LINKEDIN
-            </a>
-            <a
-              href="https://wa.me/qr/Y4BDLWGVOJ7WO1"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="brutalist-button"
-              onClick={(e) => e.stopPropagation()}
-            >
-              CONNECT VIA WHATSAPP
-            </a>
-            <a
-              href="https://www.instagram.com/mitesh.shah01?igsh=MWVsbHA2dnM5N2poMQ=="
-              target="_blank"
-              rel="noopener noreferrer"
-              className="brutalist-button"
-              onClick={(e) => e.stopPropagation()}
-            >
-              VIEW INSTAGRAM
-            </a>
-            <Link href="/" className="brutalist-button" onClick={(e) => e.stopPropagation()}>
-              ENTER SYSTEM PORTFOLIO
-            </Link>
+            {/* Primary Action Tier */}
+            <div className="actions-primary">
+              <button className="brutalist-button save-vcard-btn" onClick={downloadVCard}>
+                [ SAVE CONTACT PASS (.VCF) ]
+              </button>
+              <button
+                className="brutalist-button wallet-pass-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadVCard(e);
+                }}
+              >
+                [ ADD TO APPLE / GOOGLE WALLET ]
+              </button>
+            </div>
+
+            {/* Secondary Direct Communication Grid */}
+            <div className="actions-secondary">
+              <a
+                href="https://www.linkedin.com/in/mitesh-shah-6415777a/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="brutalist-button"
+                onClick={(e) => e.stopPropagation()}
+              >
+                LINKEDIN
+              </a>
+              <a
+                href="https://wa.me/qr/Y4BDLWGVOJ7WO1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="brutalist-button"
+                onClick={(e) => e.stopPropagation()}
+              >
+                WHATSAPP
+              </a>
+              <a
+                href="https://www.instagram.com/mitesh.shah01?igsh=MWVsbHA2dnM5N2poMQ=="
+                target="_blank"
+                rel="noopener noreferrer"
+                className="brutalist-button"
+                onClick={(e) => e.stopPropagation()}
+              >
+                INSTAGRAM
+              </a>
+              <Link href="/" className="brutalist-button" onClick={(e) => e.stopPropagation()}>
+                PORTFOLIO
+              </Link>
+            </div>
+
+            {/* Bottom Security Footer */}
+            <div style={{ textAlign: "center", transform: "translateZ(25px)", width: "100%" }}>
+              <div style={{ fontFamily: "monospace", fontSize: "0.55rem", letterSpacing: "0.12em", color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase" }}>
+                SECURE END-TO-END // MITESHSHAH.XYZ
+              </div>
+            </div>
           </div>
         </motion.div>
       </motion.div>
