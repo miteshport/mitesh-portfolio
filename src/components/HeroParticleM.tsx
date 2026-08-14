@@ -121,7 +121,7 @@ const ParticleMShader = {
     uTime: { value: 0 },
     uMouse3D: { value: new THREE.Vector3(999, 999, 999) },
     uScrollProgress: { value: 0 },
-    uRepulsionRadius: { value: 1.1 },
+    uRepulsionRadius: { value: 0.28 },
     uSpringDamping: { value: 4.2 },
     uVioletColor: { value: new THREE.Color("#a855f7") },
     uCyanColor: { value: new THREE.Color("#38bdf8") },
@@ -159,8 +159,8 @@ const ParticleMShader = {
         currentPos = mix(aGeodesicCorePosition, aCosmicPlanetPosition, t);
       }
 
-      currentPos.y += sin(uTime * 1.5 + aRandomSeed * 6.28) * 0.035;
-      currentPos.x += cos(uTime * 1.2 + aRandomSeed * 3.14) * 0.025;
+      currentPos.y += sin(uTime * 1.5 + aRandomSeed * 6.28) * 0.025;
+      currentPos.x += cos(uTime * 1.2 + aRandomSeed * 3.14) * 0.02;
 
       vHeightRatio = clamp((currentPos.y + 1.4) / 2.8, 0.0, 1.0);
 
@@ -176,11 +176,11 @@ const ParticleMShader = {
 
       if (distToMouse < uRepulsionRadius) {
         float factor = 1.0 - (distToMouse / uRepulsionRadius);
-        // Velvet Fluid Displacement (Smooth Quadratic Deceleration matching WorldMapRadar)
-        displacement = pow(factor, 2.0) * 0.36;
+        // Velvet Fluid Displacement (Hooke's Law Quadratic Decay matching Location Box)
+        displacement = pow(factor, 2.0) * 0.28;
 
         vec3 pushDir = normalize(dirToMouse);
-        pushDir.z = factor * 0.12; // Gentle organic depth lift
+        pushDir.z = factor * 0.1;
         displacedPos += normalize(pushDir) * displacement;
       }
 
@@ -190,8 +190,8 @@ const ParticleMShader = {
       gl_Position = projectionMatrix * mvPosition;
 
       // Refined starlight sizing with zero pixel explosion
-      float sizeBoost = 1.0 + (displacement * 0.75);
-      gl_PointSize = clamp(aParticleSize * sizeBoost * (480.0 / -mvPosition.z), 3.5, 8.5);
+      float sizeBoost = 1.0 + (displacement * 0.65);
+      gl_PointSize = clamp(aParticleSize * sizeBoost * (480.0 / -mvPosition.z), 3.2, 8.0);
     }
   `,
   fragmentShader: `
@@ -224,10 +224,10 @@ const ParticleMShader = {
       vec3 color = mix(baseGradient, uTopColor, vHeightRatio * 0.4);
 
       // Soft Velvet Luminescence on cursor contact (Smooth transition, zero noise)
-      if (vDisplacement > 0.015) {
-        vec3 glowColor = mix(uCyanColor, vec3(1.0, 1.0, 1.0), 0.45);
-        color = mix(color, glowColor, clamp(vDisplacement * 2.8, 0.0, 0.8));
-        alpha = min(alpha * 1.2, 1.0);
+      if (vDisplacement > 0.01) {
+        vec3 glowColor = mix(uCyanColor, vec3(1.0, 1.0, 1.0), 0.5);
+        color = mix(color, glowColor, clamp(vDisplacement * 3.2, 0.0, 0.85));
+        alpha = min(alpha * 1.25, 1.0);
       }
 
       gl_FragColor = vec4(color, alpha * 0.95);
@@ -235,7 +235,7 @@ const ParticleMShader = {
   `,
 };
 
-function generateMParticleData(totalParticles = 4400) {
+function generateMParticleData(totalParticles = 5000) {
   const positions = new Float32Array(totalParticles * 3);
   const geodesicCorePositions = new Float32Array(totalParticles * 3);
   const cosmicPlanetPositions = new Float32Array(totalParticles * 3);
@@ -244,14 +244,13 @@ function generateMParticleData(totalParticles = 4400) {
 
   let count = 0;
 
-  // True Bilateral Symmetry ($x \leftrightarrow -x$) Point Generator
-  const addSymmetricPair = (x: number, y: number, z: number, jitter = 0.075) => {
+  // True Bilateral Symmetry ($x \leftrightarrow -x$) Volumetric Generator
+  const addSymmetricPair = (x: number, y: number, z: number, jitter = 0.04) => {
     if (count >= totalParticles - 1) return;
 
-    // Gaussian radial jitter
     const jx = (Math.random() - 0.5) * jitter;
     const jy = (Math.random() - 0.5) * jitter;
-    const jz = (Math.random() - 0.5) * jitter * 1.5;
+    const jz = (Math.random() - 0.5) * jitter;
 
     // Left Point (-x)
     const leftX = -Math.abs(x) + jx;
@@ -276,7 +275,7 @@ function generateMParticleData(totalParticles = 4400) {
     cosmicPlanetPositions[count * 3 + 2] = Math.sin(planetAngle1) * planetRadius1;
 
     seeds[count] = Math.random();
-    sizes[count] = Math.random() * 0.018 + 0.035;
+    sizes[count] = Math.random() * 0.016 + 0.034;
     count++;
 
     // Right Mirrored Point (+x) - Exact Twin
@@ -310,19 +309,41 @@ function generateMParticleData(totalParticles = 4400) {
   const stemPairs = Math.floor(totalPairs * 0.52);
   const diagPairs = totalPairs - stemPairs;
 
-  // 1. Symmetrical Outer Stems (Left & Right)
+  const stemThickness = 0.22;
+  const diagThickness = 0.20;
+  const depthSpread = 0.16;
+
+  // 1. Solid Volumetric Outer Stems (Thick Architectural Pillars with filled body)
   for (let i = 0; i < stemPairs; i++) {
     const t = i / stemPairs;
-    const y = -1.35 + t * 2.7;
-    addSymmetricPair(1.22, y, 0, 0.075);
+    const y = -1.30 + t * 2.60;
+    const xOffset = (Math.random() - 0.5) * stemThickness;
+    const zOffset = (Math.random() - 0.5) * depthSpread;
+    addSymmetricPair(1.20 + xOffset, y, zOffset, 0.035);
   }
 
-  // 2. Symmetrical Inner Diagonals (Left & Right meeting in center)
+  // 2. Solid Volumetric Diagonals (Thick Beveled Beams meeting in center vertex)
   for (let i = 0; i < diagPairs; i++) {
     const t = i / diagPairs;
-    const x = 1.22 * (1 - t) + 0.00 * t;
-    const y = 1.35 * (1 - t) + (-0.32) * t;
-    addSymmetricPair(x, y, 0, 0.075);
+    const startX = 1.20;
+    const startY = 1.30;
+    const endX = 0.00;
+    const endY = -0.32;
+
+    const baseX = startX * (1 - t) + endX * t;
+    const baseY = startY * (1 - t) + endY * t;
+
+    // Perpendicular vector for diagonal beam thickness
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const px = -dy / len;
+    const py = dx / len;
+
+    const offset = (Math.random() - 0.5) * diagThickness;
+    const zOffset = (Math.random() - 0.5) * depthSpread;
+
+    addSymmetricPair(baseX + px * offset, baseY + py * offset, zOffset, 0.035);
   }
 
   return { positions, geodesicCorePositions, cosmicPlanetPositions, seeds, sizes };
@@ -465,10 +486,14 @@ function MParticleMesh({ mousePos, globalScroll }: { mousePos: { x: number; y: n
       // Tablets / Foldables open (aspect 0.65 - 1.15) scale to 1.15
       // Widescreen PC Monitors (aspect > 1.15) command screen at 1.35
       let heroBaseScale = 1.35;
-      if (aspect < 0.65) {
-        heroBaseScale = Math.max(aspect * 2.05, 0.72);
-      } else if (aspect < 1.15) {
+      if (aspect < 0.55) {
+        heroBaseScale = Math.max(aspect * 1.55, 0.65);
+      } else if (aspect < 0.85) {
+        heroBaseScale = Math.max(aspect * 1.35, 0.80);
+      } else if (aspect < 1.2) {
         heroBaseScale = 1.15;
+      } else {
+        heroBaseScale = 1.35;
       }
 
       const targetScale = globalScroll < 0.25 ? heroBaseScale : heroBaseScale * 0.72;
