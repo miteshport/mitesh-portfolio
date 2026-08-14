@@ -152,15 +152,16 @@ const ParticleMShader = {
 
       vec3 currentPos;
       if (uScrollProgress < 0.5) {
-        float t = clamp(uScrollProgress * 2.0, 0.0, 1.0);
+        float t = smoothstep(0.02, 0.44, uScrollProgress);
         currentPos = mix(position, aGeodesicCorePosition, t);
       } else {
-        float t = clamp((uScrollProgress - 0.5) * 2.0, 0.0, 1.0);
+        float t = smoothstep(0.52, 0.94, uScrollProgress);
         currentPos = mix(aGeodesicCorePosition, aCosmicPlanetPosition, t);
       }
 
-      currentPos.y += sin(uTime * 1.5 + aRandomSeed * 6.28) * 0.025;
-      currentPos.x += cos(uTime * 1.2 + aRandomSeed * 3.14) * 0.02;
+      // Harmonic celestial breathing
+      currentPos.y += sin(uTime * 1.4 + aRandomSeed * 6.28) * 0.022;
+      currentPos.x += cos(uTime * 1.1 + aRandomSeed * 3.14) * 0.018;
 
       vHeightRatio = clamp((currentPos.y + 1.4) / 2.8, 0.0, 1.0);
 
@@ -252,7 +253,7 @@ function generateMParticleData(totalParticles = 5000) {
     const jy = (Math.random() - 0.5) * jitter;
     const jz = (Math.random() - 0.5) * jitter;
 
-    // Left Point (-x)
+    // --- State 1: Letter M Points ---
     const leftX = -Math.abs(x) + jx;
     const leftY = y + jy;
     const leftZ = z + jz;
@@ -261,24 +262,32 @@ function generateMParticleData(totalParticles = 5000) {
     positions[count * 3 + 1] = leftY;
     positions[count * 3 + 2] = leftZ;
 
-    const phi1 = Math.acos(-1 + (2 * count) / totalParticles);
-    const theta1 = Math.sqrt(totalParticles * Math.PI) * phi1;
-    const coreRadius1 = 1.3 + (Math.random() - 0.5) * 0.18;
-    geodesicCorePositions[count * 3] = Math.cos(theta1) * Math.sin(phi1) * coreRadius1;
-    geodesicCorePositions[count * 3 + 1] = Math.sin(theta1) * Math.sin(phi1) * coreRadius1;
-    geodesicCorePositions[count * 3 + 2] = Math.cos(phi1) * coreRadius1;
+    // --- State 2: Sacred Torus Energy Singularity Vortex ($R=1.45, r=0.55$) ---
+    const u1 = (count / totalParticles) * Math.PI * 2;
+    const v1 = u1 * 3.5 + Math.random() * 0.4;
+    const R = 1.42;
+    const r = 0.52 + (Math.random() - 0.5) * 0.12;
+    
+    geodesicCorePositions[count * 3] = (R + r * Math.cos(v1)) * Math.cos(u1);
+    geodesicCorePositions[count * 3 + 1] = ((R + r * Math.cos(v1)) * Math.sin(u1)) * 0.78;
+    geodesicCorePositions[count * 3 + 2] = r * Math.sin(v1);
 
-    const planetAngle1 = (count / totalParticles) * Math.PI * 2;
-    const planetRadius1 = 1.8 + (Math.random() - 0.5) * 0.5;
-    cosmicPlanetPositions[count * 3] = Math.cos(planetAngle1) * planetRadius1;
-    cosmicPlanetPositions[count * 3 + 1] = Math.sin(planetAngle1 * 2.0) * 0.5;
-    cosmicPlanetPositions[count * 3 + 2] = Math.sin(planetAngle1) * planetRadius1;
+    // --- State 3: Nirakar / Pure 3D Mobius Infinity Ribbon ($\infty$) ---
+    const t1 = (count / totalParticles) * Math.PI * 2;
+    const denom1 = 1 + Math.sin(t1) * Math.sin(t1);
+    const infScale = 2.15;
+    const ribbonWidth = (Math.random() - 0.5) * 0.18;
+    const ribbonDepth = (Math.random() - 0.5) * 0.16;
+
+    cosmicPlanetPositions[count * 3] = (infScale * Math.cos(t1)) / denom1 + ribbonWidth;
+    cosmicPlanetPositions[count * 3 + 1] = ((infScale * Math.sin(t1) * Math.cos(t1)) / denom1) * 1.25 + ribbonWidth * 0.5;
+    cosmicPlanetPositions[count * 3 + 2] = Math.sin(t1 * 2.0) * 0.42 + ribbonDepth;
 
     seeds[count] = Math.random();
     sizes[count] = Math.random() * 0.016 + 0.034;
     count++;
 
-    // Right Mirrored Point (+x) - Exact Twin
+    // Right Mirrored Twin
     const rightX = Math.abs(x) - jx;
     const rightY = leftY;
     const rightZ = leftZ;
@@ -287,18 +296,19 @@ function generateMParticleData(totalParticles = 5000) {
     positions[count * 3 + 1] = rightY;
     positions[count * 3 + 2] = rightZ;
 
-    const phi2 = Math.acos(-1 + (2 * count) / totalParticles);
-    const theta2 = Math.sqrt(totalParticles * Math.PI) * phi2;
-    const coreRadius2 = 1.3 + (Math.random() - 0.5) * 0.18;
-    geodesicCorePositions[count * 3] = Math.cos(theta2) * Math.sin(phi2) * coreRadius2;
-    geodesicCorePositions[count * 3 + 1] = Math.sin(theta2) * Math.sin(phi2) * coreRadius2;
-    geodesicCorePositions[count * 3 + 2] = Math.cos(phi2) * coreRadius2;
+    // Torus Twin Point
+    const u2 = u1 + Math.PI;
+    const v2 = v1;
+    geodesicCorePositions[count * 3] = (R + r * Math.cos(v2)) * Math.cos(u2);
+    geodesicCorePositions[count * 3 + 1] = ((R + r * Math.cos(v2)) * Math.sin(u2)) * 0.78;
+    geodesicCorePositions[count * 3 + 2] = -r * Math.sin(v2);
 
-    const planetAngle2 = (count / totalParticles) * Math.PI * 2;
-    const planetRadius2 = 1.8 + (Math.random() - 0.5) * 0.5;
-    cosmicPlanetPositions[count * 3] = Math.cos(planetAngle2) * planetRadius2;
-    cosmicPlanetPositions[count * 3 + 1] = Math.sin(planetAngle2 * 2.0) * 0.5;
-    cosmicPlanetPositions[count * 3 + 2] = Math.sin(planetAngle2) * planetRadius2;
+    // Mobius Ribbon Twin Point
+    const t2 = t1 + Math.PI;
+    const denom2 = 1 + Math.sin(t2) * Math.sin(t2);
+    cosmicPlanetPositions[count * 3] = (infScale * Math.cos(t2)) / denom2 - ribbonWidth;
+    cosmicPlanetPositions[count * 3 + 1] = ((infScale * Math.sin(t2) * Math.cos(t2)) / denom2) * 1.25 - ribbonWidth * 0.5;
+    cosmicPlanetPositions[count * 3 + 2] = Math.sin(t2 * 2.0) * 0.42 - ribbonDepth;
 
     seeds[count] = Math.random();
     sizes[count] = sizes[count - 1];

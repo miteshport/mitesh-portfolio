@@ -374,14 +374,15 @@ END:VCARD`;
         }
         .brutalist-button {
           width: 100%;
-          padding: 0.9rem 1.1rem;
+          max-width: 100%;
+          padding: 0.75rem 0.6rem;
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.18);
           color: white;
           font-family: monospace;
-          font-size: 0.78rem;
+          font-size: clamp(0.66rem, 3.2vw, 0.76rem);
           font-weight: bold;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
@@ -391,7 +392,10 @@ END:VCARD`;
           display: flex;
           align-items: center;
           justify-content: center;
-          white-space: nowrap;
+          text-align: center;
+          white-space: normal;
+          line-height: 1.3;
+          box-sizing: border-box;
         }
         .brutalist-button:hover {
           background: white;
@@ -531,9 +535,9 @@ END:VCARD`;
               }}
             />
 
-            {/* Instant vCard Saver Button (Zero Emoji) */}
+            {/* Instant vCard Saver Button (Zero Emoji & Zero Overflow) */}
             <button className="brutalist-button save-vcard-btn" onClick={downloadVCard}>
-              [ SAVE CONTACT TO ADDRESS BOOK (.VCF) ]
+              [ SAVE CONTACT PASS (.VCF) ]
             </button>
 
             <a
