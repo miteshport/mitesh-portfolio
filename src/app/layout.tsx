@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import SmoothScrolling from "@/components/SmoothScrolling";
@@ -14,10 +14,22 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#020204",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://miteshshah.xyz"),
   title: "Mitesh Shah | The Architect",
   description: "Engineer of order out of chaos. Building flawless digital experiences and enterprise IT operations.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Mitesh Pass",
+  },
   openGraph: {
     title: "Mitesh Shah | The Architect",
     description: "Engineer of order out of chaos. Building flawless digital experiences and enterprise IT operations.",

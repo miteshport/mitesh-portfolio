@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { audio } from "@/utils/audioSystem";
 
 const OUTPUT_LINES = [
   { label: "[✓] Experience:", value: "10+ Years Global Enterprise IT Operations", color: "#22c55e" },
@@ -52,6 +53,7 @@ export default function ITSection() {
   }, [isInView, isBreachActive]);
 
   const startBreachGame = () => {
+    audio.playClick();
     setIsBreachActive(true);
     setBreachStep(1);
     setSlaCountdown(45.0);
@@ -60,6 +62,7 @@ export default function ITSection() {
 
   const handleStepClick = (stepIndex: number) => {
     if (stepIndex === breachStep) {
+      audio.playClick();
       if (breachStep === 1) {
         setSimLogs((prev) => [...prev, "[✓] STAGE 1: Node 09 isolated. Quarantine perimeter active."]);
         setBreachStep(2);
@@ -69,6 +72,7 @@ export default function ITSection() {
       } else if (breachStep === 3) {
         setSimLogs((prev) => [...prev, "[✓] STAGE 3: Kernel hotfix applied. Zero downtime SLA preserved."]);
         setBreachStep(4);
+        setTimeout(() => audio.playVictoryChime(), 150);
       }
     }
   };

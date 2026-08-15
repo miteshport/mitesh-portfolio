@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import AimScopeSimulator from "@/components/AimScopeSimulator";
 import SankalpHabitRing from "@/components/SankalpHabitRing";
 import PhysicsPills from "@/components/PhysicsPills";
@@ -9,12 +9,19 @@ import BookParallax from "@/components/BookParallax";
 import WorldMapRadar from "@/components/WorldMapRadar";
 import ContentTicker from "@/components/ContentTicker";
 import AudioEqualizer from "@/components/AudioEqualizer";
+import { audio } from "@/utils/audioSystem";
 
 interface Project {
   id: string;
   title: string;
   category: string;
   url?: string;
+  architectureDetails?: {
+    nodes: string;
+    sla: string;
+    protocol: string;
+    summary: string;
+  };
 }
 
 const PROJECTS: Project[] = [
@@ -23,11 +30,23 @@ const PROJECTS: Project[] = [
     title: "ZERØ & SANKALP",
     category: "Native Android Flagships",
     url: "https://play.google.com/store/apps/details?id=com.zeroapps.zero_crosshair",
+    architectureDetails: {
+      nodes: "Kotlin Core · Native C++ Render Pipeline · GPU Overlay Engine",
+      sla: "60fps Sub-Millisecond Frame Latency",
+      protocol: "Android SurfaceFlinger / Native Canvas API",
+      summary: "Dual production mobile flagships with over 50,000+ active sessions and zero crash telemetry.",
+    },
   },
   {
     id: "skills-arsenal",
     title: "SKILLS & TECHNICAL STACK",
     category: "Interactive 2D Physics",
+    architectureDetails: {
+      nodes: "Matter.js Rigid Body Physics · HTML5 2D Canvas · Verlet Integration",
+      sla: "60fps Velocity Solver",
+      protocol: "Continuous Collision Detection (CCD)",
+      summary: "Dynamic interactive physics engine modeling real-world gravity, inertia, and restitution.",
+    },
   },
   {
     id: "divine-doodles",
@@ -39,6 +58,12 @@ const PROJECTS: Project[] = [
     id: "canada-base",
     title: "BASED IN CANADA",
     category: "Global Operations",
+    architectureDetails: {
+      nodes: "Cloudflare Edge · Global Anycast CDN · Ottawa Hub",
+      sla: "99.999% Availability",
+      protocol: "BGP Anycast Routing",
+      summary: "Enterprise IT infrastructure operating globally with 24/7 incident command coverage.",
+    },
   },
   {
     id: "pratyaksh-gyan",
@@ -60,6 +85,7 @@ export default function ProjectsSection() {
 
   // 3D Flip State for Card 1 (ZERØ Front vs Sankalp Back)
   const [isCard1Flipped, setIsCard1Flipped] = useState(false);
+  const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
 
   return (
     <section
@@ -214,6 +240,7 @@ export default function ProjectsSection() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            audio.playClick();
                             setIsCard1Flipped(true);
                           }}
                           style={{
@@ -227,12 +254,13 @@ export default function ProjectsSection() {
                             cursor: "pointer",
                           }}
                         >
-                          [ 🗘 FLIP: SANKALP ]
+                          [ FLIP: SANKALP ]
                         </button>
                         <a
                           href="https://play.google.com/store/apps/details?id=com.zeroapps.zero_crosshair"
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => audio.playClick()}
                           style={{ fontFamily: "monospace", fontSize: "12px", color: "#38bdf8", textDecoration: "none" }}
                         >
                           [ ↗ ]
@@ -275,6 +303,7 @@ export default function ProjectsSection() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            audio.playClick();
                             setIsCard1Flipped(false);
                           }}
                           style={{
@@ -288,12 +317,13 @@ export default function ProjectsSection() {
                             cursor: "pointer",
                           }}
                         >
-                          [ 🗘 FLIP: ZERØ ]
+                          [ FLIP: ZERØ ]
                         </button>
                         <a
                           href="https://play.google.com/store/apps/details?id=com.zeroapps.sankalp"
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => audio.playClick()}
                           style={{ fontFamily: "monospace", fontSize: "12px", color: "#a855f7", textDecoration: "none" }}
                         >
                           [ ↗ ]
@@ -351,7 +381,32 @@ export default function ProjectsSection() {
                   {project.title}
                 </span>
 
-                {/* Sleek Top-Right Arrow Badge */}
+              {/* Sleek Top-Right Arrow & Inspector Badge */}
+              <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                {project.architectureDetails && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      audio.playClick();
+                      setActiveModalProject(project);
+                    }}
+                    style={{
+                      backgroundColor: "rgba(56, 189, 248, 0.12)",
+                      border: "1px solid rgba(56, 189, 248, 0.35)",
+                      color: "#38bdf8",
+                      fontFamily: "monospace",
+                      fontSize: "9px",
+                      padding: "0.12rem 0.45rem",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    [ ARCHITECTURE ]
+                  </button>
+                )}
+
                 {project.url && (
                   <span
                     style={{
@@ -365,45 +420,169 @@ export default function ProjectsSection() {
                   </span>
                 )}
               </div>
+            </div>
 
-              {/* CARD 2: Matter.js 2D Interactive Physics Pills */}
-              {project.id === "skills-arsenal" && (
-                <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
-                  <PhysicsPills />
+            {/* CARD 2: Matter.js 2D Interactive Physics Pills */}
+            {project.id === "skills-arsenal" && (
+              <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
+                <PhysicsPills />
+              </div>
+            )}
+
+            {/* CARD 3: 3D Parallax Book + Golden Aura */}
+            {project.id === "divine-doodles" && (
+              <div style={{ height: "100%", width: "100%", marginTop: "0.2rem", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <BookParallax />
+              </div>
+            )}
+
+            {/* CARD 4: Direct SVG Continent Path Dot Matrix Map */}
+            {project.id === "canada-base" && (
+              <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
+                <WorldMapRadar />
+              </div>
+            )}
+
+            {/* CARD 5: Glassmorphic Live Content Ticker */}
+            {project.id === "pratyaksh-gyan" && (
+              <div style={{ height: "130px", marginTop: "0.3rem", overflow: "hidden", borderRadius: "8px" }}>
+                <ContentTicker />
+              </div>
+            )}
+
+            {/* CARD 6: Ambient Audio Spectrum Visualizer */}
+            {project.id === "coffee-donut-tv" && (
+              <div style={{ height: "125px", marginTop: "0.3rem", overflow: "hidden", borderRadius: "8px" }}>
+                <AudioEqualizer />
+              </div>
+            )}
+          </motion.div>
+        );
+      })}
+      </div>
+
+      {/* ARCHITECTURE DEEP DIVE MODAL (APPLE LIQUID GLASS) */}
+      <AnimatePresence>
+        {activeModalProject && activeModalProject.architectureDetails && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              audio.playClick();
+              setActiveModalProject(null);
+            }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.82)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 999999,
+              padding: "1.5rem",
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.94, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: "600px",
+                backgroundColor: "rgba(18, 14, 34, 0.94)",
+                border: "1px solid rgba(168, 85, 247, 0.35)",
+                borderRadius: "18px",
+                padding: "2rem",
+                boxShadow: "0 30px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(168, 85, 247, 0.2)",
+                fontFamily: "monospace",
+              }}
+            >
+              {/* Modal Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", paddingBottom: "0.8rem" }}>
+                <div>
+                  <div style={{ fontSize: "0.68rem", color: "#38bdf8", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                    ARCHITECTURE TOPOLOGY DEEP DIVE
+                  </div>
+                  <h3 style={{ margin: "0.3rem 0 0 0", color: "#ffffff", fontSize: "1.3rem", fontFamily: "Georgia, serif" }}>
+                    {activeModalProject.title}
+                  </h3>
                 </div>
-              )}
+                <button
+                  onClick={() => {
+                    audio.playClick();
+                    setActiveModalProject(null);
+                  }}
+                  style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.08)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    color: "#ffffff",
+                    fontFamily: "monospace",
+                    fontSize: "0.75rem",
+                    padding: "0.3rem 0.7rem",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  [ ✕ CLOSE ]
+                </button>
+              </div>
 
-              {/* CARD 3: 3D Parallax Book + Golden Aura */}
-              {project.id === "divine-doodles" && (
-                <div style={{ height: "100%", width: "100%", marginTop: "0.2rem", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                  <BookParallax />
+              {/* Architecture Blueprint Grid */}
+              <div style={{ display: "grid", gap: "1rem", marginBottom: "1.5rem" }}>
+                <div style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", padding: "0.8rem 1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <div style={{ fontSize: "0.64rem", color: "rgba(255, 255, 255, 0.5)", marginBottom: "0.2rem" }}>TOPOLOGY / NODES</div>
+                  <div style={{ color: "#a855f7", fontSize: "0.82rem", fontWeight: "bold" }}>{activeModalProject.architectureDetails.nodes}</div>
                 </div>
-              )}
 
-              {/* CARD 4: Direct SVG Continent Path Dot Matrix Map */}
-              {project.id === "canada-base" && (
-                <div style={{ height: "100%", width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
-                  <WorldMapRadar />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                  <div style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", padding: "0.8rem 1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                    <div style={{ fontSize: "0.64rem", color: "rgba(255, 255, 255, 0.5)", marginBottom: "0.2rem" }}>SLA BENCHMARK</div>
+                    <div style={{ color: "#22c55e", fontSize: "0.82rem", fontWeight: "bold" }}>{activeModalProject.architectureDetails.sla}</div>
+                  </div>
+                  <div style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", padding: "0.8rem 1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                    <div style={{ fontSize: "0.64rem", color: "rgba(255, 255, 255, 0.5)", marginBottom: "0.2rem" }}>PROTOCOL / RUNTIME</div>
+                    <div style={{ color: "#38bdf8", fontSize: "0.82rem", fontWeight: "bold" }}>{activeModalProject.architectureDetails.protocol}</div>
+                  </div>
                 </div>
-              )}
 
-              {/* CARD 5: Glassmorphic Live Content Ticker */}
-              {project.id === "pratyaksh-gyan" && (
-                <div style={{ height: "130px", marginTop: "0.3rem", overflow: "hidden", borderRadius: "8px" }}>
-                  <ContentTicker />
+                <div style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", padding: "0.8rem 1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <div style={{ fontSize: "0.64rem", color: "rgba(255, 255, 255, 0.5)", marginBottom: "0.2rem" }}>EXECUTIVE SUMMARY</div>
+                  <div style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: "0.78rem", lineHeight: 1.5 }}>{activeModalProject.architectureDetails.summary}</div>
                 </div>
-              )}
+              </div>
 
-              {/* CARD 6: Ambient Audio Spectrum Visualizer */}
-              {project.id === "coffee-donut-tv" && (
-                <div style={{ height: "125px", marginTop: "0.3rem", overflow: "hidden", borderRadius: "8px" }}>
-                  <AudioEqualizer />
+              {/* Action Buttons */}
+              {activeModalProject.url && (
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <a
+                    href={activeModalProject.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => audio.playClick()}
+                    style={{
+                      backgroundColor: "#a855f7",
+                      color: "#000000",
+                      padding: "0.6rem 1.4rem",
+                      borderRadius: "6px",
+                      textDecoration: "none",
+                      fontSize: "0.76rem",
+                      fontWeight: "bold",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    LAUNCH PRODUCTION INSTANCE [ ↗ ]
+                  </a>
                 </div>
               )}
             </motion.div>
-          );
-        })}
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

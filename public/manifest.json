@@ -1,0 +1,17 @@
+{
+  "name": "Mitesh Shah // Executive Architecture",
+  "short_name": "Mitesh Pass",
+  "description": "Enterprise IT Architecture, Major Incident Command, and Executive Digital Pass.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020204",
+  "theme_color": "#020204",
+  "icons": [
+    {
+      "src": "/card/opengraph-image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
