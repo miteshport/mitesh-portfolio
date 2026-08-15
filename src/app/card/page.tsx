@@ -1,16 +1,41 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
+import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import CustomCursor from "@/components/CustomCursor";
 import CardLotusBackground from "@/components/CardLotusBackground";
 import { audio } from "@/utils/audioSystem";
 
+const CONVERSATION_PATHWAYS = [
+  {
+    id: "technical-puzzle",
+    title: "A Hard Technical Puzzle / System Challenge",
+    subtitle: "Untangling complex architecture, incident triage, or infrastructure bottlenecks.",
+  },
+  {
+    id: "product-idea",
+    title: "A New Project or 0-to-1 Product Idea",
+    subtitle: "Building native mobile apps, web systems, or creative literature.",
+  },
+  {
+    id: "open-dialogue",
+    title: "Open Dialogue & Strategic Collaboration",
+    subtitle: "General advisory, creative ventures, or exploring mutual ideas.",
+  },
+];
+
 export default function CardPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAudioActive, setIsAudioActive] = useState(true);
   const [isGeneratingWallet, setIsGeneratingWallet] = useState(false);
+  const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
+
+  // Form State
+  const [selectedPathway, setSelectedPathway] = useState(CONVERSATION_PATHWAYS[0].id);
+  const [senderName, setSenderName] = useState("");
+  const [senderNote, setSenderNote] = useState("");
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Motion values for tilt
@@ -28,6 +53,9 @@ export default function CardPage() {
   // Holographic sheen position
   const glareX = useTransform(springX, [-0.5, 0.5], ["0%", "100%"]);
   const glareY = useTransform(springY, [-0.5, 0.5], ["0%", "100%"]);
+
+  // Holographic Watermark Opacity & Specular Glint based on tilt angle
+  const watermarkGlint = useTransform(springX, [-0.5, 0, 0.5], [0.85, 0.25, 0.85]);
 
   useEffect(() => {
     // Request Gyroscope Permission on Mobile Touch (iOS 13+)
@@ -149,7 +177,6 @@ END:VCARD`;
       if (data.saveUrl) {
         window.open(data.saveUrl, "_blank", "noopener,noreferrer");
       } else {
-        // Fallback to universal contact pass if under review
         downloadVCard(e);
       }
     } catch {
@@ -157,6 +184,26 @@ END:VCARD`;
     } finally {
       setIsGeneratingWallet(false);
     }
+  };
+
+  // Transmit Formatted Brief via WhatsApp
+  const handleTransmitWhatsApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    audio.playZimmerChime();
+
+    const selectedItem = CONVERSATION_PATHWAYS.find((p) => p.id === selectedPathway);
+    const pathwayTitle = selectedItem ? selectedItem.title : "Open Architectural Dialogue";
+
+    const formattedMessage = `Hi Mitesh, I came across your card.
+
+• Topic: ${pathwayTitle}
+• From: ${senderName.trim() || "Guest"}
+${senderNote.trim() ? `• Note: ${senderNote.trim()}\n` : ""}
+Looking forward to connecting!`;
+
+    const whatsappUrl = `https://wa.me/16395904445?text=${encodeURIComponent(formattedMessage)}`;
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    setIsConversationModalOpen(false);
   };
 
   return (
@@ -197,7 +244,6 @@ END:VCARD`;
           position: relative;
         }
 
-        /* Ambient Refraction Glows behind the card */
         .ambient-orb {
           position: absolute;
           border-radius: 50%;
@@ -207,177 +253,207 @@ END:VCARD`;
           z-index: 1;
         }
         .orb-primary {
-          width: 380px;
-          height: 380px;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, rgba(99, 102, 241, 0.15) 60%, transparent 80%);
-          top: 25%;
-          left: 55%;
-          animation: floatOrb 12s ease-in-out infinite alternate;
+          width: clamp(280px, 45vw, 550px);
+          height: clamp(280px, 45vw, 550px);
+          background: radial-gradient(circle, rgba(168, 85, 247, 0.28) 0%, rgba(56, 189, 248, 0.12) 60%, transparent 80%);
+          top: 15%;
+          left: 20%;
+          animation: floatOrb1 18s ease-in-out infinite alternate;
         }
         .orb-secondary {
-          width: 420px;
-          height: 420px;
-          background: radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(14, 165, 233, 0.1) 60%, transparent 80%);
-          bottom: 20%;
-          right: 55%;
-          animation: floatOrb2 16s ease-in-out infinite alternate;
+          width: clamp(250px, 40vw, 480px);
+          height: clamp(250px, 40vw, 480px);
+          background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, rgba(168, 85, 247, 0.1) 60%, transparent 80%);
+          bottom: 12%;
+          right: 20%;
+          animation: floatOrb2 22s ease-in-out infinite alternate;
         }
         .orb-tertiary {
-          width: 260px;
-          height: 260px;
-          background: radial-gradient(circle, rgba(234, 179, 8, 0.25) 0%, transparent 70%);
-          top: 35%;
+          width: clamp(200px, 30vw, 360px);
+          height: clamp(200px, 30vw, 360px);
+          background: radial-gradient(circle, rgba(234, 179, 8, 0.15) 0%, transparent 70%);
+          top: 40%;
           right: 35%;
+          animation: floatOrb3 15s ease-in-out infinite alternate;
         }
 
-        @keyframes floatOrb {
+        @keyframes floatOrb1 {
           0% { transform: translate(0, 0) scale(1); }
-          100% { transform: translate(-40px, 30px) scale(1.15); }
+          100% { transform: translate(60px, -40px) scale(1.15); }
         }
         @keyframes floatOrb2 {
-          0% { transform: translate(0, 0) scale(1); }
-          100% { transform: translate(30px, -40px) scale(1.1); }
+          0% { transform: translate(0, 0) scale(1.1); }
+          100% { transform: translate(-50px, 50px) scale(0.95); }
+        }
+        @keyframes floatOrb3 {
+          0% { transform: translate(0, 0) scale(0.9); }
+          100% { transform: translate(30px, 40px) scale(1.2); }
         }
 
-        .card-wrapper {
-          width: min(88vw, 390px);
-          height: min(78vh, 610px);
-          aspect-ratio: 1 / 1.58;
-          position: relative;
-          cursor: pointer;
-          transform-style: preserve-3d;
-          z-index: 10;
-        }
         .floating-escape-link {
           position: absolute;
           top: clamp(1.2rem, 3vh, 2.5rem);
           left: clamp(1.2rem, 3.5vw, 3rem);
           z-index: 50;
           font-family: monospace;
-          font-size: clamp(0.7rem, 2.4vw, 0.82rem);
-          letter-spacing: 0.12em;
-          color: #38bdf8;
+          font-size: clamp(0.65rem, 2vw, 0.75rem);
+          letter-spacing: 0.1em;
+          color: rgba(255, 255, 255, 0.45);
           text-decoration: none;
-          padding: 0.55rem 1.2rem;
+          padding: 0.5rem 1rem;
           border-radius: 50px;
           background-color: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           backdrop-filter: blur(16px);
           transition: all 0.3s ease;
           text-transform: uppercase;
         }
         .floating-escape-link:hover {
-          background: #ffffff;
-          color: #000000;
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+          color: #ffffff;
+          border-color: rgba(255, 255, 255, 0.3);
+          background-color: rgba(255, 255, 255, 0.08);
         }
+
+        .floating-audio-link {
+          position: absolute;
+          top: clamp(1.2rem, 3vh, 2.5rem);
+          right: clamp(1.2rem, 3.5vw, 3rem);
+          z-index: 50;
+          font-family: monospace;
+          font-size: clamp(0.65rem, 2vw, 0.75rem);
+          letter-spacing: 0.1em;
+          color: rgba(255, 255, 255, 0.65);
+          padding: 0.5rem 1rem;
+          border-radius: 50px;
+          background-color: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(16px);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-transform: uppercase;
+        }
+        .floating-audio-link:hover {
+          background: rgba(34, 197, 94, 0.15);
+          color: #22c55e;
+          border-color: #22c55e;
+        }
+
+        /* TITANIUM RATIO EXECUTIVE CARD WRAPPER */
+        .card-wrapper {
+          width: min(88vw, 380px);
+          aspect-ratio: 1 / 1.58;
+          max-height: 84vh;
+          cursor: pointer;
+          transform-style: preserve-3d;
+          position: relative;
+          z-index: 20;
+        }
+
         .holographic-card {
           width: 100%;
           height: 100%;
-          position: absolute;
+          position: relative;
           transform-style: preserve-3d;
+          border-radius: 20px;
         }
 
-        /* APPLE VISION PRO LIQUID GLASS SPECULAR CARD FACE */
         .card-face {
           position: absolute;
           inset: 0;
+          width: 100%;
+          height: 100%;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
+          border-radius: 20px;
+          background: rgba(12, 10, 20, 0.88);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          backdrop-filter: blur(32px) saturate(180%);
+          -webkit-backdrop-filter: blur(32px) saturate(180%);
+          box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.2);
           display: flex;
           flex-direction: column;
-          padding: clamp(1.4rem, 3.5vh, 2.2rem) clamp(1.2rem, 3.5vw, 1.8rem);
-          border-radius: 22px;
-          background: linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
-          border: 1px solid rgba(255, 255, 255, 0.16) !important;
-          backdrop-filter: blur(32px) saturate(180%) !important;
-          -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
-          box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 0 35px rgba(168, 85, 247, 0.15);
+          justify-content: space-between;
+          padding: clamp(1.1rem, 3.2vh, 1.6rem) clamp(1.1rem, 3.8vw, 1.6rem);
           overflow: hidden;
         }
-        .card-front {
-          justify-content: space-between;
-        }
+
         .card-back {
           transform: rotateY(180deg);
-          justify-content: space-between;
-          align-items: center;
-          gap: 0.6rem;
         }
-        .sys-online {
+
+        /* GYROSCOPIC HOLOGRAPHIC LOTUS WATERMARK */
+        .holographic-watermark {
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          z-index: 5;
+          mix-blend-mode: color-dodge;
+        }
+
+        /* CARD HEADER */
+        .sys-online {
+          display: flex;
           justify-content: space-between;
-          width: 100%;
-          transform: translateZ(30px);
+          align-items: flex-start;
+          transform: translateZ(25px);
         }
         .sys-badge {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 0.4rem;
           font-family: monospace;
-          font-size: clamp(0.64rem, 2vw, 0.72rem);
-          color: rgba(255, 255, 255, 0.75);
+          font-size: clamp(0.58rem, 1.9vw, 0.68rem);
+          letter-spacing: 0.12em;
+          color: #22c55e;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+        .telemetry-header {
+          font-family: monospace;
+          font-size: clamp(0.55rem, 1.8vw, 0.64rem);
           letter-spacing: 0.1em;
+          color: #38bdf8;
+          opacity: 0.85;
+          margin-top: 0.15rem;
+          text-transform: uppercase;
         }
         .dot {
-          width: 7px;
-          height: 7px;
+          width: 6px;
+          height: 6px;
           background: #22c55e;
           border-radius: 50%;
           box-shadow: 0 0 8px #22c55e;
-          animation: blink 1.5s infinite alternate;
         }
-        @keyframes blink {
-          0% { opacity: 0.3; }
-          100% { opacity: 1; box-shadow: 0 0 14px #22c55e; }
-        }
-
-        /* Laser-Etched Security Telemetry Header */
-        .telemetry-header {
-          font-family: monospace;
-          font-size: clamp(0.55rem, 1.8vw, 0.62rem);
-          letter-spacing: 0.15em;
-          color: rgba(56, 189, 248, 0.85);
-          text-transform: uppercase;
-          margin-top: 0.3rem;
-          transform: translateZ(25px);
-        }
-
-        /* Metallic Gold NFC Chip Graphic */
         .nfc-chip {
           width: 32px;
           height: 24px;
-          border-radius: 4px;
-          background: linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #92400e 100%);
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          position: relative;
-          box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+          border-radius: 5px;
+          background: linear-gradient(135deg, #d97706 0%, #fef08a 50%, #b45309 100%);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4);
           display: flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
         }
 
+        /* IDENTITY */
         .identity {
           text-align: center;
-          transform: translateZ(50px);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 0.65rem;
+          transform: translateZ(40px);
+          margin: auto 0;
         }
         .name {
-          font-family: "Georgia", serif;
+          font-family: Georgia, 'Times New Roman', serif;
           font-style: italic;
-          font-size: clamp(1.95rem, 6.8vw, 2.75rem);
-          font-weight: 400;
-          letter-spacing: -0.5px;
-          line-height: 1.05;
-          margin: 0;
+          font-size: clamp(2rem, 7.5vw, 2.75rem);
           color: #ffffff;
-          text-shadow: 0 4px 24px rgba(255, 255, 255, 0.2);
+          margin: 0 0 0.5rem 0;
+          letter-spacing: 0.02em;
+          text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+          line-height: 1.1;
         }
         .executive-titles {
           display: flex;
@@ -389,7 +465,7 @@ END:VCARD`;
         }
         .role-tag {
           font-family: monospace;
-          font-size: clamp(0.64rem, 2.2vw, 0.72rem);
+          font-size: clamp(0.62rem, 2.1vw, 0.7rem);
           letter-spacing: 0.08em;
           color: rgba(255, 255, 255, 0.85);
           line-height: 1.35;
@@ -408,11 +484,11 @@ END:VCARD`;
           justify-content: center;
           align-items: center;
           transform: translateZ(20px);
-          gap: 0.4rem;
+          gap: 0.35rem;
         }
         .barcode {
           width: 75%;
-          height: 28px;
+          height: 26px;
           color: rgba(255, 255, 255, 0.35);
         }
         .tap-flip-cue {
@@ -423,7 +499,7 @@ END:VCARD`;
           text-transform: uppercase;
         }
 
-        /* TWO-TIER ACTION BUTTON ARCHITECTURE */
+        /* ACTIONS */
         .actions-primary {
           display: flex;
           flex-direction: column;
@@ -445,7 +521,7 @@ END:VCARD`;
           border: 1px solid rgba(255, 255, 255, 0.18);
           color: white;
           font-family: monospace;
-          font-size: clamp(0.6rem, 2.1vw, 0.68rem);
+          font-size: clamp(0.6rem, 2vw, 0.68rem);
           font-weight: bold;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -487,36 +563,61 @@ END:VCARD`;
           color: #000000 !important;
         }
         .conversation-btn {
-          background: rgba(168, 85, 247, 0.12) !important;
+          background: rgba(168, 85, 247, 0.15) !important;
           border: 1px solid #a855f7 !important;
-          color: #a855f7 !important;
+          color: #d8b4fe !important;
         }
         .conversation-btn:hover {
           background: #a855f7 !important;
           color: #000000 !important;
         }
-        .floating-audio-link {
-          position: absolute;
-          top: clamp(1.2rem, 3vh, 2.5rem);
-          right: clamp(1.2rem, 3.5vw, 3rem);
-          z-index: 50;
-          font-family: monospace;
-          font-size: clamp(0.65rem, 2vw, 0.75rem);
-          letter-spacing: 0.1em;
-          color: rgba(255, 255, 255, 0.65);
-          padding: 0.5rem 1rem;
-          border-radius: 50px;
-          background-color: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(16px);
-          cursor: pointer;
-          transition: all 0.3s ease;
-          text-transform: uppercase;
+
+        /* MODAL STYLING */
+        .dialogue-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 999999;
+          padding: 1.2rem;
         }
-        .floating-audio-link:hover {
-          background: rgba(34, 197, 94, 0.15);
-          color: #22c55e;
-          border-color: #22c55e;
+        .dialogue-modal-content {
+          width: 100%;
+          max-width: 540px;
+          background: rgba(14, 11, 24, 0.96);
+          border: 1px solid rgba(168, 85, 247, 0.4);
+          border-radius: 18px;
+          padding: 1.8rem;
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(168, 85, 247, 0.25);
+          font-family: monospace;
+          max-height: 92vh;
+          overflow-y: auto;
+        }
+        .pathway-card {
+          padding: 0.8rem 1rem;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.03);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: left;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 0.2rem;
+        }
+        .pathway-card:hover {
+          border-color: rgba(168, 85, 247, 0.6);
+          background: rgba(168, 85, 247, 0.08);
+        }
+        .pathway-card.active {
+          border-color: #38bdf8;
+          background: rgba(56, 189, 248, 0.12);
+          box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
         }
       `,
         }}
@@ -542,6 +643,7 @@ END:VCARD`;
         [ AUDIO: {isAudioActive ? "ON" : "OFF"} ]
       </button>
 
+      {/* 3D HOLOGRAPHIC TITANIUM CARD */}
       <motion.div
         className="card-wrapper"
         ref={containerRef}
@@ -566,9 +668,9 @@ END:VCARD`;
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ type: "spring", stiffness: 75, damping: 18 }}
         >
-          {/* Front Face */}
+          {/* FRONT FACE */}
           <div className="card-face card-front">
-            {/* Holographic Sheen Reflection Overlay */}
+            {/* Holographic Sheen Overlay */}
             <motion.div
               style={{
                 position: "absolute",
@@ -584,7 +686,24 @@ END:VCARD`;
               }}
             />
 
-            {/* Top Bar with Online Status, Telemetry & Metallic NFC Chip */}
+            {/* ARTIST'S MASTER SIGNATURE: GYROSCOPIC HOLOGRAPHIC LOTUS WATERMARK */}
+            <motion.div
+              className="holographic-watermark"
+              style={{
+                opacity: watermarkGlint,
+              }}
+            >
+              <svg width="220" height="220" viewBox="0 0 200 200" fill="none" opacity="0.35">
+                {/* 8-Petal Sacred Lotus Optical Watermark Pattern */}
+                <circle cx="100" cy="100" r="75" stroke="#fbbf24" strokeWidth="0.75" strokeDasharray="3 3" opacity="0.6" />
+                <circle cx="100" cy="100" r="50" stroke="#38bdf8" strokeWidth="0.75" opacity="0.5" />
+                <path d="M100 25 C115 65 145 85 175 100 C145 115 115 135 100 175 C85 135 55 115 25 100 C55 85 85 65 100 25 Z" stroke="#fbbf24" strokeWidth="1" opacity="0.7" />
+                <path d="M153 47 C145 85 160 120 153 153 C120 145 85 160 47 153 C55 120 40 85 47 47 C85 55 120 40 153 47 Z" stroke="#a855f7" strokeWidth="0.8" opacity="0.6" />
+                <circle cx="100" cy="100" r="14" stroke="#ffffff" strokeWidth="1.2" opacity="0.8" />
+              </svg>
+            </motion.div>
+
+            {/* Top Bar with Online Status, Telemetry & NFC Chip */}
             <div className="sys-online">
               <div>
                 <div className="sys-badge">
@@ -602,7 +721,7 @@ END:VCARD`;
               </div>
             </div>
 
-            {/* Executive Identity - Pure Pillars, No Clutter */}
+            {/* Executive Identity */}
             <div className="identity">
               <h1 className="name">Mitesh Shah</h1>
               <div className="executive-titles">
@@ -614,7 +733,7 @@ END:VCARD`;
               </div>
             </div>
 
-            {/* Bottom Barcode & Interactive Flip Cue */}
+            {/* Bottom Barcode, Live Node Status & Interactive Flip Cue */}
             <div className="barcode-container">
               <svg className="barcode" viewBox="0 0 200 35" preserveAspectRatio="none">
                 <rect x="0" y="0" width="4" height="35" fill="currentColor" />
@@ -646,8 +765,9 @@ END:VCARD`;
             </div>
           </div>
 
-          {/* Back Face - Two-Tier Action Architecture */}
+          {/* BACK FACE */}
           <div className="card-face card-back">
+            {/* Holographic Sheen Overlay */}
             <motion.div
               style={{
                 position: "absolute",
@@ -683,18 +803,16 @@ END:VCARD`;
               >
                 {isGeneratingWallet ? "[ GENERATING WALLET PASS... ]" : "[ ADD TO SAMSUNG / GOOGLE WALLET ]"}
               </button>
-              <a
-                href="https://wa.me/16395904445?text=Hi%20Mitesh%2C%20I%20came%20across%20your%20card.%20I%20have%20a%20project%20%2F%20challenge%20I'd%20love%20to%20get%20your%20thoughts%20on."
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
                 className="brutalist-button conversation-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   audio.playClick();
+                  setIsConversationModalOpen(true);
                 }}
               >
                 [ START A CONVERSATION ]
-              </a>
+              </button>
             </div>
 
             {/* Secondary Direct Communication Grid */}
@@ -744,6 +862,170 @@ END:VCARD`;
           </div>
         </motion.div>
       </motion.div>
+
+      {/* SIGNATURE 3-PATHWAY GROUNDED CONVERSATION MODAL */}
+      <AnimatePresence>
+        {isConversationModalOpen && (
+          <motion.div
+            className="dialogue-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              audio.playClick();
+              setIsConversationModalOpen(false);
+            }}
+          >
+            <motion.div
+              className="dialogue-modal-content"
+              initial={{ scale: 0.94, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", paddingBottom: "0.8rem" }}>
+                <div>
+                  <div style={{ fontSize: "0.68rem", color: "#38bdf8", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+                    DIRECT ARCHITECTURAL DIALOGUE
+                  </div>
+                  <h3 style={{ margin: "0.3rem 0 0 0", color: "#ffffff", fontSize: "1.25rem", fontFamily: "Georgia, serif" }}>
+                    Start a Conversation
+                  </h3>
+                </div>
+                <button
+                  onClick={() => {
+                    audio.playClick();
+                    setIsConversationModalOpen(false);
+                  }}
+                  style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.08)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    color: "#ffffff",
+                    fontFamily: "monospace",
+                    fontSize: "0.75rem",
+                    padding: "0.3rem 0.7rem",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  [ ✕ CLOSE ]
+                </button>
+              </div>
+
+              <form onSubmit={handleTransmitWhatsApp}>
+                {/* 3 Pathway Cards */}
+                <div style={{ marginBottom: "1.2rem" }}>
+                  <label style={{ fontSize: "0.68rem", color: "rgba(255, 255, 255, 0.6)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "0.5rem" }}>
+                    1. What would you like to discuss?
+                  </label>
+                  <div style={{ display: "grid", gap: "0.5rem" }}>
+                    {CONVERSATION_PATHWAYS.map((p) => {
+                      const isActive = selectedPathway === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className={`pathway-card ${isActive ? "active" : ""}`}
+                          onClick={() => {
+                            audio.playClick();
+                            setSelectedPathway(p.id);
+                          }}
+                        >
+                          <div style={{ fontSize: "0.78rem", fontWeight: "bold", color: isActive ? "#38bdf8" : "#ffffff" }}>
+                            {p.title}
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "rgba(255, 255, 255, 0.55)", lineHeight: 1.35 }}>
+                            {p.subtitle}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Sender Name */}
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ fontSize: "0.68rem", color: "rgba(255, 255, 255, 0.6)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "0.3rem" }}>
+                    2. Your Name / Organization
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    placeholder="e.g. Alex Vance · Founder / CTO"
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      backgroundColor: "rgba(0, 0, 0, 0.45)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      borderRadius: "6px",
+                      color: "#ffffff",
+                      fontFamily: "monospace",
+                      fontSize: "0.78rem",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                {/* Sender Note */}
+                <div style={{ marginBottom: "1.4rem" }}>
+                  <label style={{ fontSize: "0.68rem", color: "rgba(255, 255, 255, 0.6)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "0.3rem" }}>
+                    3. What's on your mind? (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={senderNote}
+                    onChange={(e) => setSenderNote(e.target.value)}
+                    placeholder="Briefly describe what you're working on, looking for, or trying to solve..."
+                    style={{
+                      width: "100%",
+                      padding: "0.65rem 0.8rem",
+                      backgroundColor: "rgba(0, 0, 0, 0.45)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      borderRadius: "6px",
+                      color: "#ffffff",
+                      fontFamily: "monospace",
+                      fontSize: "0.78rem",
+                      outline: "none",
+                      resize: "none",
+                    }}
+                  />
+                </div>
+
+                {/* Transmit Button */}
+                <button
+                  type="submit"
+                  style={{
+                    width: "100%",
+                    padding: "0.8rem",
+                    backgroundColor: "#22c55e",
+                    color: "#000000",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontFamily: "monospace",
+                    fontSize: "0.82rem",
+                    fontWeight: "bold",
+                    letterSpacing: "0.08em",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <span>[ ↗ TRANSMIT VIA WHATSAPP ]</span>
+                </button>
+                <div style={{ textAlign: "center", marginTop: "0.6rem", fontSize: "0.6rem", color: "rgba(255, 255, 255, 0.4)" }}>
+                  DIRECT 1-ON-1 WITH MITESH SHAH // +1 639 590 4445
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
