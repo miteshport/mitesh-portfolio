@@ -28,7 +28,6 @@ const CONVERSATION_PATHWAYS = [
 export default function CardPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAudioActive, setIsAudioActive] = useState(true);
-  const [isGeneratingWallet, setIsGeneratingWallet] = useState(false);
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
 
   // Form State
@@ -162,28 +161,6 @@ END:VCARD`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  // Real Samsung & Google Wallet Pass Generator
-  const addToGoogleWallet = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    audio.playZimmerChime();
-    setIsGeneratingWallet(true);
-
-    try {
-      const res = await fetch("/api/wallet/google");
-      const data = await res.json();
-
-      if (data.saveUrl) {
-        window.open(data.saveUrl, "_blank", "noopener,noreferrer");
-      } else {
-        downloadVCard(e);
-      }
-    } catch {
-      downloadVCard(e);
-    } finally {
-      setIsGeneratingWallet(false);
-    }
   };
 
   // Transmit Formatted Brief via WhatsApp
@@ -795,13 +772,6 @@ Looking forward to connecting!`;
             <div className="actions-primary">
               <button className="brutalist-button save-vcard-btn" onClick={downloadVCard}>
                 [ SAVE CONTACT PASS (.VCF) ]
-              </button>
-              <button
-                className="brutalist-button wallet-pass-btn"
-                onClick={addToGoogleWallet}
-                disabled={isGeneratingWallet}
-              >
-                {isGeneratingWallet ? "[ GENERATING WALLET PASS... ]" : "[ ADD TO SAMSUNG / GOOGLE WALLET ]"}
               </button>
               <button
                 className="brutalist-button conversation-btn"
