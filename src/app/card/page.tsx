@@ -4,9 +4,11 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import Link from "next/link";
 import CustomCursor from "@/components/CustomCursor";
+import { audio } from "@/utils/audioSystem";
 
 export default function CardPage() {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isAudioActive, setIsAudioActive] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Motion values for tilt
@@ -107,9 +109,11 @@ export default function CardPage() {
     y.set(0);
   };
 
-  // Instant vCard (.vcf) Address Book Download Handler
+  // Instant vCard (.vcf) Address Book Download Handler + Zimmer Chime
   const downloadVCard = (e: React.MouseEvent) => {
     e.stopPropagation();
+    audio.playZimmerChime();
+
     const vcardData = `BEGIN:VCARD
 VERSION:3.0
 FN:Mitesh Shah
@@ -454,14 +458,52 @@ END:VCARD`;
           background: #38bdf8 !important;
           color: #000000 !important;
         }
+        .floating-audio-link {
+          position: absolute;
+          top: clamp(1.2rem, 3vh, 2.5rem);
+          right: clamp(1.2rem, 3.5vw, 3rem);
+          z-index: 50;
+          font-family: monospace;
+          font-size: clamp(0.65rem, 2vw, 0.75rem);
+          letter-spacing: 0.1em;
+          color: rgba(255, 255, 255, 0.65);
+          padding: 0.5rem 1rem;
+          border-radius: 50px;
+          background-color: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(16px);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-transform: uppercase;
+        }
+        .floating-audio-link:hover {
+          background: rgba(34, 197, 94, 0.15);
+          color: #22c55e;
+          border-color: #22c55e;
+        }
       `,
         }}
       />
 
       {/* Clear ESC Escape Button */}
-      <Link href="/" className="floating-escape-link">
+      <Link href="/" className="floating-escape-link" onClick={() => audio.playClick()}>
         [ ESC ] Return to System
       </Link>
+
+      {/* Top-Right Soundscape Toggle */}
+      <button
+        className="floating-audio-link"
+        onClick={(e) => {
+          e.stopPropagation();
+          const newState = audio.toggleMute();
+          setIsAudioActive(newState);
+          if (newState) {
+            audio.playClick();
+          }
+        }}
+      >
+        [ AUDIO: {isAudioActive ? "ON" : "OFF"} ]
+      </button>
 
       <motion.div
         className="card-wrapper"
@@ -470,7 +512,10 @@ END:VCARD`;
         onMouseLeave={handleMouseLeave}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleMouseLeave}
-        onClick={() => setIsFlipped(!isFlipped)}
+        onClick={() => {
+          audio.playTitaniumFlip();
+          setIsFlipped(!isFlipped);
+        }}
         initial={{ y: 50, opacity: 0, scale: 0.9 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
@@ -612,7 +657,10 @@ END:VCARD`;
                 target="_blank"
                 rel="noopener noreferrer"
                 className="brutalist-button"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  audio.playClick();
+                }}
               >
                 LINKEDIN
               </a>
@@ -621,7 +669,10 @@ END:VCARD`;
                 target="_blank"
                 rel="noopener noreferrer"
                 className="brutalist-button"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  audio.playClick();
+                }}
               >
                 WHATSAPP
               </a>
@@ -630,11 +681,21 @@ END:VCARD`;
                 target="_blank"
                 rel="noopener noreferrer"
                 className="brutalist-button"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  audio.playClick();
+                }}
               >
                 INSTAGRAM
               </a>
-              <Link href="/" className="brutalist-button" onClick={(e) => e.stopPropagation()}>
+              <Link
+                href="/"
+                className="brutalist-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  audio.playClick();
+                }}
+              >
                 PORTFOLIO
               </Link>
             </div>
