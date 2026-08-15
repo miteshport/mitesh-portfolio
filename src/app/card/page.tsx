@@ -4,11 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import Link from "next/link";
 import CustomCursor from "@/components/CustomCursor";
+import CardLotusBackground from "@/components/CardLotusBackground";
 import { audio } from "@/utils/audioSystem";
 
 export default function CardPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAudioActive, setIsAudioActive] = useState(true);
+  const [isGeneratingWallet, setIsGeneratingWallet] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Motion values for tilt
@@ -134,8 +136,34 @@ END:VCARD`;
     document.body.removeChild(link);
   };
 
+  // Real Samsung & Google Wallet Pass Generator
+  const addToGoogleWallet = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    audio.playZimmerChime();
+    setIsGeneratingWallet(true);
+
+    try {
+      const res = await fetch("/api/wallet/google");
+      const data = await res.json();
+
+      if (data.saveUrl) {
+        window.open(data.saveUrl, "_blank", "noopener,noreferrer");
+      } else {
+        // Fallback to universal contact pass if under review
+        downloadVCard(e);
+      }
+    } catch {
+      downloadVCard(e);
+    } finally {
+      setIsGeneratingWallet(false);
+    }
+  };
+
   return (
     <div className="card-page-container">
+      {/* 3D Sacred Lotus Particle Canvas Background */}
+      <CardLotusBackground />
+
       {/* Global Sleek Micro-Dot Cursor */}
       <CustomCursor />
 
@@ -399,25 +427,25 @@ END:VCARD`;
         .actions-primary {
           display: flex;
           flex-direction: column;
-          gap: 0.55rem;
+          gap: 0.45rem;
           width: 100%;
           transform: translateZ(35px);
         }
         .actions-secondary {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0.45rem;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.4rem;
           width: 100%;
           transform: translateZ(35px);
         }
         .brutalist-button {
           width: 100%;
-          padding: clamp(0.6rem, 1.6vh, 0.75rem) 0.5rem;
+          padding: clamp(0.55rem, 1.4vh, 0.7rem) 0.4rem;
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.18);
           color: white;
           font-family: monospace;
-          font-size: clamp(0.62rem, 2.2vw, 0.72rem);
+          font-size: clamp(0.6rem, 2.1vw, 0.68rem);
           font-weight: bold;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -456,6 +484,15 @@ END:VCARD`;
         }
         .wallet-pass-btn:hover {
           background: #38bdf8 !important;
+          color: #000000 !important;
+        }
+        .conversation-btn {
+          background: rgba(168, 85, 247, 0.12) !important;
+          border: 1px solid #a855f7 !important;
+          color: #a855f7 !important;
+        }
+        .conversation-btn:hover {
+          background: #a855f7 !important;
           color: #000000 !important;
         }
         .floating-audio-link {
@@ -641,13 +678,23 @@ END:VCARD`;
               </button>
               <button
                 className="brutalist-button wallet-pass-btn"
+                onClick={addToGoogleWallet}
+                disabled={isGeneratingWallet}
+              >
+                {isGeneratingWallet ? "[ GENERATING WALLET PASS... ]" : "[ ADD TO SAMSUNG / GOOGLE WALLET ]"}
+              </button>
+              <a
+                href="https://wa.me/16395904445?text=Hi%20Mitesh%2C%20I%20came%20across%20your%20card.%20I%20have%20a%20project%20%2F%20challenge%20I'd%20love%20to%20get%20your%20thoughts%20on."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="brutalist-button conversation-btn"
                 onClick={(e) => {
                   e.stopPropagation();
-                  downloadVCard(e);
+                  audio.playClick();
                 }}
               >
-                [ ADD TO APPLE / GOOGLE WALLET ]
-              </button>
+                [ START A CONVERSATION ]
+              </a>
             </div>
 
             {/* Secondary Direct Communication Grid */}
@@ -663,18 +710,6 @@ END:VCARD`;
                 }}
               >
                 LINKEDIN
-              </a>
-              <a
-                href="https://wa.me/qr/Y4BDLWGVOJ7WO1"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="brutalist-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  audio.playClick();
-                }}
-              >
-                WHATSAPP
               </a>
               <a
                 href="https://www.instagram.com/mitesh.shah01?igsh=MWVsbHA2dnM5N2poMQ=="
