@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import CustomCursor from "@/components/CustomCursor";
-import CardLotusBackground from "@/components/CardLotusBackground";
+import GalaxyStarfield from "@/components/GalaxyStarfield";
+import AppleLiquidDock from "@/components/AppleLiquidDock";
 import { audio } from "@/utils/audioSystem";
 
 const CONVERSATION_PATHWAYS = [
@@ -29,6 +30,22 @@ export default function CardPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAudioActive, setIsAudioActive] = useState(true);
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
+  const [timeStr, setTimeStr] = useState("");
+
+  // Live Digital Clock
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTimeStr(
+        `${String(now.getHours()).padStart(2, "0")}:${String(
+          now.getMinutes()
+        ).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Form State
   const [selectedPathway, setSelectedPathway] = useState(CONVERSATION_PATHWAYS[0].id);
@@ -185,16 +202,11 @@ Looking forward to connecting!`;
 
   return (
     <div className="card-page-container">
-      {/* 3D Sacred Lotus Particle Canvas Background */}
-      <CardLotusBackground />
+      {/* Unified Interstellar Galaxy Starfield */}
+      <GalaxyStarfield />
 
       {/* Global Sleek Micro-Dot Cursor */}
       <CustomCursor />
-
-      {/* Ambient Lighting Orbs for Apple Liquid Glass Refraction */}
-      <div className="ambient-orb orb-primary" />
-      <div className="ambient-orb orb-secondary" />
-      <div className="ambient-orb orb-tertiary" />
 
       <style
         dangerouslySetInnerHTML={{
@@ -267,47 +279,82 @@ Looking forward to connecting!`;
           100% { transform: translate(30px, 40px) scale(1.2); }
         }
 
-        .floating-escape-link {
-          position: absolute;
-          top: clamp(1.2rem, 3vh, 2.5rem);
-          left: clamp(1.2rem, 3.5vw, 3rem);
-          z-index: 50;
-          font-family: monospace;
-          font-size: clamp(0.65rem, 2vw, 0.75rem);
-          letter-spacing: 0.1em;
-          color: rgba(255, 255, 255, 0.45);
-          text-decoration: none;
-          padding: 0.5rem 1rem;
-          border-radius: 50px;
-          background-color: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(16px);
-          transition: all 0.3s ease;
-          text-transform: uppercase;
-        }
-        .floating-escape-link:hover {
-          color: #ffffff;
-          border-color: rgba(255, 255, 255, 0.3);
-          background-color: rgba(255, 255, 255, 0.08);
+        /* TOP BAR — PURE FLOATING GRID */
+        .card-top-nav {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          padding: clamp(1rem, 2.8vh, 1.6rem) clamp(1.2rem, 3.5vw, 2.8rem);
+          z-index: 1000;
+          pointer-events: none;
         }
 
-        .floating-audio-link {
-          position: absolute;
-          top: clamp(1.2rem, 3vh, 2.5rem);
-          right: clamp(1.2rem, 3.5vw, 3rem);
-          z-index: 50;
+        .bar-left {
+          justify-self: start;
+          pointer-events: auto;
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+        }
+        .bar-center {
+          justify-self: center;
+          pointer-events: auto;
+        }
+        .bar-right {
+          justify-self: end;
+          pointer-events: auto;
+        }
+
+        .sys-label {
           font-family: monospace;
-          font-size: clamp(0.65rem, 2vw, 0.75rem);
+          font-size: clamp(0.6rem, 1.6vw, 0.7rem);
+          color: #22c55e;
+          font-weight: 600;
           letter-spacing: 0.1em;
-          color: rgba(255, 255, 255, 0.65);
-          padding: 0.5rem 1rem;
-          border-radius: 50px;
-          background-color: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(16px);
-          cursor: pointer;
-          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+        .sys-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #22c55e;
+          box-shadow: 0 0 6px #22c55e;
+          flex-shrink: 0;
+        }
+
+        .card-center-title {
+          font-family: Georgia, serif;
+          font-style: italic;
+          font-size: clamp(0.85rem, 2.2vw, 1.02rem);
+          color: rgba(255, 255, 255, 0.88);
+          letter-spacing: 0.02em;
+          white-space: nowrap;
+        }
+
+        .port-link {
+          font-family: monospace;
+          font-size: clamp(0.6rem, 1.6vw, 0.7rem);
+          font-weight: 600;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.55);
+          text-decoration: none;
+          transition: color 0.18s ease;
+          white-space: nowrap;
+        }
+        .port-link:hover {
+          color: #ffffff;
+        }
+
+        @media (max-width: 640px) {
+          .bar-center {
+            display: none;
+          }
+        }
         }
         .floating-audio-link:hover {
           background: rgba(34, 197, 94, 0.15);
@@ -600,25 +647,23 @@ Looking forward to connecting!`;
         }}
       />
 
-      {/* Clear ESC Escape Button */}
-      <Link href="/" className="floating-escape-link" onClick={() => audio.playClick()}>
-        [ ESC ] Return to System
-      </Link>
+      {/* TOP FLOATING NAV */}
+      <header className="card-top-nav">
+        <div className="bar-left">
+          <div className="sys-dot" />
+          <span className="sys-label">SYS: OPTIMAL {timeStr && `· ${timeStr}`}</span>
+        </div>
 
-      {/* Top-Right Soundscape Toggle */}
-      <button
-        className="floating-audio-link"
-        onClick={(e) => {
-          e.stopPropagation();
-          const newState = audio.toggleMute();
-          setIsAudioActive(newState);
-          if (newState) {
-            audio.playClick();
-          }
-        }}
-      >
-        [ AUDIO: {isAudioActive ? "ON" : "OFF"} ]
-      </button>
+        <div className="bar-center">
+          <span className="card-center-title">Executive Pass</span>
+        </div>
+
+        <div className="bar-right">
+          <Link href="/about" className="port-link" onClick={() => audio.playClick()}>
+            Portfolio
+          </Link>
+        </div>
+      </header>
 
       {/* 3D HOLOGRAPHIC TITANIUM CARD */}
       <motion.div
@@ -996,6 +1041,9 @@ Looking forward to connecting!`;
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Unified Apple Liquid Glass Dock */}
+      <AppleLiquidDock />
     </div>
   );
 }
