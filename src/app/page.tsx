@@ -7,6 +7,7 @@ import CustomCursor from "@/components/CustomCursor";
 import HeroParticleM from "@/components/HeroParticleM";
 import AppleLiquidDock from "@/components/AppleLiquidDock";
 import { audio } from "@/utils/audioSystem";
+import { useSoundroom } from "@/context/SoundroomContext";
 
 const STAGE_LABELS = [
   { numeral: "I", title: "THE ARCHITECT", subtitle: "Form · Structure" },
@@ -17,8 +18,8 @@ const STAGE_LABELS = [
 export default function Home() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
-  const [isAudioActive, setIsAudioActive] = useState(true);
   const [timeStr, setTimeStr] = useState("");
+  const { isMuted, toggleMute, isPlaying } = useSoundroom();
 
   // Live Digital Clock
   useEffect(() => {
@@ -63,12 +64,6 @@ export default function Home() {
     window.scrollTo({ top: targetY, behavior: "smooth" });
   };
 
-  const handleAudioToggle = () => {
-    const newState = audio.toggleMute();
-    setIsAudioActive(newState);
-    if (newState) audio.playClick();
-  };
-
   const currentStage = STAGE_LABELS[currentStageIdx];
 
   return (
@@ -100,7 +95,6 @@ export default function Home() {
           pointer-events: auto;
           display: flex;
           align-items: center;
-          gap: 0.45rem;
         }
         .bar-center {
           justify-self: center;
@@ -109,24 +103,50 @@ export default function Home() {
         .bar-right {
           justify-self: end;
           pointer-events: auto;
+          display: flex;
+          align-items: center;
+          gap: clamp(0.7rem, 2vw, 1.2rem);
         }
 
-        /* SYS text — clean floating monospace, no pill */
-        .sys-label {
+        /* Interactive Audio Toggle */
+        .audio-toggle-btn {
+          background: transparent;
+          border: none;
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          cursor: pointer;
+          padding: 0;
+          outline: none;
+          transition: opacity 0.2s ease;
+        }
+        .audio-toggle-btn:hover {
+          opacity: 0.8;
+        }
+        .audio-toggle-label {
           font-family: monospace;
           font-size: clamp(0.6rem, 1.6vw, 0.7rem);
           color: #22c55e;
           font-weight: 600;
           letter-spacing: 0.1em;
           white-space: nowrap;
+          transition: color 0.2s ease;
         }
-        .sys-dot {
+        .audio-toggle-label.muted {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .audio-dot {
           width: 5px;
           height: 5px;
           border-radius: 50%;
           background: #22c55e;
           box-shadow: 0 0 6px #22c55e;
           flex-shrink: 0;
+          transition: all 0.2s ease;
+        }
+        .audio-dot.muted {
+          background: rgba(255, 255, 255, 0.3);
+          box-shadow: none;
         }
 
         /* Stage HUD — no pill, slim serif italic */
@@ -173,10 +193,18 @@ export default function Home() {
 
       {/* TOP BAR */}
       <header className="master-top-bar">
-        {/* Left: SYS status */}
+        {/* Left: Interactive Master Audio Toggle */}
         <div className="bar-left">
-          <div className="sys-dot" />
-          <span className="sys-label">SYS: OPTIMAL {timeStr && `· ${timeStr}`}</span>
+          <button
+            className="audio-toggle-btn"
+            onClick={toggleMute}
+            aria-label="Toggle Master Audio"
+          >
+            <div className={`audio-dot ${isMuted ? "muted" : ""}`} />
+            <span className={`audio-toggle-label ${isMuted ? "muted" : ""}`}>
+              {isMuted ? "AUDIO: MUTED" : "AUDIO: ACTIVE"} {timeStr && `· ${timeStr}`}
+            </span>
+          </button>
         </div>
 
         {/* Center: Stage name — perfectly centered */}
@@ -196,8 +224,11 @@ export default function Home() {
           </AnimatePresence>
         </div>
 
-        {/* Right: Portfolio link */}
+        {/* Right: Soundroom & Portfolio links */}
         <div className="bar-right">
+          <Link href="/radio" className="portfolio-link" onClick={() => audio.playClick()}>
+            Soundroom
+          </Link>
           <Link href="/about" className="portfolio-link" onClick={() => audio.playClick()}>
             Portfolio
           </Link>

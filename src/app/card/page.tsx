@@ -7,6 +7,7 @@ import CustomCursor from "@/components/CustomCursor";
 import GalaxyStarfield from "@/components/GalaxyStarfield";
 import AppleLiquidDock from "@/components/AppleLiquidDock";
 import { audio } from "@/utils/audioSystem";
+import { useSoundroom } from "@/context/SoundroomContext";
 
 const CONVERSATION_PATHWAYS = [
   {
@@ -31,6 +32,7 @@ export default function CardPage() {
   const [isAudioActive, setIsAudioActive] = useState(true);
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
   const [timeStr, setTimeStr] = useState("");
+  const { isMuted, toggleMute } = useSoundroom();
 
   // Live Digital Clock
   useEffect(() => {
@@ -298,7 +300,6 @@ Looking forward to connecting!`;
           pointer-events: auto;
           display: flex;
           align-items: center;
-          gap: 0.45rem;
         }
         .bar-center {
           justify-self: center;
@@ -307,23 +308,50 @@ Looking forward to connecting!`;
         .bar-right {
           justify-self: end;
           pointer-events: auto;
+          display: flex;
+          align-items: center;
+          gap: clamp(0.7rem, 2vw, 1.2rem);
         }
 
-        .sys-label {
+        /* Interactive Audio Toggle */
+        .audio-toggle-btn {
+          background: transparent;
+          border: none;
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          cursor: pointer;
+          padding: 0;
+          outline: none;
+          transition: opacity 0.2s ease;
+        }
+        .audio-toggle-btn:hover {
+          opacity: 0.8;
+        }
+        .audio-toggle-label {
           font-family: monospace;
           font-size: clamp(0.6rem, 1.6vw, 0.7rem);
           color: #22c55e;
           font-weight: 600;
           letter-spacing: 0.1em;
           white-space: nowrap;
+          transition: color 0.2s ease;
         }
-        .sys-dot {
+        .audio-toggle-label.muted {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .audio-dot {
           width: 5px;
           height: 5px;
           border-radius: 50%;
           background: #22c55e;
           box-shadow: 0 0 6px #22c55e;
           flex-shrink: 0;
+          transition: all 0.2s ease;
+        }
+        .audio-dot.muted {
+          background: rgba(255, 255, 255, 0.3);
+          box-shadow: none;
         }
 
         .card-center-title {
@@ -650,8 +678,16 @@ Looking forward to connecting!`;
       {/* TOP FLOATING NAV */}
       <header className="card-top-nav">
         <div className="bar-left">
-          <div className="sys-dot" />
-          <span className="sys-label">SYS: OPTIMAL {timeStr && `· ${timeStr}`}</span>
+          <button
+            className="audio-toggle-btn"
+            onClick={toggleMute}
+            aria-label="Toggle Master Audio"
+          >
+            <div className={`audio-dot ${isMuted ? "muted" : ""}`} />
+            <span className={`audio-toggle-label ${isMuted ? "muted" : ""}`}>
+              {isMuted ? "AUDIO: MUTED" : "AUDIO: ACTIVE"} {timeStr && `· ${timeStr}`}
+            </span>
+          </button>
         </div>
 
         <div className="bar-center">
@@ -659,6 +695,9 @@ Looking forward to connecting!`;
         </div>
 
         <div className="bar-right">
+          <Link href="/radio" className="port-link" onClick={() => audio.playClick()}>
+            Soundroom
+          </Link>
           <Link href="/about" className="port-link" onClick={() => audio.playClick()}>
             Portfolio
           </Link>

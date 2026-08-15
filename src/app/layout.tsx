@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import SmoothScrolling from "@/components/SmoothScrolling";
+import { SoundroomProvider } from "@/context/SoundroomContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -51,9 +52,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
-        <SmoothScrolling>
-          {children}
-        </SmoothScrolling>
+        <SoundroomProvider>
+          <SmoothScrolling>
+            {children}
+          </SmoothScrolling>
+        </SoundroomProvider>
       </body>
     </html>
   );

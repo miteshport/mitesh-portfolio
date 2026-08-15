@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { audio } from "@/utils/audioSystem";
+import { useSoundroom } from "@/context/SoundroomContext";
 
 interface TextDockItemProps {
   mouseX: any;
@@ -13,9 +14,18 @@ interface TextDockItemProps {
   onClick?: () => void;
   isActive?: boolean;
   isDot?: boolean;
+  badge?: React.ReactNode;
 }
 
-function TextDockItem({ mouseX, label, href, onClick, isActive, isDot }: TextDockItemProps) {
+function TextDockItem({
+  mouseX,
+  label,
+  href,
+  onClick,
+  isActive,
+  isDot,
+  badge,
+}: TextDockItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
 
   const distance = useTransform(mouseX, (val: number) => {
@@ -58,11 +68,15 @@ function TextDockItem({ mouseX, label, href, onClick, isActive, isDot }: TextDoc
           cursor: "pointer",
           transition: "color 0.15s ease",
           userSelect: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.3rem",
         }}
         whileHover={{ color: "#ffffff" }}
         whileTap={{ scale: 0.94 }}
       >
         {label}
+        {badge}
       </motion.span>
 
       {/* Active green status dot */}
@@ -125,10 +139,12 @@ export default function AppleLiquidDock({
 }: AppleLiquidDockProps) {
   const mouseX = useMotionValue(Infinity);
   const pathname = usePathname();
+  const { isPlaying, currentTrack, togglePlay } = useSoundroom();
 
   const isHomePage = pathname === "/";
   const isPortfolioPage = pathname === "/about";
   const isCardPage = pathname === "/card";
+  const isRadioPage = pathname === "/radio";
 
   return (
     <div
@@ -138,11 +154,58 @@ export default function AppleLiquidDock({
         left: 0,
         width: "100vw",
         display: "flex",
-        justifyContent: "center",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "0.5rem",
         pointerEvents: "none",
         zIndex: 99999,
       }}
     >
+      {/* Floating Mini Player Pill (visible across all routes when playing or hovered) */}
+      {isPlaying && !isRadioPage && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            pointerEvents: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem",
+            background: "rgba(10, 8, 20, 0.85)",
+            border: "1px solid rgba(56, 189, 248, 0.3)",
+            backdropFilter: "blur(24px)",
+            borderRadius: "50px",
+            padding: "0.25rem 0.85rem",
+            boxShadow: "0 8px 25px rgba(0, 0, 0, 0.6)",
+          }}
+        >
+          <span style={{ fontSize: "0.6rem", fontFamily: "monospace", color: "#38bdf8", letterSpacing: "0.08em" }}>
+            TRANSMITTING:
+          </span>
+          <span style={{ fontSize: "0.68rem", fontFamily: "Georgia, serif", fontStyle: "italic", color: "#ffffff", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {currentTrack.title} — {currentTrack.artist}
+          </span>
+          <button
+            onClick={togglePlay}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#38bdf8",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              padding: "0 0.2rem",
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+          </button>
+        </motion.div>
+      )}
+
+      {/* Main Glass Shelf Dock */}
       <motion.div
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}
@@ -218,6 +281,27 @@ export default function AppleLiquidDock({
           href="/about"
           isActive={isPortfolioPage}
           isDot={isPortfolioPage}
+        />
+        <TextDockItem
+          mouseX={mouseX}
+          label="Soundroom"
+          href="/radio"
+          isActive={isRadioPage}
+          isDot={isRadioPage}
+          badge={
+            isPlaying ? (
+              <span
+                style={{
+                  display: "inline-block",
+                  width: "5px",
+                  height: "5px",
+                  borderRadius: "50%",
+                  background: "#38bdf8",
+                  boxShadow: "0 0 6px #38bdf8",
+                }}
+              />
+            ) : null
+          }
         />
         <TextDockItem
           mouseX={mouseX}
