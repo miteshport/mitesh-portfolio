@@ -633,7 +633,7 @@ export default function SoundroomPage() {
             }`}
             onClick={() => setActiveTab("vault")}
           >
-            100-Track Vault ({allTracks.length})
+            Master Vault ({allTracks.length})
           </button>
         </div>
 

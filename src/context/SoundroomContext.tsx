@@ -48,7 +48,7 @@ declare global {
 
 export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const [currentChannelId, setCurrentChannelId] =
-    useState<SoundChannel["id"]>("titans");
+    useState<SoundChannel["id"]>("user-vault");
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -61,6 +61,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const playerRef = useRef<any>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const freqDataRef = useRef<Uint8Array>(new Uint8Array(64));
+  const fallbackTriedRef = useRef<Record<string, boolean>>({});
 
   const currentChannel =
     SOUNDROOM_CHANNELS.find((c) => c.id === currentChannelId) ||
@@ -68,7 +69,21 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const currentTrack =
     currentChannel.tracks[currentTrackIndex] || currentChannel.tracks[0];
 
-  // 1. Load YouTube IFrame API once
+  // Forward declarations for player callbacks
+  const handleNextTrack = useCallback(() => {
+    uiAudio.playClick();
+    setCurrentTrackIndex((prev) => (prev + 1) % currentChannel.tracks.length);
+  }, [currentChannel]);
+
+  const handlePrevTrack = useCallback(() => {
+    uiAudio.playClick();
+    setCurrentTrackIndex(
+      (prev) =>
+        (prev - 1 + currentChannel.tracks.length) % currentChannel.tracks.length
+    );
+  }, [currentChannel]);
+
+  // 1. Initialize YouTube Iframe Engine with Fallback Error Handlers
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -93,6 +108,8 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
             modestbranding: 1,
             playsinline: 1,
             rel: 0,
+            enablejsapi: 1,
+            origin: window.location.origin,
           },
           events: {
             onReady: (event: any) => {
@@ -102,15 +119,26 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
             onStateChange: (event: any) => {
               if (event.data === window.YT.PlayerState.PLAYING) {
                 setIsPlaying(true);
-              } else if (
-                event.data === window.YT.PlayerState.PAUSED ||
-                event.data === window.YT.PlayerState.BUFFERING
-              ) {
-                if (event.data === window.YT.PlayerState.PAUSED) {
-                  setIsPlaying(false);
-                }
+              } else if (event.data === window.YT.PlayerState.PAUSED) {
+                setIsPlaying(false);
               } else if (event.data === window.YT.PlayerState.ENDED) {
-                handleNext();
+                handleNextTrack();
+              }
+            },
+            onError: (event: any) => {
+              // Catch Error 101/150 (embed disabled by label) or Error 100 (not found)
+              console.warn(
+                `[Soundroom] YouTube stream issue on ${currentTrack.id} (code: ${event.data}). Activating fallback...`
+              );
+              if (
+                currentTrack.fallbackId &&
+                !fallbackTriedRef.current[currentTrack.id]
+              ) {
+                fallbackTriedRef.current[currentTrack.id] = true;
+                playerRef.current?.loadVideoById(currentTrack.fallbackId);
+                playerRef.current?.playVideo();
+              } else {
+                handleNextTrack();
               }
             },
           },
@@ -133,7 +161,10 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isPlaying) {
       progressTimerRef.current = setInterval(() => {
-        if (playerRef.current && typeof playerRef.current.getCurrentTime === "function") {
+        if (
+          playerRef.current &&
+          typeof playerRef.current.getCurrentTime === "function"
+        ) {
           const t = playerRef.current.getCurrentTime() || 0;
           const d = playerRef.current.getDuration() || currentTrack.duration;
           setCurrentTime(t);
@@ -160,7 +191,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
 
-    // Media Session API for iPhone Lock Screen & Android notification
+    // Media Session API for iPhone Lock Screen, Dynamic Island & Android
     if (typeof window !== "undefined" && "mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentTrack.title,
@@ -179,8 +210,8 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         playerRef.current?.pauseVideo();
         setIsPlaying(false);
       });
-      navigator.mediaSession.setActionHandler("previoustrack", handlePrev);
-      navigator.mediaSession.setActionHandler("nexttrack", handleNext);
+      navigator.mediaSession.setActionHandler("previoustrack", handlePrevTrack);
+      navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
       navigator.mediaSession.setActionHandler("seekto", (details) => {
         if (details.seekTime !== undefined && playerRef.current) {
           playerRef.current.seekTo(details.seekTime, true);
@@ -192,7 +223,10 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
 
   // 4. Volume & Mute Sync
   useEffect(() => {
-    if (playerRef.current && typeof playerRef.current.setVolume === "function") {
+    if (
+      playerRef.current &&
+      typeof playerRef.current.setVolume === "function"
+    ) {
       playerRef.current.setVolume(isMuted ? 0 : volume * 100);
     }
   }, [volume, isMuted]);
@@ -224,19 +258,6 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
       setIsPlaying(true);
     }
   };
-
-  const handleNext = useCallback(() => {
-    uiAudio.playClick();
-    setCurrentTrackIndex((prev) => (prev + 1) % currentChannel.tracks.length);
-  }, [currentChannel]);
-
-  const handlePrev = useCallback(() => {
-    uiAudio.playClick();
-    setCurrentTrackIndex(
-      (prev) =>
-        (prev - 1 + currentChannel.tracks.length) % currentChannel.tracks.length
-    );
-  }, [currentChannel]);
 
   const selectChannel = (channelId: SoundChannel["id"]) => {
     uiAudio.playClick();
@@ -276,7 +297,10 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         const bass = Math.sin(now * 1.5 + i * 0.2) * 50 + 120;
         const mid = Math.cos(now * 2.2 + i * 0.4) * 40 + 90;
         const pulse = Math.sin(now * 4.0 + i * 0.8) * 30 + 60;
-        arr[i] = Math.min(255, Math.max(10, Math.floor((bass + mid + pulse) / 3)));
+        arr[i] = Math.min(
+          255,
+          Math.max(10, Math.floor((bass + mid + pulse) / 3))
+        );
       } else {
         arr[i] = 4;
       }
@@ -298,8 +322,8 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         channels: SOUNDROOM_CHANNELS,
         togglePlay,
         playTrack,
-        nextTrack: handleNext,
-        prevTrack: handlePrev,
+        nextTrack: handleNextTrack,
+        prevTrack: handlePrevTrack,
         selectChannel,
         seek,
         setVolume,
