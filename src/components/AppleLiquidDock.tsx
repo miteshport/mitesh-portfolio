@@ -216,8 +216,8 @@ export default function AppleLiquidDock({
           pointerEvents: "auto",
           display: "flex",
           alignItems: "center",
-          gap: "clamp(0.55rem, 1.4vw, 0.9rem)",
-          padding: "clamp(0.42rem, 1vh, 0.58rem) clamp(0.9rem, 2.2vw, 1.4rem)",
+          gap: "clamp(0.45rem, 1.2vw, 0.85rem)",
+          padding: "clamp(0.4rem, 1vh, 0.55rem) clamp(0.75rem, 2vw, 1.3rem)",
           background: "rgba(255, 255, 255, 0.04)",
           border: "1px solid rgba(255, 255, 255, 0.10)",
           borderTop: "1px solid rgba(255, 255, 255, 0.24)",
@@ -226,6 +226,10 @@ export default function AppleLiquidDock({
           borderRadius: "100px",
           boxShadow:
             "0 18px 50px rgba(0, 0, 0, 0.82), inset 0 1px 0 rgba(255, 255, 255, 0.18)",
+          maxWidth: "calc(100vw - 1.2rem)",
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
         }}
       >
         {/* If on 3D Home Page: Show Stage Switchers */}
