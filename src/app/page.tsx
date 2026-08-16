@@ -6,7 +6,11 @@ import CustomCursor from "@/components/CustomCursor";
 import SpatialHUD from "@/components/SpatialHUD";
 import F1GameCanvas, { TelemetryData } from "@/components/F1GameCanvas";
 import { useSoundroom } from "@/context/SoundroomContext";
-import { initF1Engine, updateF1Engine, stopF1Engine } from "@/utils/f1EngineAudio";
+import {
+  initF1Engine,
+  updateF1Engine,
+  stopF1Engine,
+} from "@/utils/f1EngineAudio";
 
 function formatLapTime(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -33,6 +37,7 @@ export default function Home() {
     isFlying: false,
     isLightsOut: false,
     onKerb: false,
+    overtakes: 0,
   });
 
   const { isMuted } = useSoundroom();
@@ -58,13 +63,28 @@ export default function Home() {
   // Update Procedural Engine Sound in real-time
   useEffect(() => {
     if (hasInteracted) {
-      updateF1Engine(telemetry.rpm, telemetry.speed, telemetry.isBoosting, isMuted);
+      updateF1Engine(
+        telemetry.rpm,
+        telemetry.speed,
+        telemetry.isBoosting,
+        isMuted
+      );
     }
-  }, [telemetry.rpm, telemetry.speed, telemetry.isBoosting, isMuted, hasInteracted]);
+  }, [
+    telemetry.rpm,
+    telemetry.speed,
+    telemetry.isBoosting,
+    isMuted,
+    hasInteracted,
+  ]);
 
   // Auto-hide Cinematic Title after 4s or on interaction
   useEffect(() => {
-    if (telemetry.isBoosting || telemetry.isFlying || Math.abs(telemetry.speed - 190) > 10) {
+    if (
+      telemetry.isBoosting ||
+      telemetry.isFlying ||
+      Math.abs(telemetry.speed - 190) > 10
+    ) {
       setShowCinematicTitle(false);
     }
     const timer = setTimeout(() => {
@@ -89,7 +109,7 @@ export default function Home() {
     >
       <CustomCursor />
 
-      {/* 10/10 Gold-Standard 3D WebGL F1 Racing Canvas */}
+      {/* 10/10 Gold-Standard 3D WebGL F1 Racing & Highway Canvas */}
       <F1GameCanvas
         isLightsOut={isLightsOut}
         onTelemetryUpdate={setTelemetry}
@@ -101,11 +121,15 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }}
+            exit={{
+              opacity: 0,
+              y: -20,
+              transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+            }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             style={{
               position: "fixed",
-              top: "26%",
+              top: "24%",
               left: 0,
               right: 0,
               display: "flex",
@@ -121,8 +145,8 @@ export default function Home() {
             <div
               style={{
                 fontSize: "0.68rem",
-                fontWeight: 700,
-                letterSpacing: "0.35em",
+                fontWeight: 750,
+                letterSpacing: "0.38em",
                 color: "#38bdf8",
                 textTransform: "uppercase",
                 marginBottom: "0.65rem",
@@ -150,7 +174,7 @@ export default function Home() {
                 marginTop: "0.75rem",
                 fontSize: "0.72rem",
                 fontWeight: 500,
-                letterSpacing: "0.15em",
+                letterSpacing: "0.18em",
                 color: "rgba(255, 255, 255, 0.55)",
                 textTransform: "uppercase",
               }}
@@ -161,7 +185,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* UNIVERSAL 4-CORNER SPATIAL HUD */}
+      {/* 4-CORNER SPATIAL HUD (Zero Clutter, Pristine Precision) */}
       <SpatialHUD
         isLightsOut={isLightsOut}
         onToggleLightsOut={() => setIsLightsOut((prev) => !prev)}
@@ -176,7 +200,13 @@ export default function Home() {
               lineHeight: 1.6,
             }}
           >
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "0.6rem",
+              }}
+            >
               <span
                 style={{
                   fontSize: "1.4rem",
@@ -187,12 +217,29 @@ export default function Home() {
               >
                 {telemetry.speed}
               </span>
-              <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.45)" }}>KM/H</span>
-              <span style={{ marginLeft: "0.4rem", color: "rgba(255,255,255,0.6)" }}>
+              <span
+                style={{
+                  fontSize: "0.65rem",
+                  color: "rgba(255,255,255,0.45)",
+                }}
+              >
+                KM/H
+              </span>
+              <span
+                style={{
+                  marginLeft: "0.4rem",
+                  color: "rgba(255,255,255,0.6)",
+                }}
+              >
                 GEAR {telemetry.gear}
               </span>
             </div>
-            <div style={{ fontSize: "0.62rem", color: "rgba(255, 255, 255, 0.45)" }}>
+            <div
+              style={{
+                fontSize: "0.62rem",
+                color: "rgba(255, 255, 255, 0.45)",
+              }}
+            >
               LAP {formatLapTime(telemetry.lapTime)} · {telemetry.rpm} RPM
             </div>
           </div>
