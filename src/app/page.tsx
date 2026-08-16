@@ -191,12 +191,20 @@ export default function Home() {
         }}
       />
 
-      {/* TOP BAR */}
+      {/* TOP BAR: APPLE DYNAMIC ISLAND LIQUID GLASS */}
       <header className="master-top-bar">
         {/* Left: Interactive Master Audio Toggle */}
         <div className="bar-left">
           <button
-            className="audio-toggle-btn"
+            className="apple-glass-pill"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.42rem 0.95rem",
+              cursor: "pointer",
+              border: "none",
+            }}
             onClick={toggleMute}
             aria-label="Toggle Master Audio"
           >
@@ -207,18 +215,24 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Center: Stage name — perfectly centered */}
+        {/* Center: Stage name pill */}
         <div className="bar-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStageIdx}
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-              transition={{ duration: 0.22 }}
-              style={{ display: "flex", alignItems: "baseline" }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="apple-glass-pill"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "0.4rem 1.1rem",
+                gap: "0.45rem",
+              }}
             >
-              <span className="stage-label-num">Stage {currentStage.numeral} //</span>
+              <span className="stage-label-num">Stage {currentStage.numeral} ·</span>
               <span className="stage-label-name">{currentStage.title}</span>
             </motion.div>
           </AnimatePresence>
@@ -226,11 +240,21 @@ export default function Home() {
 
         {/* Right: Soundroom & Portfolio links */}
         <div className="bar-right">
-          <Link href="/radio" className="portfolio-link" onClick={() => audio.playClick()}>
-            Soundroom
+          <Link
+            href="/radio"
+            className="apple-glass-pill"
+            style={{ padding: "0.42rem 0.9rem" }}
+            onClick={() => audio.playClick()}
+          >
+            <span className="portfolio-link">Soundroom</span>
           </Link>
-          <Link href="/about" className="portfolio-link" onClick={() => audio.playClick()}>
-            Portfolio
+          <Link
+            href="/about"
+            className="apple-glass-pill"
+            style={{ padding: "0.42rem 0.9rem" }}
+            onClick={() => audio.playClick()}
+          >
+            <span className="portfolio-link">Portfolio</span>
           </Link>
         </div>
       </header>

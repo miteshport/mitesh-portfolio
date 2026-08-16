@@ -33,7 +33,7 @@ function SoundVisualizer() {
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const data = getFrequencyData();
-      const numBars = 32;
+      const numBars = 30;
       const width = canvas.width;
       const height = canvas.height;
       const barWidth = (width / numBars) * 0.65;
@@ -41,9 +41,9 @@ function SoundVisualizer() {
 
       for (let i = 0; i < numBars; i++) {
         const value = isPlaying
-          ? data[i * 2] || Math.sin(Date.now() * 0.005 + i * 0.3) * 30 + 40
-          : 4;
-        const barHeight = Math.max(3, (value / 255) * (height - 6));
+          ? data[i * 2] || Math.sin(Date.now() * 0.005 + i * 0.3) * 25 + 35
+          : 3;
+        const barHeight = Math.max(2, (value / 255) * (height - 4));
         const x = i * (barWidth + gap);
         const y = (height - barHeight) / 2;
 
@@ -71,12 +71,12 @@ function SoundVisualizer() {
   return (
     <canvas
       ref={canvasRef}
-      width={280}
-      height={36}
+      width={240}
+      height={22}
       style={{
         width: "100%",
-        maxWidth: "280px",
-        height: "36px",
+        maxWidth: "240px",
+        height: "22px",
         display: "block",
         margin: "0 auto",
       }}
@@ -88,6 +88,7 @@ export default function SoundroomPage() {
   const [timeStr, setTimeStr] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"player" | "vault">("player");
+  const [vaultCategory, setVaultCategory] = useState<string>("all");
   const [isShuffle, setIsShuffle] = useState(false);
 
   const {
@@ -125,475 +126,194 @@ export default function SoundroomPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Filtered tracks for search in Vault view
+  // Concatenate all 112 tracks
   const allTracks = useMemo(() => {
     return channels.flatMap((c) => c.tracks);
   }, [channels]);
 
-  const filteredTracks = useMemo(() => {
-    if (!searchQuery.trim()) return currentChannel.tracks;
-    const q = searchQuery.toLowerCase();
-    return allTracks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.artist.toLowerCase().includes(q) ||
-        t.album.toLowerCase().includes(q)
-    );
-  }, [searchQuery, currentChannel, allTracks]);
+  // Filtered tracks for Vault view (All 112 + Search + Category Pills)
+  const filteredVaultTracks = useMemo(() => {
+    let list =
+      vaultCategory === "all"
+        ? allTracks
+        : allTracks.filter((t) => t.channel === vaultCategory);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.artist.toLowerCase().includes(q) ||
+          t.album.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [searchQuery, vaultCategory, allTracks]);
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  // Master Apple Liquid Glass 10/10 Style Constants
+  const appleGlass10CardStyle: React.CSSProperties = {
+    borderRadius: "30px",
+    background:
+      "linear-gradient(135deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(255, 255, 255, 0.12) 100%)",
+    backdropFilter: "blur(44px) saturate(230%) brightness(115%) contrast(105%)",
+    WebkitBackdropFilter:
+      "blur(44px) saturate(230%) brightness(115%) contrast(105%)",
+    border: "1px solid rgba(255, 255, 255, 0.24)",
+    borderTop: "1px solid rgba(255, 255, 255, 0.50)",
+    boxShadow:
+      "inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.50), inset 0 -1.5px 2px 0 rgba(255, 255, 255, 0.12), inset 1.5px 0 2px 0 rgba(255, 255, 255, 0.20), inset -1.5px 0 2px 0 rgba(255, 255, 255, 0.20), 0 36px 72px -16px rgba(0, 0, 0, 0.75)",
+    position: "relative",
+    overflow: "hidden",
+  };
 
   return (
     <main
       style={{
-        minHeight: "100dvh",
-        backgroundColor: "#020204",
+        height: "100dvh",
+        maxHeight: "100dvh",
+        width: "100vw",
+        backgroundColor: "#06040c",
         color: "#ffffff",
         position: "relative",
-        overflowX: "hidden",
-        paddingBottom: "8rem",
+        overflow: "hidden",
+        fontFamily: "var(--font-apple)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0.8rem 1rem",
+        boxSizing: "border-box",
       }}
     >
       <CustomCursor />
-      {/* Exact Three.js WebGL GPU Starfield */}
+      {/* Exact Three.js WebGL GPU Cosmic Galaxy Background (Preserved 100%) */}
       <GalaxyStarfield />
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        /* TOP BAR — ZERO COLLISION GRID */
-        .soundroom-nav {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: clamp(0.9rem, 2vh, 1.4rem) clamp(1rem, 3.5vw, 2.5rem);
-          z-index: 1000;
-          pointer-events: none;
-        }
-
-        .bar-left, .bar-right {
-          pointer-events: auto;
-          display: flex;
-          align-items: center;
-        }
-
-        /* Interactive Audio Toggle */
-        .audio-toggle-btn {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(16px);
-          border-radius: 100px;
-          display: flex;
-          align-items: center;
-          gap: 0.45rem;
-          cursor: pointer;
-          padding: 0.35rem 0.75rem;
-          outline: none;
-          transition: all 0.2s ease;
-        }
-        .audio-toggle-btn:hover {
-          background: rgba(255, 255, 255, 0.08);
-        }
-        .audio-toggle-label {
-          font-family: monospace;
-          font-size: clamp(0.58rem, 1.5vw, 0.68rem);
-          color: #22c55e;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          white-space: nowrap;
-          transition: color 0.2s ease;
-        }
-        .audio-toggle-label.muted {
-          color: rgba(255, 255, 255, 0.4);
-        }
-        .audio-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 6px #22c55e;
-          flex-shrink: 0;
-        }
-        .audio-dot.muted {
-          background: rgba(255, 255, 255, 0.3);
-          box-shadow: none;
-        }
-
-        .exit-link {
-          font-family: monospace;
-          font-size: clamp(0.6rem, 1.6vw, 0.7rem);
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.6);
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(16px);
-          padding: 0.35rem 0.85rem;
-          border-radius: 100px;
-          text-decoration: none;
-          transition: all 0.18s ease;
-          white-space: nowrap;
-        }
-        .exit-link:hover {
-          color: #ffffff;
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        /* MAIN CONTAINER (APPLE MUSIC FULL SCREEN LAYOUT) */
-        .soundroom-stage {
-          max-width: 680px;
-          margin: 0 auto;
-          padding-top: clamp(4.5rem, 10vh, 6rem);
-          padding-left: clamp(1rem, 3.5vw, 1.5rem);
-          padding-right: clamp(1rem, 3.5vw, 1.5rem);
-          position: relative;
-          z-index: 2;
-        }
-
-        /* HORIZONTAL 1-ROW CHANNEL PILL RIBBON */
-        .channel-ribbon {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          overflow-x: auto;
-          scrollbar-width: none;
-          padding-bottom: 0.4rem;
-          margin-bottom: clamp(1.2rem, 2.5vh, 2rem);
-        }
-        .channel-ribbon::-webkit-scrollbar {
-          display: none;
-        }
-
-        .channel-pill {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 100px;
-          padding: 0.42rem 0.95rem;
-          color: rgba(255, 255, 255, 0.65);
-          font-family: monospace;
-          font-size: clamp(0.64rem, 1.6vw, 0.72rem);
-          font-weight: 600;
-          letter-spacing: 0.06em;
-          white-space: nowrap;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          flex-shrink: 0;
-        }
-        .channel-pill.active {
-          background: rgba(255, 255, 255, 0.14);
-          border-color: rgba(255, 255, 255, 0.35);
-          color: #ffffff;
-          box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-        }
-
-        /* VIEW TOGGLE PILLS */
-        .view-switch {
-          display: flex;
-          justify-content: center;
-          gap: 0.5rem;
-          margin-bottom: 1.2rem;
-        }
-        .view-switch-btn {
-          background: transparent;
-          border: none;
-          color: rgba(255, 255, 255, 0.45);
-          font-family: monospace;
-          font-size: 0.68rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          padding: 0.3rem 0.8rem;
-          cursor: pointer;
-          border-bottom: 2px solid transparent;
-          transition: all 0.2s ease;
-        }
-        .view-switch-btn.active {
-          color: #ffffff;
-          border-bottom-color: #38bdf8;
-        }
-
-        /* FULL GLASS NOW PLAYING HERO */
-        .now-playing-card {
-          background: rgba(255, 255, 255, 0.025);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-top: 1px solid rgba(255, 255, 255, 0.18);
-          backdrop-filter: blur(40px) saturate(160%);
-          border-radius: 28px;
-          padding: clamp(1.4rem, 3.5vh, 2.2rem) clamp(1.2rem, 3.5vw, 2rem);
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
-          text-align: center;
-          position: relative;
-        }
-
-        /* Ambient glow backdrop */
-        .ambient-glow {
-          position: absolute;
-          top: 15%;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 260px;
-          height: 260px;
-          border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.28;
-          pointer-events: none;
-          transition: background 0.5s ease;
-        }
-
-        .artwork-wrapper {
-          position: relative;
-          width: clamp(180px, 45vw, 240px);
-          height: clamp(180px, 45vw, 240px);
-          margin: 0 auto clamp(1.2rem, 2.5vh, 1.8rem);
-          border-radius: 22px;
-          overflow: hidden;
-          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-
-        .artwork-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-          transition: transform 0.4s ease;
-        }
-        .artwork-img.playing {
-          transform: scale(1.03);
-        }
-
-        .track-title {
-          font-family: Georgia, 'Times New Roman', serif;
-          font-style: italic;
-          font-size: clamp(1.35rem, 4vw, 1.85rem);
-          color: #ffffff;
-          margin-bottom: 0.35rem;
-          letter-spacing: -0.01em;
-          line-height: 1.15;
-        }
-        .track-artist {
-          font-family: monospace;
-          font-size: clamp(0.72rem, 1.8vw, 0.82rem);
-          color: rgba(255, 255, 255, 0.7);
-          margin-bottom: 0.25rem;
-        }
-        .track-album {
-          font-family: monospace;
-          font-size: clamp(0.62rem, 1.5vw, 0.68rem);
-          color: rgba(255, 255, 255, 0.4);
-          letter-spacing: 0.05em;
-          margin-bottom: 1.2rem;
-        }
-
-        /* APPLE MUSIC SCRUBBER */
-        .scrubber-container {
-          margin-top: 1rem;
-          margin-bottom: 1.4rem;
-        }
-        .scrubber-bar {
-          width: 100%;
-          height: 5px;
-          background: rgba(255, 255, 255, 0.12);
-          border-radius: 10px;
-          position: relative;
-          cursor: pointer;
-        }
-        .scrubber-fill {
-          height: 100%;
-          border-radius: 10px;
-          background: #ffffff;
-          position: relative;
-        }
-        .scrubber-handle {
-          position: absolute;
-          right: -5px;
-          top: -4px;
-          width: 13px;
-          height: 13px;
-          border-radius: 50%;
-          background: #ffffff;
-          box-shadow: 0 0 8px rgba(0,0,0,0.6);
-        }
-        .time-row {
-          display: flex;
-          justify-content: space-between;
-          font-family: monospace;
-          font-size: 0.66rem;
-          color: rgba(255, 255, 255, 0.45);
-          margin-top: 0.45rem;
-        }
-
-        /* APPLE MUSIC TRANSPORT BUTTONS */
-        .controls-row {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: clamp(1rem, 3.5vw, 1.8rem);
-          margin-bottom: 1.2rem;
-        }
-        .ctrl-btn {
-          background: transparent;
-          border: none;
-          color: rgba(255, 255, 255, 0.7);
-          cursor: pointer;
-          padding: 0.5rem;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.15s ease;
-        }
-        .ctrl-btn:hover {
-          color: #ffffff;
-          background: rgba(255, 255, 255, 0.08);
-        }
-        .play-btn-large {
-          width: 58px;
-          height: 58px;
-          border-radius: 50%;
-          background: #ffffff;
-          color: #020204;
-          border: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 8px 25px rgba(255, 255, 255, 0.25);
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        .play-btn-large:hover {
-          transform: scale(1.05);
-          box-shadow: 0 10px 30px rgba(255, 255, 255, 0.4);
-        }
-
-        /* 432HZ & AUX PILLS */
-        .aux-row {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 0.8rem;
-        }
-        .tuning-btn {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: rgba(255, 255, 255, 0.6);
-          font-family: monospace;
-          font-size: 0.64rem;
-          letter-spacing: 0.08em;
-          padding: 0.35rem 0.85rem;
-          border-radius: 100px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        .tuning-btn.active {
-          background: rgba(234, 179, 8, 0.15);
-          border-color: #eab308;
-          color: #eab308;
-          box-shadow: 0 0 12px rgba(234, 179, 8, 0.25);
-        }
-
-        /* 100-TRACK VAULT DRAWER / LIST */
-        .vault-container {
-          background: rgba(255, 255, 255, 0.025);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-top: 1px solid rgba(255, 255, 255, 0.18);
-          backdrop-filter: blur(40px);
-          border-radius: 28px;
-          padding: 1.5rem;
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
-        }
-        .search-box {
-          width: 100%;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          padding: 0.6rem 1rem;
-          color: #ffffff;
-          font-family: monospace;
-          font-size: 0.76rem;
-          outline: none;
-          margin-bottom: 1rem;
-        }
-        .search-box::placeholder {
-          color: rgba(255, 255, 255, 0.35);
-        }
-        .track-list {
-          max-height: 480px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
-          padding-right: 0.3rem;
-        }
-        .track-list-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0.65rem 0.85rem;
-          border-radius: 12px;
-          cursor: pointer;
-          background: transparent;
-          border: none;
-          width: 100%;
-          text-align: left;
-          transition: all 0.15s ease;
-        }
-        .track-list-item:hover {
-          background: rgba(255, 255, 255, 0.04);
-        }
-        .track-list-item.active {
-          background: rgba(255, 255, 255, 0.08);
-          border-left: 3px solid #38bdf8;
-        }
-      `,
+      {/* 1. TOP FLOATING APPLE DYNAMIC ISLAND HUD */}
+      <header
+        style={{
+          width: "100%",
+          maxWidth: "1200px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          zIndex: 50,
+          flexShrink: 0,
+          padding: "0.2rem 0.5rem",
         }}
-      />
+      >
+        <button
+          onClick={toggleMute}
+          className="apple-glass-pill"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.55rem",
+            padding: "0.4rem 0.95rem",
+            color: "#ffffff",
+            fontSize: "0.72rem",
+            fontWeight: 500,
+            letterSpacing: "0.03em",
+            cursor: "pointer",
+            border: "none",
+          }}
+        >
+          <span
+            style={{
+              width: "7px",
+              height: "7px",
+              borderRadius: "50%",
+              backgroundColor: isMuted ? "rgba(255,255,255,0.3)" : "#30d158",
+              boxShadow: isMuted ? "none" : "0 0 10px #30d158",
+              display: "inline-block",
+            }}
+          />
+          <span>
+            {isMuted ? "AUDIO: MUTED" : `AUDIO: ACTIVE · ${timeStr || "LIVE"}`}
+          </span>
+        </button>
 
-      {/* TOP FLOATING NAV */}
-      <header className="soundroom-nav">
-        <div className="bar-left">
-          <button
-            className="audio-toggle-btn"
-            onClick={toggleMute}
-            aria-label="Toggle Master Audio"
-          >
-            <div className={`audio-dot ${isMuted ? "muted" : ""}`} />
-            <span className={`audio-toggle-label ${isMuted ? "muted" : ""}`}>
-              {isMuted ? "AUDIO: MUTED" : "AUDIO: ACTIVE"}{" "}
-              {timeStr && `· ${timeStr}`}
-            </span>
-          </button>
-        </div>
-
-        <div className="bar-right">
-          <Link
-            href="/about"
-            className="exit-link"
-            onClick={() => uiAudio.playClick()}
-          >
-            Portfolio
-          </Link>
-        </div>
+        <Link
+          href="/"
+          className="apple-glass-pill"
+          style={{
+            padding: "0.4rem 0.95rem",
+            fontSize: "0.72rem",
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+            color: "#ffffff",
+          }}
+        >
+          PORTFOLIO
+        </Link>
       </header>
 
-      {/* MAIN STAGE */}
-      <div className="soundroom-stage">
-        {/* 1-ROW HORIZONTAL CHANNEL RIBBON */}
-        <div className="channel-ribbon">
+      {/* 2. CENTER STAGE (100% VIEWPORT FIT — ZERO COLLISION) */}
+      <div
+        style={{
+          flex: 1,
+          width: "100%",
+          maxWidth: "520px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          zIndex: 10,
+          minHeight: 0,
+          padding: "0.2rem 0",
+        }}
+      >
+        {/* TOP CHANNEL SELECTOR PILLS */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            overflowX: "auto",
+            maxWidth: "100%",
+            padding: "0.2rem 0.1rem",
+            marginBottom: "0.55rem",
+            scrollbarWidth: "none",
+            WebkitOverflowScrolling: "touch",
+            flexShrink: 0,
+          }}
+        >
           {channels.map((ch) => {
             const isSelected = ch.id === currentChannel.id;
             return (
               <button
                 key={ch.id}
-                className={`channel-pill ${isSelected ? "active" : ""}`}
                 onClick={() => selectChannel(ch.id)}
+                style={{
+                  flexShrink: 0,
+                  padding: "0.38rem 0.8rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.72rem",
+                  fontWeight: 550,
+                  color: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.72)",
+                  background: isSelected
+                    ? "linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.16) 100%)"
+                    : "linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 100%)",
+                  backdropFilter: "blur(24px) saturate(200%)",
+                  WebkitBackdropFilter: "blur(24px) saturate(200%)",
+                  border: isSelected
+                    ? "1px solid rgba(255, 255, 255, 0.45)"
+                    : "1px solid rgba(255, 255, 255, 0.18)",
+                  borderTop: isSelected
+                    ? "1px solid rgba(255, 255, 255, 0.65)"
+                    : "1px solid rgba(255, 255, 255, 0.35)",
+                  boxShadow: isSelected
+                    ? "inset 0 1px 1.5px rgba(255, 255, 255, 0.6), 0 4px 12px rgba(0, 0, 0, 0.35)"
+                    : "inset 0 1px 1px rgba(255, 255, 255, 0.35)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  transition: "all 0.18s ease",
+                }}
               >
                 <span
                   style={{
@@ -603,13 +323,7 @@ export default function SoundroomPage() {
                   ✦
                 </span>
                 <span>{ch.title}</span>
-                <span
-                  style={{
-                    fontSize: "0.58rem",
-                    opacity: 0.5,
-                    marginLeft: "2px",
-                  }}
-                >
+                <span style={{ fontSize: "0.6rem", opacity: 0.55 }}>
                   ({ch.tracks.length})
                 </span>
               </button>
@@ -618,110 +332,322 @@ export default function SoundroomPage() {
         </div>
 
         {/* VIEW SWITCHER TABS */}
-        <div className="view-switch">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "0.22rem",
+            borderRadius: "9999px",
+            background:
+              "linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 100%)",
+            backdropFilter: "blur(28px) saturate(210%)",
+            WebkitBackdropFilter: "blur(28px) saturate(210%)",
+            border: "1px solid rgba(255, 255, 255, 0.22)",
+            borderTop: "1px solid rgba(255, 255, 255, 0.45)",
+            boxShadow:
+              "inset 0 1px 1.5px rgba(255, 255, 255, 0.45), 0 6px 18px rgba(0, 0, 0, 0.35)",
+            marginBottom: "0.7rem",
+            gap: "0.2rem",
+            flexShrink: 0,
+          }}
+        >
           <button
-            className={`view-switch-btn ${
-              activeTab === "player" ? "active" : ""
-            }`}
             onClick={() => setActiveTab("player")}
+            style={{
+              padding: "0.36rem 1.1rem",
+              borderRadius: "9999px",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: activeTab === "player" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+              background:
+                activeTab === "player" ? "rgba(255, 255, 255, 0.25)" : "transparent",
+              border:
+                activeTab === "player"
+                  ? "1px solid rgba(255, 255, 255, 0.35)"
+                  : "none",
+              borderTop:
+                activeTab === "player"
+                  ? "1px solid rgba(255, 255, 255, 0.60)"
+                  : "none",
+              boxShadow:
+                activeTab === "player"
+                  ? "inset 0 1px 1px rgba(255, 255, 255, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3)"
+                  : "none",
+              cursor: "pointer",
+              transition: "all 0.18s ease",
+            }}
           >
             Now Playing
           </button>
           <button
-            className={`view-switch-btn ${
-              activeTab === "vault" ? "active" : ""
-            }`}
             onClick={() => setActiveTab("vault")}
+            style={{
+              padding: "0.36rem 1.1rem",
+              borderRadius: "9999px",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: activeTab === "vault" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+              background:
+                activeTab === "vault" ? "rgba(255, 255, 255, 0.25)" : "transparent",
+              border:
+                activeTab === "vault"
+                  ? "1px solid rgba(255, 255, 255, 0.35)"
+                  : "none",
+              borderTop:
+                activeTab === "vault"
+                  ? "1px solid rgba(255, 255, 255, 0.60)"
+                  : "none",
+              boxShadow:
+                activeTab === "vault"
+                  ? "inset 0 1px 1px rgba(255, 255, 255, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3)"
+                  : "none",
+              cursor: "pointer",
+              transition: "all 0.18s ease",
+            }}
           >
-            Master Vault ({allTracks.length})
+            Master Vault (112)
           </button>
         </div>
 
-        {/* TAB 1: APPLE MUSIC / SPOTIFY GLASS PLAYER */}
-        {activeTab === "player" ? (
+        {/* TAB 1: APPLE iOS 18 CONTROL CENTER MUSIC PLAYER */}
+        {activeTab === "player" && (
           <motion.div
-            className="now-playing-card"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            style={{
+              ...appleGlass10CardStyle,
+              width: "100%",
+              maxWidth: "420px",
+              padding: "1.25rem 1.4rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
           >
+            {/* Dynamic Saturated Ambient Bloom */}
             <div
-              className="ambient-glow"
-              style={{ background: currentChannel.themeColor }}
+              style={{
+                position: "absolute",
+                top: "-30%",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "240px",
+                height: "240px",
+                borderRadius: "50%",
+                filter: "blur(70px)",
+                opacity: 0.48,
+                pointerEvents: "none",
+                zIndex: 0,
+                backgroundColor: currentChannel.themeColor || "#38bdf8",
+                transition: "background-color 0.8s ease",
+              }}
             />
 
-            {/* Rounded High-Res Glass Artwork */}
-            <div className="artwork-wrapper">
+            {/* Album Artwork (Responsive 155px) */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                width: "min(20vh, 155px)",
+                height: "min(20vh, 155px)",
+                borderRadius: "20px",
+                overflow: "hidden",
+                boxShadow:
+                  "0 16px 32px -8px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.3)",
+                border: "1px solid rgba(255, 255, 255, 0.22)",
+                borderTop: "1px solid rgba(255, 255, 255, 0.45)",
+                marginBottom: "0.85rem",
+                flexShrink: 0,
+              }}
+            >
               <img
                 src={currentTrack.artwork}
                 alt={currentTrack.title}
-                className={`artwork-img ${isPlaying ? "playing" : ""}`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
               />
             </div>
 
-            {/* Track Metadata */}
-            <div className="track-title">{currentTrack.title}</div>
-            <div className="track-artist">{currentTrack.artist}</div>
-            <div className="track-album">{currentTrack.album}</div>
+            {/* Track Info */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                textAlign: "center",
+                width: "100%",
+                marginBottom: "0.6rem",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "1.15rem",
+                  fontWeight: 700,
+                  letterSpacing: "-0.025em",
+                  color: "#ffffff",
+                  marginBottom: "0.15rem",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {currentTrack.title}
+              </h2>
+              <p
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 500,
+                  color: "rgba(255, 255, 255, 0.72)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {currentTrack.artist}
+              </p>
+              <p
+                style={{
+                  fontSize: "0.68rem",
+                  color: "rgba(255, 255, 255, 0.48)",
+                  marginTop: "0.1rem",
+                }}
+              >
+                {currentTrack.album}
+              </p>
+            </div>
 
-            {/* Live Frequency Visualizer */}
-            <SoundVisualizer />
+            {/* Visualizer */}
+            <div style={{ width: "100%", marginBottom: "0.6rem" }}>
+              <SoundVisualizer />
+            </div>
 
-            {/* Tactile Scrubber */}
-            <div className="scrubber-container">
+            {/* Scrubber Timeline */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                width: "100%",
+                marginBottom: "0.85rem",
+              }}
+            >
               <div
-                className="scrubber-bar"
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  height: "6px",
+                  borderRadius: "9999px",
+                  background: "rgba(255, 255, 255, 0.16)",
+                  boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.4)",
+                  cursor: "pointer",
+                }}
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const pct = (e.clientX - rect.left) / rect.width;
-                  seek(pct * duration);
+                  const clickX = e.clientX - rect.left;
+                  const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+                  seek(ratio * duration);
                 }}
               >
                 <div
-                  className="scrubber-fill"
                   style={{
+                    height: "100%",
+                    borderRadius: "9999px",
+                    background: "#ffffff",
+                    position: "relative",
+                    boxShadow: "0 0 8px rgba(255, 255, 255, 0.6)",
                     width: `${progressPercent}%`,
-                    background: currentChannel.themeColor,
                   }}
                 >
-                  <div className="scrubber-handle" />
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: "-5px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: "11px",
+                      height: "11px",
+                      borderRadius: "50%",
+                      background: "#ffffff",
+                      boxShadow: "0 2px 5px rgba(0, 0, 0, 0.5)",
+                    }}
+                  />
                 </div>
               </div>
-              <div className="time-row">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: "0.65rem",
+                  fontWeight: 500,
+                  color: "rgba(255, 255, 255, 0.48)",
+                  marginTop: "0.3rem",
+                }}
+              >
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>
 
-            {/* Transport Buttons (Apple Music standard) */}
-            <div className="controls-row">
+            {/* Apple Transport Controls */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "1.25rem",
+                width: "100%",
+                marginBottom: "0.85rem",
+              }}
+            >
               <button
-                className="ctrl-btn"
-                onClick={() => setIsShuffle((prev) => !prev)}
+                onClick={() => setIsShuffle(!isShuffle)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "0.4rem",
+                  opacity: isShuffle ? 1 : 0.5,
+                  color: isShuffle ? "#30d158" : "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                }}
                 title="Shuffle"
               >
                 <svg
-                  width="18"
-                  height="18"
+                  width="17"
+                  height="17"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke={isShuffle ? "#38bdf8" : "currentColor"}
+                  stroke="currentColor"
                   strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
                 >
-                  <polyline points="16 3 21 3 21 8" />
-                  <line x1="4" y1="20" x2="21" y2="3" />
-                  <polyline points="21 16 21 21 16 21" />
-                  <line x1="15" y1="15" x2="21" y2="21" />
-                  <line x1="4" y1="4" x2="9" y2="9" />
+                  <path d="M16 3h5v5" />
+                  <path d="M4 20L21 3" />
+                  <path d="M21 16v5h-5" />
+                  <path d="M15 15l6 6" />
+                  <path d="M4 4l5 5" />
                 </svg>
               </button>
 
               <button
-                className="ctrl-btn"
                 onClick={prevTrack}
-                aria-label="Previous Track"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  padding: "0.4rem",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Previous Track"
               >
                 <svg
                   width="22"
@@ -736,15 +662,28 @@ export default function SoundroomPage() {
                     x2="5"
                     y2="5"
                     stroke="currentColor"
-                    strokeWidth="3"
+                    strokeWidth="2.5"
                   />
                 </svg>
               </button>
 
               <button
-                className="play-btn-large"
                 onClick={togglePlay}
-                aria-label={isPlaying ? "Pause" : "Play"}
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  borderRadius: "50%",
+                  background: "#ffffff",
+                  color: "#06040c",
+                  border: "none",
+                  boxShadow:
+                    "0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.8)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+                title={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? (
                   <svg
@@ -753,16 +692,16 @@ export default function SoundroomPage() {
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
-                    <rect x="6" y="4" width="4" height="16" rx="1" />
-                    <rect x="14" y="4" width="4" height="16" rx="1" />
+                    <rect x="6" y="4" width="4" height="16" rx="1.5" />
+                    <rect x="14" y="4" width="4" height="16" rx="1.5" />
                   </svg>
                 ) : (
                   <svg
-                    width="24"
-                    height="24"
+                    width="22"
+                    height="22"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    style={{ marginLeft: "3px" }}
+                    style={{ marginLeft: "2px" }}
                   >
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
@@ -770,9 +709,17 @@ export default function SoundroomPage() {
               </button>
 
               <button
-                className="ctrl-btn"
                 onClick={nextTrack}
-                aria-label="Next Track"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  padding: "0.4rem",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Next Track"
               >
                 <svg
                   width="22"
@@ -787,132 +734,385 @@ export default function SoundroomPage() {
                     x2="19"
                     y2="19"
                     stroke="currentColor"
-                    strokeWidth="3"
+                    strokeWidth="2.5"
                   />
                 </svg>
               </button>
 
               <button
-                className="ctrl-btn"
-                onClick={() => setActiveTab("vault")}
-                title="View 100-Track Vault"
+                onClick={toggle432Hz}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "0.4rem",
+                  opacity: is432Hz ? 1 : 0.5,
+                  color: is432Hz ? "#ffd60a" : "#ffffff",
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                }}
+                title="432Hz Harmonic Mode"
               >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="8" y1="6" x2="21" y2="6" />
-                  <line x1="8" y1="12" x2="21" y2="12" />
-                  <line x1="8" y1="18" x2="21" y2="18" />
-                  <line x1="3" y1="6" x2="3.01" y2="6" />
-                  <line x1="3" y1="12" x2="3.01" y2="12" />
-                  <line x1="3" y1="18" x2="3.01" y2="18" />
-                </svg>
+                432
               </button>
             </div>
 
-            {/* Harmonic 432Hz Mode */}
-            <div className="aux-row">
-              <button
-                className={`tuning-btn ${is432Hz ? "active" : ""}`}
-                onClick={toggle432Hz}
+            {/* Volume Capsule Slider */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                padding: "0 0.4rem",
+                gap: "0.8rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  flex: 1,
+                }}
               >
-                {is432Hz ? "✦ 432Hz HARMONIC: ON" : "STANDARD 440Hz"}
-              </button>
+                <button
+                  onClick={toggleMute}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "rgba(255,255,255,0.7)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 0,
+                  }}
+                >
+                  {isMuted || volume === 0 ? (
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <line
+                        x1="23"
+                        y1="9"
+                        x2="17"
+                        y2="15"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <line
+                        x1="17"
+                        y1="9"
+                        x2="23"
+                        y2="15"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path
+                        d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  )}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => setVolume(parseFloat(e.target.value))}
+                  style={{
+                    flex: 1,
+                    height: "5px",
+                    borderRadius: "9999px",
+                    background: "rgba(255, 255, 255, 0.18)",
+                    outline: "none",
+                    WebkitAppearance: "none",
+                    cursor: "pointer",
+                  }}
+                />
+              </div>
             </div>
           </motion.div>
-        ) : (
-          /* TAB 2: 100-TRACK MASTER VAULT */
+        )}
+
+        {/* TAB 2: MASTER VAULT (GUARANTEED LENIS-PREVENT SCROLL CONTAINER) */}
+        {activeTab === "vault" && (
           <motion.div
-            className="vault-container"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            data-lenis-prevent="true"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            style={{
+              ...appleGlass10CardStyle,
+              width: "100%",
+              maxWidth: "520px",
+              height: "calc(100dvh - 210px)",
+              maxHeight: "560px",
+              padding: "1rem 1rem",
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
           >
+            {/* Search Input (Fixed Header) */}
             <input
               type="text"
-              className="search-box"
-              placeholder="Search 100 songs, maestros, or films..."
+              placeholder="Search 112 tracks by song, artist, film..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.65rem 1rem",
+                borderRadius: "9999px",
+                background: "rgba(255, 255, 255, 0.09)",
+                border: "1px solid rgba(255, 255, 255, 0.22)",
+                borderTop: "1px solid rgba(255, 255, 255, 0.40)",
+                boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.3)",
+                color: "#ffffff",
+                fontSize: "0.82rem",
+                outline: "none",
+                marginBottom: "0.65rem",
+                flexShrink: 0,
+              }}
             />
 
-            <div className="track-list">
-              {filteredTracks.map((t, idx) => {
-                const isSelected = t.id === currentTrack.id;
+            {/* Category Filter Pills (Fixed Header) */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                overflowX: "auto",
+                paddingBottom: "0.65rem",
+                width: "100%",
+                scrollbarWidth: "none",
+                WebkitOverflowScrolling: "touch",
+                flexShrink: 0,
+              }}
+            >
+              {[
+                { id: "all", label: "✦ All 112" },
+                { id: "user-vault", label: "Mitesh's (12)" },
+                { id: "titans", label: "Titans (25)" },
+                { id: "symphony", label: "Symphony (25)" },
+                { id: "sessions", label: "Sessions (25)" },
+                { id: "sufi", label: "Sufi (25)" },
+              ].map((cat) => {
+                const isSelected = vaultCategory === cat.id;
                 return (
                   <button
-                    key={t.id}
-                    className={`track-list-item ${
-                      isSelected ? "active" : ""
-                    }`}
-                    onClick={() => playTrack(t)}
+                    key={cat.id}
+                    onClick={() => setVaultCategory(cat.id)}
+                    style={{
+                      flexShrink: 0,
+                      padding: "0.32rem 0.7rem",
+                      borderRadius: "9999px",
+                      fontSize: "0.68rem",
+                      fontWeight: 550,
+                      background: isSelected
+                        ? "rgba(255, 255, 255, 0.28)"
+                        : "rgba(255, 255, 255, 0.08)",
+                      border: isSelected
+                        ? "1px solid rgba(255, 255, 255, 0.45)"
+                        : "1px solid rgba(255, 255, 255, 0.16)",
+                      borderTop: isSelected
+                        ? "1px solid rgba(255, 255, 255, 0.65)"
+                        : "1px solid rgba(255, 255, 255, 0.35)",
+                      color: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.68)",
+                      boxShadow: isSelected
+                        ? "inset 0 1px 1px rgba(255, 255, 255, 0.5)"
+                        : "none",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.75rem",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: "0.66rem",
-                          color: isSelected
-                            ? "#38bdf8"
-                            : "rgba(255,255,255,0.3)",
-                          width: "18px",
-                        }}
-                      >
-                        {isSelected && isPlaying ? "▶" : `${idx + 1}`}
-                      </span>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: "0.82rem",
-                            fontWeight: isSelected ? 600 : 400,
-                            color: isSelected ? "#ffffff" : "rgba(255,255,255,0.85)",
-                          }}
-                        >
-                          {t.title}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.66rem",
-                            fontFamily: "monospace",
-                            color: "rgba(255,255,255,0.45)",
-                          }}
-                        >
-                          {t.artist} · {t.album}
-                        </div>
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "0.66rem",
-                        fontFamily: "monospace",
-                        color: "rgba(255,255,255,0.4)",
-                      }}
-                    >
-                      {formatTime(t.duration)}
-                    </span>
+                    {cat.label}
                   </button>
                 );
               })}
+            </div>
+
+            {/* 112-Track Scroll Area (FLAWLESS NATIVE MOUSE & TRACKPAD SCROLLING) */}
+            <div
+              data-lenis-prevent="true"
+              onWheel={(e) => e.stopPropagation()}
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                overscrollBehavior: "contain",
+                touchAction: "pan-y",
+                WebkitOverflowScrolling: "touch",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.3rem",
+                paddingRight: "0.2rem",
+                width: "100%",
+                minHeight: 0,
+              }}
+            >
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  width: 5px;
+                }
+                div::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                div::-webkit-scrollbar-thumb {
+                  background: rgba(255, 255, 255, 0.25);
+                  border-radius: 9999px;
+                }
+              `}</style>
+              {filteredVaultTracks.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "2rem",
+                    color: "rgba(255,255,255,0.4)",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  No tracks found matching "{searchQuery}"
+                </div>
+              ) : (
+                filteredVaultTracks.map((track, idx) => {
+                  const isActive = track.id === currentTrack.id;
+                  return (
+                    <button
+                      key={track.id}
+                      onClick={() => playTrack(track)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "0.45rem 0.65rem",
+                        borderRadius: "14px",
+                        background: isActive
+                          ? "rgba(255, 255, 255, 0.16)"
+                          : "transparent",
+                        border: isActive
+                          ? "1px solid rgba(255, 255, 255, 0.28)"
+                          : "1px solid transparent",
+                        borderTop: isActive
+                          ? "1px solid rgba(255, 255, 255, 0.50)"
+                          : "1px solid transparent",
+                        boxShadow: isActive
+                          ? "inset 0 1px 1px rgba(255, 255, 255, 0.35)"
+                          : "none",
+                        width: "100%",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background 0.15s ease",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.65rem",
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.65rem",
+                            color: "rgba(255,255,255,0.38)",
+                            width: "20px",
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                        <img
+                          src={track.artwork}
+                          alt=""
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "8px",
+                            objectFit: "cover",
+                            flexShrink: 0,
+                            boxShadow: "0 3px 6px rgba(0, 0, 0, 0.4)",
+                          }}
+                        />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: "0.82rem",
+                              fontWeight: 600,
+                              color: isActive ? "#30d158" : "#ffffff",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {track.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.68rem",
+                              color: "rgba(255,255,255,0.58)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {track.artist} · {track.album}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "rgba(255,255,255,0.45)",
+                          marginLeft: "0.5rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isActive && isPlaying ? (
+                          <span style={{ color: "#30d158", fontWeight: 600 }}>
+                            ● PLAYING
+                          </span>
+                        ) : (
+                          formatTime(track.duration)
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </motion.div>
         )}
       </div>
 
-      {/* DOCK */}
-      <AppleLiquidDock />
+      {/* 3. BOTTOM FLOATING APPLE LIQUID DOCK */}
+      <div style={{ zIndex: 50, flexShrink: 0 }}>
+        <AppleLiquidDock />
+      </div>
     </main>
   );
 }

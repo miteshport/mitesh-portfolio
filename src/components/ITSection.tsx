@@ -137,17 +137,29 @@ export default function ITSection() {
         style={{
           width: "100%",
           maxWidth: "880px",
-          backgroundColor: isBreachActive && breachStep < 4 ? "rgba(35, 8, 12, 0.65)" : "rgba(255, 255, 255, 0.03)",
-          border: isBreachActive && breachStep < 4 ? "1px solid #ef4444" : "1px solid rgba(255, 255, 255, 0.12)",
-          borderRadius: "14px",
-          backdropFilter: "blur(24px) saturate(160%)",
-          WebkitBackdropFilter: "blur(24px) saturate(160%)",
-          boxShadow: isBreachActive && breachStep < 4
-            ? "0 30px 80px rgba(239, 68, 68, 0.3), 0 0 50px rgba(239, 68, 68, 0.35)"
-            : "0 30px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(168, 85, 247, 0.15)",
+          backgroundColor:
+            isBreachActive && breachStep < 4
+              ? "rgba(35, 8, 12, 0.75)"
+              : "transparent",
+          background:
+            isBreachActive && breachStep < 4
+              ? "linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(35, 8, 12, 0.75) 100%)"
+              : "linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.10) 100%)",
+          border:
+            isBreachActive && breachStep < 4
+              ? "1px solid #ef4444"
+              : "1px solid rgba(255, 255, 255, 0.20)",
+          borderRadius: "24px",
+          backdropFilter: "blur(36px) saturate(210%) brightness(112%)",
+          WebkitBackdropFilter: "blur(36px) saturate(210%) brightness(112%)",
+          boxShadow:
+            isBreachActive && breachStep < 4
+              ? "0 30px 80px rgba(239, 68, 68, 0.3), 0 0 50px rgba(239, 68, 68, 0.35)"
+              : "inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.38), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.08), 0 32px 80px rgba(0, 0, 0, 0.65)",
           overflow: "hidden",
           position: "relative",
-          transition: "background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease",
+          transition:
+            "background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease",
         }}
       >
         {/* Terminal Header Bar */}

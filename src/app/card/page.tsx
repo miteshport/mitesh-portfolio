@@ -416,12 +416,23 @@ Looking forward to connecting!`;
           height: 100%;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
-          border-radius: 20px;
-          background: rgba(12, 10, 20, 0.88);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          backdrop-filter: blur(32px) saturate(180%);
-          -webkit-backdrop-filter: blur(32px) saturate(180%);
-          box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          border-radius: 28px;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.22) 0%,
+            rgba(255, 255, 255, 0.05) 45%,
+            rgba(255, 255, 255, 0.12) 100%
+          );
+          border: 1px solid rgba(255, 255, 255, 0.24);
+          border-top: 1px solid rgba(255, 255, 255, 0.50);
+          backdrop-filter: blur(44px) saturate(230%) brightness(115%) contrast(105%);
+          -webkit-backdrop-filter: blur(44px) saturate(230%) brightness(115%) contrast(105%);
+          box-shadow:
+            inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.50),
+            inset 0 -1.5px 2px 0 rgba(255, 255, 255, 0.12),
+            inset 1.5px 0 2px 0 rgba(255, 255, 255, 0.20),
+            inset -1.5px 0 2px 0 rgba(255, 255, 255, 0.20),
+            0 36px 72px -16px rgba(0, 0, 0, 0.85);
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -675,11 +686,19 @@ Looking forward to connecting!`;
         }}
       />
 
-      {/* TOP FLOATING NAV */}
+      {/* TOP FLOATING NAV: APPLE DYNAMIC ISLAND LIQUID GLASS */}
       <header className="card-top-nav">
         <div className="bar-left">
           <button
-            className="audio-toggle-btn"
+            className="apple-glass-pill"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.42rem 0.95rem",
+              cursor: "pointer",
+              border: "none",
+            }}
             onClick={toggleMute}
             aria-label="Toggle Master Audio"
           >
@@ -691,15 +710,36 @@ Looking forward to connecting!`;
         </div>
 
         <div className="bar-center">
-          <span className="card-center-title">Executive Pass</span>
+          <div
+            className="apple-glass-pill"
+            style={{
+              padding: "0.4rem 1.1rem",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              color: "#ffffff",
+              letterSpacing: "0.02em",
+            }}
+          >
+            Executive Pass
+          </div>
         </div>
 
         <div className="bar-right">
-          <Link href="/radio" className="port-link" onClick={() => audio.playClick()}>
-            Soundroom
+          <Link
+            href="/radio"
+            className="apple-glass-pill"
+            style={{ padding: "0.42rem 0.9rem" }}
+            onClick={() => audio.playClick()}
+          >
+            <span className="port-link">Soundroom</span>
           </Link>
-          <Link href="/about" className="port-link" onClick={() => audio.playClick()}>
-            Portfolio
+          <Link
+            href="/about"
+            className="apple-glass-pill"
+            style={{ padding: "0.42rem 0.9rem" }}
+            onClick={() => audio.playClick()}
+          >
+            <span className="port-link">Portfolio</span>
           </Link>
         </div>
       </header>

@@ -1,14 +1,20 @@
 :root {
   --bg-color: #06040c; /* Matte Obsidian Space */
   --text-color: #ffffff;
-  --accent: #27c93f;
+  --accent: #30d158; /* Apple iOS 18 System Green */
+  --apple-blue: #0a84ff;
+  --apple-purple: #bf5af2;
+  --apple-pink: #ff375f;
+  --apple-yellow: #ffd60a;
 
-  /* Brutalist Font Stack */
-  --font-primary: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* Apple SF Pro Font Stack */
+  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-display: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
   /* Physics-based Ease */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-apple-spring: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 * {
@@ -33,34 +39,128 @@ body {
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-apple);
 }
 
 /* Awwwards Text Highlighting Inversion */
 ::selection {
-  background-color: var(--text-color);
-  color: var(--bg-color);
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #06040c;
 }
 
-/* Typography Reset */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-display);
+/* ============================================================
+   APPLE iOS 18 / VISIONOS TRUE LIQUID GLASS 10/10 MASTER SYSTEM
+   ============================================================ */
+
+/* Master Liquid Glass Container (10/10 True Optical Crystal) */
+.apple-liquid-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 45%,
+    rgba(255, 255, 255, 0.12) 100%
+  ) !important;
+  backdrop-filter: blur(40px) saturate(230%) brightness(115%) contrast(105%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(230%) brightness(115%) contrast(105%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow:
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.48),
+    inset 0 -1.5px 2px 0 rgba(255, 255, 255, 0.12),
+    inset 1.5px 0 2px 0 rgba(255, 255, 255, 0.20),
+    inset -1.5px 0 2px 0 rgba(255, 255, 255, 0.20),
+    0 36px 72px -16px rgba(0, 0, 0, 0.75) !important;
+  border-radius: 28px;
+  position: relative;
+}
+
+/* Liquid Glass Capsule / Pill */
+.apple-glass-pill {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  ) !important;
+  backdrop-filter: blur(28px) saturate(210%) brightness(112%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(210%) brightness(112%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow:
+    inset 0 1.2px 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 28px rgba(0, 0, 0, 0.40) !important;
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.apple-glass-pill:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.15) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  border-top-color: rgba(255, 255, 255, 0.65) !important;
+  transform: translateY(-1px);
+}
+
+.apple-glass-pill:active {
+  transform: scale(0.96);
+}
+
+/* Circular Control Button (iOS 18 Control Center style) */
+.apple-glass-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-top: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.18s var(--ease-apple-spring);
+}
+
+.apple-glass-circle-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.apple-glass-circle-btn:active {
+  transform: scale(0.92);
+}
+
+/* Typography Hierarchy */
+.apple-title-hero {
+  font-family: var(--font-apple);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: #ffffff;
+}
+
+.apple-title-card {
+  font-family: var(--font-apple);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: #ffffff;
+}
+
+.apple-subtitle {
+  font-family: var(--font-apple);
+  font-weight: 450;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.apple-caption {
+  font-family: var(--font-apple);
   font-weight: 400;
-  letter-spacing: -0.02em;
-}
-
-p,
-span,
-a,
-button,
-li,
-input,
-textarea {
-  font-family: var(--font-primary);
+  color: rgba(255, 255, 255, 0.48);
 }
 
 a {

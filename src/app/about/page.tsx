@@ -195,11 +195,19 @@ export default function PortfolioPage() {
           }}
         />
 
-        {/* TOP BAR */}
+        {/* TOP BAR: APPLE DYNAMIC ISLAND LIQUID GLASS */}
         <header className="port-nav">
           <div className="bar-left">
             <button
-              className="audio-toggle-btn"
+              className="apple-glass-pill"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.42rem 0.95rem",
+                cursor: "pointer",
+                border: "none",
+              }}
               onClick={toggleMute}
               aria-label="Toggle Master Audio"
             >
@@ -211,23 +219,36 @@ export default function PortfolioPage() {
           </div>
 
           <div className="bar-center">
-            <span className="port-center-title">Portfolio Dossier</span>
+            <div
+              className="apple-glass-pill"
+              style={{
+                padding: "0.4rem 1.1rem",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: "#ffffff",
+                letterSpacing: "0.02em",
+              }}
+            >
+              Portfolio Dossier
+            </div>
           </div>
 
           <div className="bar-right">
             <Link
               href="/radio"
-              className="home-link"
+              className="apple-glass-pill"
+              style={{ padding: "0.42rem 0.9rem" }}
               onClick={() => audio.playClick()}
             >
-              Soundroom
+              <span className="home-link">Soundroom</span>
             </Link>
             <Link
               href="/"
-              className="home-link"
+              className="apple-glass-pill"
+              style={{ padding: "0.42rem 0.9rem" }}
               onClick={() => audio.playClick()}
             >
-              3D Art Engine
+              <span className="home-link">3D Art Engine</span>
             </Link>
           </div>
         </header>
