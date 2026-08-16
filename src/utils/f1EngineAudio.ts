@@ -123,7 +123,7 @@ export function updateF1Engine(
   const now = audioCtx.currentTime;
 
   if (isMuted) {
-    masterGain?.gain.setTargetAtTime(0.0, now, 0.05);
+    masterGain?.gain.setTargetAtTime(0.0, now, 0.03);
     return;
   }
 
@@ -148,16 +148,16 @@ export function updateF1Engine(
   filterNode?.frequency.setTargetAtTime(filterCutoff, now, 0.05);
 }
 
-// ✨ CRYSTALLINE SONIC PULSE (When slicing through Sonic Laser Rings)
-export function playSonicPulse() {
-  if (!audioCtx) return;
+// ✨ CRYSTALLINE SECTOR TIMING PULSE (Strictly respect isMuted)
+export function playSonicPulse(isMuted: boolean = false) {
+  if (isMuted || !audioCtx) return;
   const now = audioCtx.currentTime;
 
   // Dual Harmonic Chime (Pure Glass Resonance)
   const freqs = [880, 1318.51, 1760]; // A5, E6, A6
 
   freqs.forEach((freq, idx) => {
-    if (!audioCtx) return;
+    if (!audioCtx || isMuted) return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
@@ -176,9 +176,9 @@ export function playSonicPulse() {
   });
 }
 
-// 💥 SUBSONIC RUMBLE ON KERB CONTACT
-export function playKerbRumble() {
-  if (!audioCtx) return;
+// 💥 SUBSONIC RUMBLE ON KERB CONTACT (Strictly respect isMuted)
+export function playKerbRumble(isMuted: boolean = false) {
+  if (isMuted || !audioCtx) return;
   const now = audioCtx.currentTime;
 
   const osc = audioCtx.createOscillator();

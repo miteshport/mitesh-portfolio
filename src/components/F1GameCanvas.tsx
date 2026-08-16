@@ -15,39 +15,48 @@ export interface TelemetryData {
   isFlying: boolean;
   isLightsOut: boolean;
   onKerb: boolean;
-  ringsCrossed: number;
+  currentSector: number; // 1, 2, or 3
+  sectorsCrossed: number;
 }
 
 interface F1GameCanvasProps {
   isLightsOut?: boolean;
+  isMuted?: boolean;
   onTelemetryUpdate?: (data: TelemetryData) => void;
 }
 
-interface SonicRing {
+interface SectorGate {
+  sectorIndex: number;
+  name: string;
+  code: string;
+  color: number;
   mesh: THREE.Group;
   baseZ: number;
-  laneX: number;
-  laneY: number;
-  color: number;
   triggered: boolean;
 }
 
 interface LightMonolith {
   mesh: THREE.Group;
   baseZ: number;
-  side: number; // -1: Left shoulder, +1: Right shoulder
+  side: number; // -1: Left, +1: Right
 }
 
 export default function F1GameCanvas({
   isLightsOut = false,
+  isMuted = false,
   onTelemetryUpdate,
 }: F1GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isLightsOutRef = useRef(isLightsOut);
+  const isMutedRef = useRef(isMuted);
 
   useEffect(() => {
     isLightsOutRef.current = isLightsOut;
   }, [isLightsOut]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -56,7 +65,7 @@ export default function F1GameCanvas({
     // --- 1. THREE.JS SCENE SETUP ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000002);
-    scene.fog = new THREE.FogExp2(0x000002, 0.012);
+    scene.fog = new THREE.FogExp2(0x000002, 0.010);
 
     // RESPONSIVE FULL-CHASSIS CHASE CAMERA (YUTA ABE GOLD STANDARD)
     const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -68,7 +77,7 @@ export default function F1GameCanvas({
       initialFOV,
       window.innerWidth / window.innerHeight,
       0.1,
-      380
+      420
     );
     camera.position.set(0, initialCamY, initialCamZ);
 
@@ -165,7 +174,7 @@ export default function F1GameCanvas({
 
     // --- 3. PROCEDURAL ENDLESS ASPHALT HIGHWAY SHADER ---
     const roadWidth = 10.6;
-    const roadLength = 260.0;
+    const roadLength = 280.0;
     const roadSegments = 220;
 
     const roadVertexShader = `
@@ -207,9 +216,9 @@ export default function F1GameCanvas({
         float grain = rand(vUv * 600.0) * 0.05;
 
         // Rich Dark Obsidian Asphalt
-        vec3 asphaltColor = vec3(0.032, 0.032, 0.038) + grain;
+        vec3 asphaltColor = vec3(0.030, 0.030, 0.036) + grain;
 
-        // 3-Lane Highway Dashed Centerlines (Sleek Warm Gold)
+        // 3-Lane Highway Dashed Centerlines (Warm Gold)
         float laneLeft = abs(vUv.x - 0.35);
         float laneRight = abs(vUv.x - 0.65);
         float dashPattern = step(0.40, fract(movingV * 0.35));
@@ -224,7 +233,7 @@ export default function F1GameCanvas({
         }
 
         // Anamorphic Wet Road Reflections
-        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.24;
+        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.25;
         asphaltColor += vec3(spec * 0.2, spec * 0.45, spec * 0.85);
 
         // Night Mode Headlight Illumination Mask
@@ -234,7 +243,7 @@ export default function F1GameCanvas({
         }
 
         // Depth Fog Fade into Infinite Horizon
-        float fogFactor = smoothstep(70.0, 240.0, vDepth);
+        float fogFactor = smoothstep(80.0, 260.0, vDepth);
         vec3 finalColor = mix(asphaltColor, vec3(0.0, 0.0, 0.002), fogFactor);
 
         gl_FragColor = vec4(finalColor, 1.0);
@@ -298,10 +307,10 @@ export default function F1GameCanvas({
       rightKerbs.push(rKerb);
     }
 
-    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (2001 / TENET TRICK) ---
+    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (PARALLAX SPEED MARKERS) ---
     const monoliths: LightMonolith[] = [];
-    const monolithCount = 14;
-    const monolithSpacing = 32.0;
+    const monolithCount = 12;
+    const monolithSpacing = 36.0;
 
     const monolithBodyGeo = new THREE.BoxGeometry(0.14, 5.2, 0.45);
     const monolithMat = new THREE.MeshStandardMaterial({
@@ -312,7 +321,7 @@ export default function F1GameCanvas({
     const laserCoreMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
-      opacity: 0.95,
+      opacity: 0.9,
     });
 
     for (let i = 0; i < monolithCount; i++) {
@@ -320,9 +329,8 @@ export default function F1GameCanvas({
       const body = new THREE.Mesh(monolithBodyGeo, monolithMat);
       body.position.y = 2.6;
 
-      // Razor-Thin Vertical Laser Core
       const laserLine = new THREE.Mesh(
-        new THREE.BoxGeometry(0.04, 4.8, 0.04),
+        new THREE.BoxGeometry(0.03, 4.8, 0.03),
         laserCoreMat
       );
       laserLine.position.set(0, 2.6, 0.23);
@@ -332,7 +340,7 @@ export default function F1GameCanvas({
 
       const side = i % 2 === 0 ? -1 : 1;
       const xPos = side * (roadWidth / 2 + 0.4);
-      const zPos = -i * monolithSpacing - 20.0;
+      const zPos = -i * monolithSpacing - 25.0;
 
       group.position.set(xPos, 0, zPos);
       scene.add(group);
@@ -344,57 +352,91 @@ export default function F1GameCanvas({
       });
     }
 
-    // --- 6. ◯ SONIC VELOCITY LIGHT RINGS (MINIMALIST LASER GATES) ---
-    const sonicRings: SonicRing[] = [];
-    const ringCount = 7;
-    const ringSpacing = 48.0;
-    const ringGeo = new THREE.TorusGeometry(3.6, 0.038, 16, 64);
+    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES (GOLD STANDARD) ---
+    const sectorGates: SectorGate[] = [];
+    const gateDefinitions = [
+      { sectorIndex: 1, name: "SECTOR 1", code: "S1 // DRS SPEED TRAP", color: 0x38bdf8, baseZ: -70.0 },
+      { sectorIndex: 2, name: "SECTOR 2", code: "S2 // HIGH APEX", color: 0xf59e0b, baseZ: -190.0 },
+      { sectorIndex: 3, name: "SECTOR 3", code: "S3 // VELOCITY HORIZON", color: 0xa855f7, baseZ: -310.0 },
+    ];
 
-    const cyanRingMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      transparent: true,
-      opacity: 0.9,
-    });
-    const goldRingMat = new THREE.MeshBasicMaterial({
-      color: 0xf59e0b,
-      transparent: true,
-      opacity: 0.9,
+    const gateArchGeo = new THREE.TorusGeometry(4.2, 0.045, 16, 64);
+    const gatePillarGeo = new THREE.BoxGeometry(0.25, 4.5, 0.25);
+    const darkTitaniumMat = new THREE.MeshStandardMaterial({
+      color: 0x121218,
+      metalness: 0.98,
+      roughness: 0.1,
     });
 
-    for (let i = 0; i < ringCount; i++) {
+    // Helper: Create Telemetry Text Signboard Canvas
+    function createSectorSignboard(code: string, colorHex: string): THREE.Mesh {
+      const sCanvas = document.createElement("canvas");
+      sCanvas.width = 512;
+      sCanvas.height = 128;
+      const ctx = sCanvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "rgba(10, 10, 15, 0.85)";
+        ctx.fillRect(0, 0, 512, 128);
+        ctx.strokeStyle = colorHex;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(4, 4, 504, 120);
+
+        ctx.font = "bold 34px monospace";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(code, 256, 64);
+      }
+      const tex = new THREE.CanvasTexture(sCanvas);
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0.92,
+      });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.8), mat);
+      mesh.position.set(0, 4.5, 0);
+      return mesh;
+    }
+
+    gateDefinitions.forEach((def) => {
       const group = new THREE.Group();
-      const isGold = i % 3 === 0;
-      const mat = isGold ? goldRingMat : cyanRingMat;
-      const color = isGold ? 0xf59e0b : 0x38bdf8;
+      const colorHexStr = def.color === 0x38bdf8 ? "#38bdf8" : def.color === 0xf59e0b ? "#f59e0b" : "#a855f7";
 
-      const ringMesh = new THREE.Mesh(ringGeo, mat);
-      ringMesh.position.y = 2.8;
-      group.add(ringMesh);
+      // 1. Luminous Laser Arch
+      const archMat = new THREE.MeshBasicMaterial({
+        color: def.color,
+        transparent: true,
+        opacity: 0.95,
+      });
+      const archMesh = new THREE.Mesh(gateArchGeo, archMat);
+      archMesh.position.y = 2.4;
+      group.add(archMesh);
 
-      // Subtle Diamond Sparkle at Ring Apex
-      const apexDiamond = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.12),
-        new THREE.MeshBasicMaterial({ color: 0xffffff })
-      );
-      apexDiamond.position.set(0, 6.4, 0);
-      group.add(apexDiamond);
+      // 2. Dual Side Pillars
+      const pL = new THREE.Mesh(gatePillarGeo, darkTitaniumMat);
+      pL.position.set(-roadWidth / 2 - 0.2, 2.25, 0);
+      const pR = new THREE.Mesh(gatePillarGeo, darkTitaniumMat);
+      pR.position.set(roadWidth / 2 + 0.2, 2.25, 0);
+      group.add(pL);
+      group.add(pR);
 
-      const zPos = -i * ringSpacing - 35.0;
-      const laneX = (Math.random() - 0.5) * 2.5;
-      const laneY = Math.random() * 0.5;
+      // 3. Overhead Laser Telemetry Signboard
+      const signboard = createSectorSignboard(def.code, colorHexStr);
+      group.add(signboard);
 
-      group.position.set(laneX, laneY, zPos);
+      group.position.set(0, 0, def.baseZ);
       scene.add(group);
 
-      sonicRings.push({
+      sectorGates.push({
+        sectorIndex: def.sectorIndex,
+        name: def.name,
+        code: def.code,
+        color: def.color,
         mesh: group,
-        baseZ: zPos,
-        laneX,
-        laneY,
-        color,
+        baseZ: def.baseZ,
         triggered: false,
       });
-    }
+    });
 
     // --- 7. VELOCITY LASER STREAKS & DIFFUSER SPARKS ---
     const streakCount = 36;
@@ -520,7 +562,8 @@ export default function F1GameCanvas({
     let currentSpeed = baseSpeed;
     let isBoosting = false;
     let lapTime = 0;
-    let ringsCrossedCount = 0;
+    let sectorsCrossedCount = 0;
+    let activeSector = 1;
     let portalFlashOpacity = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
@@ -635,40 +678,38 @@ export default function F1GameCanvas({
         }
       }
 
-      // 5. Update Sonic Velocity Light Rings & Slicing Trigger
-      for (let i = 0; i < sonicRings.length; i++) {
-        const r = sonicRings[i];
-        r.mesh.position.z += currentSpeed * 0.085 * delta * 7.5;
+      // 5. Update The 3 Sector Timing Gates (Magnetically Glued to Road Racing Line)
+      const totalLoopDistance = 360.0;
 
-        // Road Curvature Follow
-        const rCurvature =
-          Math.sin(-r.mesh.position.z * 0.035 + time * 1.5) *
+      for (let i = 0; i < sectorGates.length; i++) {
+        const gate = sectorGates[i];
+        gate.mesh.position.z += currentSpeed * 0.085 * delta * 7.5;
+
+        // Track Curvature Apex Lock
+        const gCurvature =
+          Math.sin(-gate.mesh.position.z * 0.035 + time * 1.5) *
           roadUniforms.uCurvature.value *
-          (-r.mesh.position.z * 0.015);
+          (-gate.mesh.position.z * 0.015);
 
-        r.mesh.position.x = r.laneX + rCurvature;
+        gate.mesh.position.x = gCurvature;
 
-        // Gentle Floating Rotation
-        r.mesh.rotation.z = Math.sin(time * 1.5 + i) * 0.08;
+        // Slicing Check (Crossing Sector Timing Gate)
+        if (Math.abs(gate.mesh.position.z - 0.0) < 3.0 && !gate.triggered) {
+          const distX = Math.abs(carX - gate.mesh.position.x);
 
-        // Slicing Proximity Check (Passing through Sonic Ring)
-        if (Math.abs(r.mesh.position.z - 0.0) < 2.5 && !r.triggered) {
-          const distX = Math.abs(carX - r.mesh.position.x);
-          const distY = Math.abs(carY - r.laneY);
-
-          if (distX < 3.2 && distY < 3.0) {
-            r.triggered = true;
-            ringsCrossedCount += 1;
-            portalFlashOpacity = 0.85;
-            playSonicPulse();
+          if (distX < 4.8) {
+            gate.triggered = true;
+            sectorsCrossedCount += 1;
+            activeSector = gate.sectorIndex;
+            portalFlashOpacity = 0.9;
+            playSonicPulse(isMutedRef.current);
           }
         }
 
-        // Loop Ahead when Passed
-        if (r.mesh.position.z > 15.0) {
-          r.mesh.position.z = -ringCount * ringSpacing + 15.0;
-          r.laneX = (Math.random() - 0.5) * 3.0;
-          r.triggered = false;
+        // Loop Sector Gate Ahead to Next Lap Milestone
+        if (gate.mesh.position.z > 18.0) {
+          gate.mesh.position.z -= totalLoopDistance;
+          gate.triggered = false;
         }
       }
 
@@ -693,7 +734,7 @@ export default function F1GameCanvas({
       const isFlying = carY > 0.15;
       const onKerb = !isFlying && Math.abs(carX) > trackHalfW - 1.6;
       if (onKerb && Math.random() < 0.08) {
-        playKerbRumble();
+        playKerbRumble(isMutedRef.current);
       }
 
       const highSpeedShake = !isFlying ? Math.sin(time * 80) * 0.006 * (currentSpeed / 190) : 0;
@@ -829,7 +870,8 @@ export default function F1GameCanvas({
           isFlying,
           isLightsOut: isLightsOutRef.current,
           onKerb,
-          ringsCrossed: ringsCrossedCount,
+          currentSector: activeSector,
+          sectorsCrossed: sectorsCrossedCount,
         });
       }
 
@@ -862,9 +904,9 @@ export default function F1GameCanvas({
       monolithBodyGeo.dispose();
       monolithMat.dispose();
       laserCoreMat.dispose();
-      ringGeo.dispose();
-      cyanRingMat.dispose();
-      goldRingMat.dispose();
+      gateArchGeo.dispose();
+      gatePillarGeo.dispose();
+      darkTitaniumMat.dispose();
       streakGeo.dispose();
       streakMat.dispose();
       sparkGeo.dispose();

@@ -37,7 +37,8 @@ export default function Home() {
     isFlying: false,
     isLightsOut: false,
     onKerb: false,
-    ringsCrossed: 0,
+    currentSector: 1,
+    sectorsCrossed: 0,
   });
 
   const { isMuted } = useSoundroom();
@@ -93,6 +94,13 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [telemetry.isBoosting, telemetry.isFlying, telemetry.speed]);
 
+  const sectorName =
+    telemetry.currentSector === 1
+      ? "SECTOR 1 // DRS ACTIVE"
+      : telemetry.currentSector === 2
+      ? "SECTOR 2 // APEX SPEED"
+      : "SECTOR 3 // VELOCITY HORIZON";
+
   return (
     <main
       onClick={handleUserGesture}
@@ -109,9 +117,10 @@ export default function Home() {
     >
       <CustomCursor />
 
-      {/* 10/10 Gold-Standard 3D WebGL F1 Racing & Highway Canvas */}
+      {/* 10/10 Gold-Standard 3D WebGL F1 Racing Canvas */}
       <F1GameCanvas
         isLightsOut={isLightsOut}
+        isMuted={isMuted}
         onTelemetryUpdate={setTelemetry}
       />
 
@@ -185,7 +194,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* 4-CORNER SPATIAL HUD (Zero Clutter, Pristine Precision) */}
+      {/* 4-CORNER SPATIAL HUD */}
       <SpatialHUD
         isLightsOut={isLightsOut}
         onToggleLightsOut={() => setIsLightsOut((prev) => !prev)}
@@ -240,7 +249,7 @@ export default function Home() {
                 color: "rgba(255, 255, 255, 0.45)",
               }}
             >
-              LAP {formatLapTime(telemetry.lapTime)} · {telemetry.rpm} RPM
+              {sectorName} · LAP {formatLapTime(telemetry.lapTime)}
             </div>
           </div>
         }
