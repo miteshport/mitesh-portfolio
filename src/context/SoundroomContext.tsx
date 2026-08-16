@@ -39,13 +39,6 @@ interface SoundroomContextType {
 
 const SoundroomContext = createContext<SoundroomContextType | null>(null);
 
-declare global {
-  interface Window {
-    onYouTubeIframeAPIReady?: () => void;
-    YT?: any;
-  }
-}
-
 export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const [currentChannelId, setCurrentChannelId] =
     useState<SoundChannel["id"]>("user-vault");
@@ -56,12 +49,9 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const [volume, setVolumeState] = useState(0.85);
   const [isMuted, setIsMuted] = useState(false);
   const [is432Hz, setIs432Hz] = useState(false);
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
 
-  const playerRef = useRef<any>(null);
-  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const freqDataRef = useRef<Uint8Array>(new Uint8Array(64));
-  const fallbackTriedRef = useRef<Record<string, boolean>>({});
 
   const currentChannel =
     SOUNDROOM_CHANNELS.find((c) => c.id === currentChannelId) ||
@@ -69,7 +59,6 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const currentTrack =
     currentChannel.tracks[currentTrackIndex] || currentChannel.tracks[0];
 
-  // Forward declarations for player callbacks
   const handleNextTrack = useCallback(() => {
     uiAudio.playClick();
     setCurrentTrackIndex((prev) => (prev + 1) % currentChannel.tracks.length);
@@ -83,214 +72,127 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     );
   }, [currentChannel]);
 
-  // 1. Initialize YouTube Iframe Engine with Fallback Error Handlers
+  // 1. Initialize Native Audio Element (Apple & Android Lock Screen Standard)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if (!window.YT) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
-    }
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.crossOrigin = "anonymous";
+    audioRef.current = audio;
 
-    const initPlayer = () => {
-      if (window.YT && window.YT.Player && !playerRef.current) {
-        playerRef.current = new window.YT.Player("soundroom-yt-player", {
-          height: "1",
-          width: "1",
-          videoId: currentTrack.youtubeId,
-          playerVars: {
-            autoplay: 0,
-            controls: 0,
-            disablekb: 1,
-            fs: 0,
-            modestbranding: 1,
-            playsinline: 1,
-            rel: 0,
-            enablejsapi: 1,
-            origin: window.location.origin,
-          },
-          events: {
-            onReady: (event: any) => {
-              setIsPlayerReady(true);
-              event.target.setVolume(isMuted ? 0 : volume * 100);
-            },
-            onStateChange: (event: any) => {
-              if (event.data === window.YT.PlayerState.PLAYING) {
-                setIsPlaying(true);
-              } else if (event.data === window.YT.PlayerState.PAUSED) {
-                setIsPlaying(false);
-              } else if (event.data === window.YT.PlayerState.ENDED) {
-                handleNextTrack();
-              }
-            },
-            onError: (event: any) => {
-              // Catch Error 101/150 (embed disabled by label) or Error 100 (not found)
-              console.warn(
-                `[Soundroom] YouTube stream issue on ${currentTrack.id} (code: ${event.data}). Activating fallback...`
-              );
-              if (
-                currentTrack.fallbackId &&
-                !fallbackTriedRef.current[currentTrack.id]
-              ) {
-                fallbackTriedRef.current[currentTrack.id] = true;
-                playerRef.current?.loadVideoById(currentTrack.fallbackId);
-                playerRef.current?.playVideo();
-              } else {
-                handleNextTrack();
-              }
-            },
-          },
-        });
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
       }
     };
 
-    if (window.YT && window.YT.Player) {
-      initPlayer();
-    } else {
-      window.onYouTubeIframeAPIReady = initPlayer;
-    }
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleEnded = () => {
+      handleNextTrack();
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
 
     return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      audio.pause();
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.src = "";
     };
-  }, []);
+  }, [handleNextTrack]);
 
-  // 2. Continuous time tracker for UI & Scrubber
+  // 2. Track Change: Load Native Audio Source & Sync Media Session
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !currentTrack) return;
+
+    const nativeSrc = `/audio/${currentTrack.id}.m4a`;
+    audio.src = nativeSrc;
+    audio.volume = isMuted ? 0 : volume;
+
     if (isPlaying) {
-      progressTimerRef.current = setInterval(() => {
-        if (
-          playerRef.current &&
-          typeof playerRef.current.getCurrentTime === "function"
-        ) {
-          const t = playerRef.current.getCurrentTime() || 0;
-          const d = playerRef.current.getDuration() || currentTrack.duration;
-          setCurrentTime(t);
-          if (d > 0) setDuration(d);
-        }
-      }, 500);
-    } else {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      audio.play().catch((err) => {
+        console.warn("[Soundroom] Auto-playback interrupted:", err);
+      });
     }
 
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-  }, [isPlaying, currentTrack]);
-
-  // 3. Handle Track Change & MediaSession Sync
-  useEffect(() => {
-    if (playerRef.current && isPlayerReady && currentTrack.youtubeId) {
-      try {
-        playerRef.current.loadVideoById(currentTrack.youtubeId);
-        if (isPlaying) {
-          playerRef.current.playVideo();
-        }
-      } catch {}
-    }
-
-    // Media Session API for iPhone Lock Screen, Dynamic Island & Android
+    // W3C Media Session API for iOS Control Center & Android Lock Screen
     if (typeof window !== "undefined" && "mediaSession" in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentTrack.title,
-        artist: currentTrack.artist,
-        album: currentTrack.album,
-        artwork: [
-          { src: currentTrack.artwork, sizes: "512x512", type: "image/jpeg" },
-        ],
-      });
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: currentTrack.title,
+          artist: currentTrack.artist,
+          album: currentTrack.album || "Soundroom Master Vault",
+          artwork: [
+            {
+              src: currentTrack.artwork,
+              sizes: "512x512",
+              type: "image/jpeg",
+            },
+          ],
+        });
 
-      navigator.mediaSession.setActionHandler("play", () => {
-        playerRef.current?.playVideo();
-        setIsPlaying(true);
-      });
-      navigator.mediaSession.setActionHandler("pause", () => {
-        playerRef.current?.pauseVideo();
-        setIsPlaying(false);
-      });
-      navigator.mediaSession.setActionHandler("previoustrack", handlePrevTrack);
-      navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
-      navigator.mediaSession.setActionHandler("seekto", (details) => {
-        if (details.seekTime !== undefined && playerRef.current) {
-          playerRef.current.seekTo(details.seekTime, true);
-          setCurrentTime(details.seekTime);
-        }
-      });
+        navigator.mediaSession.setActionHandler("play", () => {
+          audio.play().catch(() => {});
+          setIsPlaying(true);
+        });
+
+        navigator.mediaSession.setActionHandler("pause", () => {
+          audio.pause();
+          setIsPlaying(false);
+        });
+
+        navigator.mediaSession.setActionHandler("previoustrack", handlePrevTrack);
+        navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
+
+        navigator.mediaSession.setActionHandler("seekto", (details) => {
+          if (details.seekTime !== undefined && audio) {
+            audio.currentTime = details.seekTime;
+            setCurrentTime(details.seekTime);
+          }
+        });
+      } catch (e) {
+        console.warn("MediaSession registration:", e);
+      }
     }
-  }, [currentTrack, isPlayerReady]);
+  }, [currentTrack, handleNextTrack, handlePrevTrack]);
 
-  // 4. Volume & Mute Sync
+  // 3. Volume & Mute Sync
   useEffect(() => {
-    if (
-      playerRef.current &&
-      typeof playerRef.current.setVolume === "function"
-    ) {
-      playerRef.current.setVolume(isMuted ? 0 : volume * 100);
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
 
   const togglePlay = () => {
     uiAudio.playClick();
-    if (!playerRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (isPlaying) {
-      playerRef.current.pauseVideo();
+      audio.pause();
       setIsPlaying(false);
     } else {
-      playerRef.current.playVideo();
-      setIsPlaying(true);
+      audio.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
-
-  // W3C Media Session API for iOS Control Center & Android Lock Screen
-  useEffect(() => {
-    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
-
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentTrack.title,
-        artist: currentTrack.artist,
-        album: currentTrack.album || "Soundroom Master Vault",
-        artwork: [
-          {
-            src:
-              currentTrack.artwork ||
-              `https://img.youtube.com/vi/${currentTrack.youtubeId}/hqdefault.jpg`,
-            sizes: "512x512",
-            type: "image/jpeg",
-          },
-        ],
-      });
-
-      navigator.mediaSession.setActionHandler("play", () => {
-        if (playerRef.current) {
-          playerRef.current.playVideo();
-          setIsPlaying(true);
-        }
-      });
-
-      navigator.mediaSession.setActionHandler("pause", () => {
-        if (playerRef.current) {
-          playerRef.current.pauseVideo();
-          setIsPlaying(false);
-        }
-      });
-
-      navigator.mediaSession.setActionHandler("previoustrack", handlePrevTrack);
-      navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
-
-      navigator.mediaSession.setActionHandler("seekto", (details) => {
-        if (details.seekTime !== undefined && playerRef.current) {
-          playerRef.current.seekTo(details.seekTime, true);
-          setCurrentTime(details.seekTime);
-        }
-      });
-    } catch (e) {
-      console.warn("MediaSession setup error:", e);
-    }
-  }, [currentTrack, handleNextTrack, handlePrevTrack]);
 
   const playTrack = (track: SoundTrack) => {
     uiAudio.playClick();
@@ -300,10 +202,10 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
       const idx = ch.tracks.findIndex((t) => t.id === track.id);
       setCurrentTrackIndex(idx >= 0 ? idx : 0);
     }
-    if (playerRef.current) {
-      playerRef.current.loadVideoById(track.youtubeId);
-      playerRef.current.playVideo();
-      setIsPlaying(true);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.src = `/audio/${track.id}.m4a`;
+      audio.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
 
@@ -314,8 +216,8 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   };
 
   const seek = (time: number) => {
-    if (playerRef.current && typeof playerRef.current.seekTo === "function") {
-      playerRef.current.seekTo(time, true);
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
       setCurrentTime(time);
     }
   };
@@ -380,22 +282,6 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         getFrequencyData,
       }}
     >
-      {/* Headless Hidden YouTube Engine */}
-      <div
-        id="soundroom-yt-player-container"
-        style={{
-          position: "fixed",
-          bottom: 0,
-          right: 0,
-          width: "1px",
-          height: "1px",
-          opacity: 0.001,
-          pointerEvents: "none",
-          zIndex: -1,
-        }}
-      >
-        <div id="soundroom-yt-player" />
-      </div>
       {children}
     </SoundroomContext.Provider>
   );
