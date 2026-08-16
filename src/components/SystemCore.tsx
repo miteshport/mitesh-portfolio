@@ -45,15 +45,16 @@ export default function SolarSystemScroll() {
         __html: `
           .solar-system-wrapper {
             position: fixed;
-            bottom: 2rem;
-            right: 4rem; /* Moved securely into the true bottom-right corner, just outside standard margin */
-            z-index: 9999;
-            width: 200px;
-            height: 200px;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 1;
+            width: 140px;
+            height: 140px;
+            opacity: 0.55;
             display: flex;
             align-items: center;
             justify-content: center;
-            pointer-events: none; /* Let clicks pass through */
+            pointer-events: none;
           }
 
           /* The Center Star */

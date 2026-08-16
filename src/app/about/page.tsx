@@ -82,8 +82,8 @@ export default function PortfolioPage() {
           /* CONTACT FOOTER */
           .port-footer {
             max-width: 1200px;
-            margin: 4rem auto 0;
-            padding: 3rem clamp(1.2rem, 5vw, 4rem);
+            margin: 5rem auto 0;
+            padding: 3rem clamp(1.2rem, 5vw, 4rem) 4rem;
             border-top: 1px solid rgba(255, 255, 255, 0.12);
             display: flex;
             justify-content: space-between;
@@ -91,7 +91,7 @@ export default function PortfolioPage() {
             flex-wrap: wrap;
             gap: 1.5rem;
             position: relative;
-            z-index: 2;
+            z-index: 50;
           }
 
           .footer-social-link {

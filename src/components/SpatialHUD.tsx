@@ -232,34 +232,20 @@ export default function SpatialHUD({
         </div>
       </header>
 
-      {/* 2. BOTTOM-LEFT CORNER: TELEMETRY / STATUS */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: "clamp(1.2rem, 3vh, 2rem)",
-          left: "clamp(1.2rem, 3.5vw, 2.5rem)",
-          zIndex: 90,
-          pointerEvents: "none",
-        }}
-      >
-        {bottomLeftExtra ? (
-          bottomLeftExtra
-        ) : (
-          <div
-            style={{
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "clamp(0.6rem, 1vw, 0.7rem)",
-              letterSpacing: "0.14em",
-              color: "rgba(255, 255, 255, 0.45)",
-              textTransform: "uppercase",
-              lineHeight: 1.5,
-            }}
-          >
-            <div>MITESH SHAH · 2026</div>
-            <div>ARCHITECT OF DIGITAL ORDER</div>
-          </div>
-        )}
-      </div>
+      {/* 2. BOTTOM-LEFT CORNER: TELEMETRY (HOMEPAGE ONLY) */}
+      {bottomLeftExtra && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "clamp(1.2rem, 3vh, 2rem)",
+            left: "clamp(1.2rem, 3.5vw, 2.5rem)",
+            zIndex: 90,
+            pointerEvents: "none",
+          }}
+        >
+          {bottomLeftExtra}
+        </div>
+      )}
 
       {/* 3. BOTTOM-RIGHT CORNER: LIGHTS OUT TOGGLE */}
       <div
