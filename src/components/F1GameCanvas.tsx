@@ -42,13 +42,18 @@ export default function F1GameCanvas({
     scene.fog = new THREE.FogExp2(0x000000, 0.02);
 
     // ULTRA CLOSE-UP COCKPIT / REAR-WING IMAX CAMERA
+    const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    const initialFOV = isInitMobile ? 58 : 50;
+    const initialCamZ = isInitMobile ? 4.9 : 3.6;
+    const initialCamY = isInitMobile ? 1.15 : 0.95;
+
     const camera = new THREE.PerspectiveCamera(
-      54,
+      initialFOV,
       window.innerWidth / window.innerHeight,
       0.1,
       280
     );
-    camera.position.set(0, 0.95, 2.2);
+    camera.position.set(0, initialCamY, initialCamZ);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -465,9 +470,13 @@ export default function F1GameCanvas({
 
     // --- 9. RESIZE HANDLER ---
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isMob = w < 768;
+      camera.aspect = w / h;
+      camera.fov = isMob ? 58 : 50;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(w, h);
     };
     window.addEventListener("resize", handleResize);
 
@@ -558,21 +567,26 @@ export default function F1GameCanvas({
       const flareScale = 0.65 + Math.sin(time * 22) * 0.15;
       rainFlareSprite.scale.set(flareScale, flareScale, 1);
 
-      // 5. Ultra Close-Up IMAX Rear-Wing Chase Camera
-      const camTargetX = carX * 0.4;
-      const camTargetY = 0.95 + (carY * 0.5) + (isBoosting ? -0.08 : 0) + kerbVibration * 0.2;
-      const camTargetZ = 2.2 + (isBoosting ? 0.35 : 0);
+      // 5. Responsive Full-Chassis Chase Camera (Matches Yuta Abe's Full-Glory View)
+      const isMobile = window.innerWidth < 768;
+      const baseCamZ = isMobile ? 4.9 : 3.6;
+      const baseCamY = isMobile ? 1.15 : 0.95;
+
+      const camTargetX = carX * 0.32;
+      const camTargetY = baseCamY + (carY * 0.45) + (isBoosting ? -0.08 : 0) + kerbVibration * 0.2;
+      const camTargetZ = baseCamZ + (isBoosting ? 0.35 : 0);
 
       camera.position.x += (camTargetX - camera.position.x) * 0.11;
       camera.position.y += (camTargetY - camera.position.y) * 0.11;
       camera.position.z += (camTargetZ - camera.position.z) * 0.11;
 
       // Dynamic Speed Perspective Warp
-      const targetFOV = isBoosting ? 74 : 54;
+      const baseFOV = isMobile ? 58 : 50;
+      const targetFOV = isBoosting ? baseFOV + 16 : baseFOV;
       camera.fov += (targetFOV - camera.fov) * 0.08;
       camera.updateProjectionMatrix();
 
-      camera.lookAt(carX * 0.2, 0.45 + (carY * 0.3), -20);
+      camera.lookAt(carX * 0.15, 0.4 + (carY * 0.25), -14);
 
       // 6. Update Golden Laser Trajectory Streaks
       const streakPos = streakGeo.attributes.position.array as Float32Array;
