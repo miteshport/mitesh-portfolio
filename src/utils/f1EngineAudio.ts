@@ -1,4 +1,4 @@
-// Procedural Web Audio API F1 V6 Turbo-Hybrid & Cinematic Highway Audio Engine
+// Procedural Web Audio API F1 V6 Turbo-Hybrid & Sonic Light Synthesizer
 let audioCtx: AudioContext | null = null;
 let oscFundamental: OscillatorNode | null = null;
 let oscHarmonic2: OscillatorNode | null = null;
@@ -78,7 +78,7 @@ export function initF1Engine() {
     oscTurbo.connect(turboGain);
     turboGain.connect(masterGain);
 
-    // 5. Exhaust Wind Roar (Continuous background rumble)
+    // 5. Exhaust Wind Roar
     const noiseBuffer = createNoiseBuffer(audioCtx);
     noiseNode = audioCtx.createBufferSource();
     noiseNode.buffer = noiseBuffer;
@@ -148,36 +148,35 @@ export function updateF1Engine(
   filterNode?.frequency.setTargetAtTime(filterCutoff, now, 0.05);
 }
 
-// 🎬 CINEMATIC HIGH-SPEED SLIPSTREAM WHOOSH (When passing rival supercars)
-export function playSlipstreamWhoosh() {
+// ✨ CRYSTALLINE SONIC PULSE (When slicing through Sonic Laser Rings)
+export function playSonicPulse() {
   if (!audioCtx) return;
   const now = audioCtx.currentTime;
 
-  const noiseBuffer = createNoiseBuffer(audioCtx);
-  const src = audioCtx.createBufferSource();
-  src.buffer = noiseBuffer;
+  // Dual Harmonic Chime (Pure Glass Resonance)
+  const freqs = [880, 1318.51, 1760]; // A5, E6, A6
 
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.setValueAtTime(450, now);
-  filter.frequency.exponentialRampToValueAtTime(1600, now + 0.18);
-  filter.frequency.exponentialRampToValueAtTime(320, now + 0.45);
-  filter.Q.setValueAtTime(3.2, now);
+  freqs.forEach((freq, idx) => {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
 
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.0, now);
-  gain.gain.linearRampToValueAtTime(0.22, now + 0.12);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, now + idx * 0.04);
 
-  src.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0.0, now + idx * 0.04);
+    gain.gain.linearRampToValueAtTime(0.12, now + idx * 0.04 + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.45);
 
-  src.start(now);
-  src.stop(now + 0.52);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(now + idx * 0.04);
+    osc.stop(now + idx * 0.04 + 0.5);
+  });
 }
 
-// 💥 SUBSONIC RUMBLE ON KERB / GLIDE CONTACT
+// 💥 SUBSONIC RUMBLE ON KERB CONTACT
 export function playKerbRumble() {
   if (!audioCtx) return;
   const now = audioCtx.currentTime;
@@ -189,7 +188,7 @@ export function playKerbRumble() {
   osc.frequency.setValueAtTime(65, now);
   osc.frequency.exponentialRampToValueAtTime(28, now + 0.2);
 
-  gain.gain.setValueAtTime(0.18, now);
+  gain.gain.setValueAtTime(0.16, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
   osc.connect(gain);

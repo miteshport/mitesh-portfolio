@@ -37,7 +37,7 @@ export default function Home() {
     isFlying: false,
     isLightsOut: false,
     onKerb: false,
-    overtakes: 0,
+    ringsCrossed: 0,
   });
 
   const { isMuted } = useSoundroom();

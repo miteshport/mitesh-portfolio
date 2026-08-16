@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
-import { playSlipstreamWhoosh, playKerbRumble } from "@/utils/f1EngineAudio";
+import { playSonicPulse, playKerbRumble } from "@/utils/f1EngineAudio";
 
 export interface TelemetryData {
   speed: number;
@@ -15,7 +15,7 @@ export interface TelemetryData {
   isFlying: boolean;
   isLightsOut: boolean;
   onKerb: boolean;
-  overtakes: number;
+  ringsCrossed: number;
 }
 
 interface F1GameCanvasProps {
@@ -23,17 +23,19 @@ interface F1GameCanvasProps {
   onTelemetryUpdate?: (data: TelemetryData) => void;
 }
 
-interface TrafficCar {
+interface SonicRing {
   mesh: THREE.Group;
-  type: "gt" | "hauler";
-  lane: number;
-  x: number;
-  y: number;
-  z: number;
-  speed: number;
-  targetLane: number;
-  laneChangeTimer: number;
-  overtaken: boolean;
+  baseZ: number;
+  laneX: number;
+  laneY: number;
+  color: number;
+  triggered: boolean;
+}
+
+interface LightMonolith {
+  mesh: THREE.Group;
+  baseZ: number;
+  side: number; // -1: Left shoulder, +1: Right shoulder
 }
 
 export default function F1GameCanvas({
@@ -54,7 +56,7 @@ export default function F1GameCanvas({
     // --- 1. THREE.JS SCENE SETUP ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000002);
-    scene.fog = new THREE.FogExp2(0x000002, 0.015);
+    scene.fog = new THREE.FogExp2(0x000002, 0.012);
 
     // RESPONSIVE FULL-CHASSIS CHASE CAMERA (YUTA ABE GOLD STANDARD)
     const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -66,7 +68,7 @@ export default function F1GameCanvas({
       initialFOV,
       window.innerWidth / window.innerHeight,
       0.1,
-      350
+      380
     );
     camera.position.set(0, initialCamY, initialCamZ);
 
@@ -84,7 +86,7 @@ export default function F1GameCanvas({
     container.appendChild(renderer.domElement);
 
     // --- 2. HIGH-CONTRAST STUDIO LIGHTING RIG ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(ambientLight);
 
     const rimLightLeft = new THREE.DirectionalLight(0xffffff, 4.5);
@@ -100,11 +102,11 @@ export default function F1GameCanvas({
     scene.add(topSpecularLight);
 
     // Forward Spotlights (Headlights)
-    const leftHeadlight = new THREE.SpotLight(0x38bdf8, 55, 80, Math.PI / 5, 0.35, 1.2);
+    const leftHeadlight = new THREE.SpotLight(0x38bdf8, 55, 85, Math.PI / 5, 0.35, 1.2);
     leftHeadlight.position.set(-0.7, 0.45, 0);
     scene.add(leftHeadlight);
 
-    const rightHeadlight = new THREE.SpotLight(0x38bdf8, 55, 80, Math.PI / 5, 0.35, 1.2);
+    const rightHeadlight = new THREE.SpotLight(0x38bdf8, 55, 85, Math.PI / 5, 0.35, 1.2);
     rightHeadlight.position.set(0.7, 0.45, 0);
     scene.add(rightHeadlight);
 
@@ -114,7 +116,7 @@ export default function F1GameCanvas({
     leftHeadlight.target = headlightTarget;
     rightHeadlight.target = headlightTarget;
 
-    // Volumetric 3D Headlight Cones (Hollywood Night Ray Effect)
+    // Volumetric 3D Headlight Cones
     const coneGeo = new THREE.ConeGeometry(3.5, 32, 24, 1, true);
     coneGeo.rotateX(Math.PI / 2);
     coneGeo.translate(0, 0, -16);
@@ -161,10 +163,10 @@ export default function F1GameCanvas({
     rainFlareSprite.scale.set(0.7, 0.7, 1);
     scene.add(rainFlareSprite);
 
-    // --- 3. PROCEDURAL HIGH-DENSITY ASPHALT HIGHWAY SHADER ---
+    // --- 3. PROCEDURAL ENDLESS ASPHALT HIGHWAY SHADER ---
     const roadWidth = 10.6;
-    const roadLength = 240.0;
-    const roadSegments = 200;
+    const roadLength = 260.0;
+    const roadSegments = 220;
 
     const roadVertexShader = `
       uniform float uTime;
@@ -205,7 +207,7 @@ export default function F1GameCanvas({
         float grain = rand(vUv * 600.0) * 0.05;
 
         // Rich Dark Obsidian Asphalt
-        vec3 asphaltColor = vec3(0.035, 0.035, 0.042) + grain;
+        vec3 asphaltColor = vec3(0.032, 0.032, 0.038) + grain;
 
         // 3-Lane Highway Dashed Centerlines (Sleek Warm Gold)
         float laneLeft = abs(vUv.x - 0.35);
@@ -232,7 +234,7 @@ export default function F1GameCanvas({
         }
 
         // Depth Fog Fade into Infinite Horizon
-        float fogFactor = smoothstep(70.0, 220.0, vDepth);
+        float fogFactor = smoothstep(70.0, 240.0, vDepth);
         vec3 finalColor = mix(asphaltColor, vec3(0.0, 0.0, 0.002), fogFactor);
 
         gl_FragColor = vec4(finalColor, 1.0);
@@ -296,169 +298,106 @@ export default function F1GameCanvas({
       rightKerbs.push(rKerb);
     }
 
-    // --- 5. MONOLITH OVERHEAD HIGHWAY GANTRIES (CINEMATIC WORLD-BUILDING) ---
-    const gantryGroup = new THREE.Group();
-    const gantryPillarGeo = new THREE.BoxGeometry(0.6, 6.5, 0.6);
-    const gantryBeamGeo = new THREE.BoxGeometry(roadWidth + 2.0, 0.8, 0.8);
-    const gantryMat = new THREE.MeshStandardMaterial({
-      color: 0x18181f,
-      metalness: 0.9,
-      roughness: 0.2,
-    });
-    const cyanLightMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-    const amberLightMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (2001 / TENET TRICK) ---
+    const monoliths: LightMonolith[] = [];
+    const monolithCount = 14;
+    const monolithSpacing = 32.0;
 
-    const gantryInstances: THREE.Group[] = [];
-    const gantryCount = 5;
-    const gantrySpacing = 50.0;
-
-    for (let i = 0; i < gantryCount; i++) {
-      const gantry = new THREE.Group();
-      const pL = new THREE.Mesh(gantryPillarGeo, gantryMat);
-      pL.position.set(-roadWidth / 2 - 0.6, 3.2, 0);
-      const pR = new THREE.Mesh(gantryPillarGeo, gantryMat);
-      pR.position.set(roadWidth / 2 + 0.6, 3.2, 0);
-      const beam = new THREE.Mesh(gantryBeamGeo, gantryMat);
-      beam.position.set(0, 5.8, 0);
-
-      // Electronic Guide Sign Lights
-      const signLightL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.1), cyanLightMat);
-      signLightL.position.set(-2.5, 5.5, 0.45);
-      const signLightR = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.1), amberLightMat);
-      signLightR.position.set(2.5, 5.5, 0.45);
-
-      gantry.add(pL);
-      gantry.add(pR);
-      gantry.add(beam);
-      gantry.add(signLightL);
-      gantry.add(signLightR);
-
-      gantry.position.set(0, 0, -i * gantrySpacing - 30.0);
-      scene.add(gantry);
-      gantryInstances.push(gantry);
-    }
-
-    // --- 6. SCULPTED OBSIDIAN GT RACERS & STREAMLINED HAULERS ---
-    const trafficPool: TrafficCar[] = [];
-    const lanes = [-2.8, 0.0, 2.8];
-
-    // Sculpted Aerodynamic Materials
-    const obsidianMat = new THREE.MeshStandardMaterial({
-      color: 0x111116,
+    const monolithBodyGeo = new THREE.BoxGeometry(0.14, 5.2, 0.45);
+    const monolithMat = new THREE.MeshStandardMaterial({
+      color: 0x0c0c10,
       metalness: 0.98,
-      roughness: 0.08,
-      envMapIntensity: 2.5,
+      roughness: 0.06,
     });
-    const titaniumMat = new THREE.MeshStandardMaterial({
-      color: 0x22242c,
-      metalness: 0.92,
-      roughness: 0.15,
+    const laserCoreMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.95,
     });
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x050508,
-      metalness: 0.95,
-      roughness: 0.05,
-    });
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 0.85 });
 
-    // Laser Lightbars
-    const redLightbarMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
-    const exhaustGlowMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
-
-    const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.35, 18);
-    wheelGeo.rotateZ(Math.PI / 2);
-
-    function createCinematicCarMesh(type: "gt" | "hauler"): THREE.Group {
+    for (let i = 0; i < monolithCount; i++) {
       const group = new THREE.Group();
+      const body = new THREE.Mesh(monolithBodyGeo, monolithMat);
+      body.position.y = 2.6;
 
-      if (type === "gt") {
-        // Tapered GT Supercar Body
-        const bodyGeo = new THREE.BoxGeometry(1.85, 0.55, 4.0);
-        const cabinGeo = new THREE.BoxGeometry(1.4, 0.45, 2.2);
-        const diffuserGeo = new THREE.BoxGeometry(1.7, 0.15, 0.4);
+      // Razor-Thin Vertical Laser Core
+      const laserLine = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 4.8, 0.04),
+        laserCoreMat
+      );
+      laserLine.position.set(0, 2.6, 0.23);
 
-        const body = new THREE.Mesh(bodyGeo, obsidianMat);
-        body.position.y = 0.45;
-        const cabin = new THREE.Mesh(cabinGeo, glassMat);
-        cabin.position.set(0, 0.8, -0.2);
-        const diffuser = new THREE.Mesh(diffuserGeo, obsidianMat);
-        diffuser.position.set(0, 0.22, 1.9);
+      group.add(body);
+      group.add(laserLine);
 
-        // Continuous Razor-Thin OLED Laser Taillight Bar
-        const lightbar = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.06, 0.05), redLightbarMat);
-        lightbar.position.set(0, 0.55, 2.02);
+      const side = i % 2 === 0 ? -1 : 1;
+      const xPos = side * (roadWidth / 2 + 0.4);
+      const zPos = -i * monolithSpacing - 20.0;
 
-        // Dual Glowing Exhaust Tips
-        const exL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 8), exhaustGlowMat);
-        exL.rotateX(Math.PI / 2);
-        exL.position.set(-0.45, 0.25, 2.02);
-        const exR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 8), exhaustGlowMat);
-        exR.rotateX(Math.PI / 2);
-        exR.position.set(0.45, 0.25, 2.02);
+      group.position.set(xPos, 0, zPos);
+      scene.add(group);
 
-        group.add(body);
-        group.add(cabin);
-        group.add(diffuser);
-        group.add(lightbar);
-        group.add(exL);
-        group.add(exR);
-      } else {
-        // Streamlined Titanium Hauler
-        const haulerBodyGeo = new THREE.BoxGeometry(2.1, 1.5, 6.2);
-        const body = new THREE.Mesh(haulerBodyGeo, titaniumMat);
-        body.position.y = 0.95;
-
-        const lightbar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 0.05), redLightbarMat);
-        lightbar.position.set(0, 0.7, 3.12);
-
-        group.add(body);
-        group.add(lightbar);
-      }
-
-      // Wheels
-      const wFL = new THREE.Mesh(wheelGeo, wheelMat);
-      wFL.position.set(-0.95, 0.38, -1.3);
-      const wFR = new THREE.Mesh(wheelGeo, wheelMat);
-      wFR.position.set(0.95, 0.38, -1.3);
-      const wRL = new THREE.Mesh(wheelGeo, wheelMat);
-      wRL.position.set(-0.95, 0.38, 1.3);
-      const wRR = new THREE.Mesh(wheelGeo, wheelMat);
-      wRR.position.set(0.95, 0.38, 1.3);
-
-      group.add(wFL);
-      group.add(wFR);
-      group.add(wRL);
-      group.add(wRR);
-
-      return group;
-    }
-
-    // Spawn 8 Cinematic Supercars
-    const carTypes: ("gt" | "hauler")[] = ["gt", "gt", "hauler", "gt", "gt", "hauler", "gt", "gt"];
-
-    for (let i = 0; i < carTypes.length; i++) {
-      const type = carTypes[i];
-      const mesh = createCinematicCarMesh(type);
-      const laneIdx = (i % 3) - 1;
-      const initialZ = -40.0 - i * 28.0;
-
-      scene.add(mesh);
-      trafficPool.push({
-        mesh,
-        type,
-        lane: laneIdx,
-        targetLane: laneIdx,
-        x: lanes[laneIdx + 1],
-        y: 0,
-        z: initialZ,
-        speed: type === "hauler" ? 110 : 165 + Math.random() * 20,
-        laneChangeTimer: Math.random() * 5 + 3,
-        overtaken: false,
+      monoliths.push({
+        mesh: group,
+        baseZ: zPos,
+        side,
       });
     }
 
-    // --- 7. VELOCITY LASER STREAKS & SPARKS ---
-    const streakCount = 40;
+    // --- 6. ◯ SONIC VELOCITY LIGHT RINGS (MINIMALIST LASER GATES) ---
+    const sonicRings: SonicRing[] = [];
+    const ringCount = 7;
+    const ringSpacing = 48.0;
+    const ringGeo = new THREE.TorusGeometry(3.6, 0.038, 16, 64);
+
+    const cyanRingMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const goldRingMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      transparent: true,
+      opacity: 0.9,
+    });
+
+    for (let i = 0; i < ringCount; i++) {
+      const group = new THREE.Group();
+      const isGold = i % 3 === 0;
+      const mat = isGold ? goldRingMat : cyanRingMat;
+      const color = isGold ? 0xf59e0b : 0x38bdf8;
+
+      const ringMesh = new THREE.Mesh(ringGeo, mat);
+      ringMesh.position.y = 2.8;
+      group.add(ringMesh);
+
+      // Subtle Diamond Sparkle at Ring Apex
+      const apexDiamond = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.12),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      apexDiamond.position.set(0, 6.4, 0);
+      group.add(apexDiamond);
+
+      const zPos = -i * ringSpacing - 35.0;
+      const laneX = (Math.random() - 0.5) * 2.5;
+      const laneY = Math.random() * 0.5;
+
+      group.position.set(laneX, laneY, zPos);
+      scene.add(group);
+
+      sonicRings.push({
+        mesh: group,
+        baseZ: zPos,
+        laneX,
+        laneY,
+        color,
+        triggered: false,
+      });
+    }
+
+    // --- 7. VELOCITY LASER STREAKS & DIFFUSER SPARKS ---
+    const streakCount = 36;
     const streakPositions = new Float32Array(streakCount * 6);
     const streakVelocities = new Float32Array(streakCount);
 
@@ -491,7 +430,7 @@ export default function F1GameCanvas({
     scene.add(streakLines);
 
     // Diffuser Sparks
-    const sparkCount = 160;
+    const sparkCount = 150;
     const sparkPositions = new Float32Array(sparkCount * 3);
     const sparkVelocities: THREE.Vector3[] = [];
     const sparkLifetimes = new Float32Array(sparkCount);
@@ -581,8 +520,8 @@ export default function F1GameCanvas({
     let currentSpeed = baseSpeed;
     let isBoosting = false;
     let lapTime = 0;
-    let overtakesCount = 0;
-    let cameraShake = 0;
+    let ringsCrossedCount = 0;
+    let portalFlashOpacity = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
       pointerX = (e.clientX / window.innerWidth - 0.5) * 2.0;
@@ -676,64 +615,60 @@ export default function F1GameCanvas({
         rKerb.rotation.y = curveOffset * 0.05 * distScale;
       }
 
-      // 4. Update Overhead Gantries
-      for (let i = 0; i < gantryInstances.length; i++) {
-        const g = gantryInstances[i];
-        g.position.z += currentSpeed * 0.085 * delta * 7.5;
+      // 4. Update Slender Titanium Monoliths
+      for (let i = 0; i < monoliths.length; i++) {
+        const m = monoliths[i];
+        m.mesh.position.z += currentSpeed * 0.085 * delta * 7.5;
 
         // Follow Road Curvature
-        const gCurvature =
-          Math.sin(-g.position.z * 0.035 + time * 1.5) *
+        const mCurvature =
+          Math.sin(-m.mesh.position.z * 0.035 + time * 1.5) *
           roadUniforms.uCurvature.value *
-          (-g.position.z * 0.015);
-        g.position.x = gCurvature;
+          (-m.mesh.position.z * 0.015);
 
-        // Loop Gantries Ahead
-        if (g.position.z > 15.0) {
-          g.position.z = -gantryCount * gantrySpacing + 15.0;
+        const baseSideX = m.side * (roadWidth / 2 + 0.4);
+        m.mesh.position.x = baseSideX + mCurvature;
+
+        // Loop Ahead when Passed
+        if (m.mesh.position.z > 15.0) {
+          m.mesh.position.z = -monolithCount * monolithSpacing + 15.0;
         }
       }
 
-      // 5. Update Traffic Supercars & Slipstream Trigger
-      for (let i = 0; i < trafficPool.length; i++) {
-        const t = trafficPool[i];
-        const relSpeedDiff = (currentSpeed - t.speed) * 0.085 * delta * 8.0;
-        t.z += relSpeedDiff;
-
-        // Lane Changing Logic
-        t.laneChangeTimer -= delta;
-        if (t.laneChangeTimer <= 0) {
-          t.laneChangeTimer = Math.random() * 6.0 + 4.0;
-          t.targetLane = Math.floor(Math.random() * 3) - 1;
-        }
-        const targetX = lanes[t.targetLane + 1];
-        t.x += (targetX - t.x) * delta * 1.8;
-
-        // Respawn Ahead when Passed
-        if (t.z > 12.0) {
-          t.z = -190.0 - Math.random() * 45.0;
-          t.lane = Math.floor(Math.random() * 3) - 1;
-          t.targetLane = t.lane;
-          t.x = lanes[t.lane + 1];
-          t.overtaken = false;
-        }
+      // 5. Update Sonic Velocity Light Rings & Slicing Trigger
+      for (let i = 0; i < sonicRings.length; i++) {
+        const r = sonicRings[i];
+        r.mesh.position.z += currentSpeed * 0.085 * delta * 7.5;
 
         // Road Curvature Follow
-        const trafficCurve =
-          Math.sin(-t.z * 0.035 + time * 1.5) *
+        const rCurvature =
+          Math.sin(-r.mesh.position.z * 0.035 + time * 1.5) *
           roadUniforms.uCurvature.value *
-          (-t.z * 0.015);
-        t.mesh.position.set(t.x + trafficCurve, 0.02, t.z);
+          (-r.mesh.position.z * 0.015);
 
-        // Slipstream Proximity Check (Close High-Speed Overtake)
-        const distZ = Math.abs(t.z - 0.0);
-        const distX = Math.abs(carX - (t.x + trafficCurve));
+        r.mesh.position.x = r.laneX + rCurvature;
 
-        if (distZ < 4.5 && distX < 2.0 && !t.overtaken && currentSpeed > 240) {
-          t.overtaken = true;
-          overtakesCount += 1;
-          cameraShake = 0.04;
-          playSlipstreamWhoosh();
+        // Gentle Floating Rotation
+        r.mesh.rotation.z = Math.sin(time * 1.5 + i) * 0.08;
+
+        // Slicing Proximity Check (Passing through Sonic Ring)
+        if (Math.abs(r.mesh.position.z - 0.0) < 2.5 && !r.triggered) {
+          const distX = Math.abs(carX - r.mesh.position.x);
+          const distY = Math.abs(carY - r.laneY);
+
+          if (distX < 3.2 && distY < 3.0) {
+            r.triggered = true;
+            ringsCrossedCount += 1;
+            portalFlashOpacity = 0.85;
+            playSonicPulse();
+          }
+        }
+
+        // Loop Ahead when Passed
+        if (r.mesh.position.z > 15.0) {
+          r.mesh.position.z = -ringCount * ringSpacing + 15.0;
+          r.laneX = (Math.random() - 0.5) * 3.0;
+          r.triggered = false;
         }
       }
 
@@ -786,17 +721,17 @@ export default function F1GameCanvas({
       const flareScale = 0.65 + Math.sin(time * 22) * 0.15;
       rainFlareSprite.scale.set(flareScale, flareScale, 1);
 
-      // 7. Responsive Full-Chassis Chase Camera
+      // 7. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
       const isMobile = window.innerWidth < 768;
       const baseCamZ = isMobile ? 4.9 : 3.6;
       const baseCamY = isMobile ? 1.15 : 0.95;
 
-      cameraShake *= 0.9;
-      const shakeOffset = (Math.random() - 0.5) * cameraShake;
+      portalFlashOpacity *= 0.88;
+      const flashBloom = portalFlashOpacity * 0.05;
 
-      const camTargetX = carX * 0.32 + shakeOffset;
-      const camTargetY = baseCamY + (carY * 0.45) + (isBoosting ? -0.08 : 0) + kerbVibration * 0.2 + shakeOffset;
-      const camTargetZ = baseCamZ + (isBoosting ? 0.35 : 0);
+      const camTargetX = carX * 0.32;
+      const camTargetY = baseCamY + (carY * 0.45) + (isBoosting ? -0.08 : 0) + kerbVibration * 0.2;
+      const camTargetZ = baseCamZ + (isBoosting ? 0.35 : 0) - flashBloom;
 
       camera.position.x += (camTargetX - camera.position.x) * 0.11;
       camera.position.y += (camTargetY - camera.position.y) * 0.11;
@@ -894,7 +829,7 @@ export default function F1GameCanvas({
           isFlying,
           isLightsOut: isLightsOutRef.current,
           onKerb,
-          overtakes: overtakesCount,
+          ringsCrossed: ringsCrossedCount,
         });
       }
 
@@ -924,6 +859,12 @@ export default function F1GameCanvas({
       kerbBoxGeo.dispose();
       redKerbMat.dispose();
       whiteKerbMat.dispose();
+      monolithBodyGeo.dispose();
+      monolithMat.dispose();
+      laserCoreMat.dispose();
+      ringGeo.dispose();
+      cyanRingMat.dispose();
+      goldRingMat.dispose();
       streakGeo.dispose();
       streakMat.dispose();
       sparkGeo.dispose();
