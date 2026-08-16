@@ -244,6 +244,54 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // W3C Media Session API for iOS Control Center & Android Lock Screen
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        album: currentTrack.album || "Soundroom Master Vault",
+        artwork: [
+          {
+            src:
+              currentTrack.artwork ||
+              `https://img.youtube.com/vi/${currentTrack.youtubeId}/hqdefault.jpg`,
+            sizes: "512x512",
+            type: "image/jpeg",
+          },
+        ],
+      });
+
+      navigator.mediaSession.setActionHandler("play", () => {
+        if (playerRef.current) {
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler("pause", () => {
+        if (playerRef.current) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler("previoustrack", handlePrevTrack);
+      navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
+
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (details.seekTime !== undefined && playerRef.current) {
+          playerRef.current.seekTo(details.seekTime, true);
+          setCurrentTime(details.seekTime);
+        }
+      });
+    } catch (e) {
+      console.warn("MediaSession setup error:", e);
+    }
+  }, [currentTrack, handleNextTrack, handlePrevTrack]);
+
   const playTrack = (track: SoundTrack) => {
     uiAudio.playClick();
     const ch = SOUNDROOM_CHANNELS.find((c) => c.id === track.channel);

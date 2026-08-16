@@ -5,7 +5,7 @@ import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from
 import Link from "next/link";
 import CustomCursor from "@/components/CustomCursor";
 import GalaxyStarfield from "@/components/GalaxyStarfield";
-import AppleLiquidDock from "@/components/AppleLiquidDock";
+import SpatialHUD from "@/components/SpatialHUD";
 import { audio } from "@/utils/audioSystem";
 import { useSoundroom } from "@/context/SoundroomContext";
 
@@ -686,63 +686,8 @@ Looking forward to connecting!`;
         }}
       />
 
-      {/* TOP FLOATING NAV: APPLE DYNAMIC ISLAND LIQUID GLASS */}
-      <header className="card-top-nav">
-        <div className="bar-left">
-          <button
-            className="apple-glass-pill"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.42rem 0.95rem",
-              cursor: "pointer",
-              border: "none",
-            }}
-            onClick={toggleMute}
-            aria-label="Toggle Master Audio"
-          >
-            <div className={`audio-dot ${isMuted ? "muted" : ""}`} />
-            <span className={`audio-toggle-label ${isMuted ? "muted" : ""}`}>
-              {isMuted ? "AUDIO: MUTED" : "AUDIO: ACTIVE"} {timeStr && `· ${timeStr}`}
-            </span>
-          </button>
-        </div>
-
-        <div className="bar-center">
-          <div
-            className="apple-glass-pill"
-            style={{
-              padding: "0.4rem 1.1rem",
-              fontSize: "0.78rem",
-              fontWeight: 600,
-              color: "#ffffff",
-              letterSpacing: "0.02em",
-            }}
-          >
-            Executive Pass
-          </div>
-        </div>
-
-        <div className="bar-right">
-          <Link
-            href="/radio"
-            className="apple-glass-pill"
-            style={{ padding: "0.42rem 0.9rem" }}
-            onClick={() => audio.playClick()}
-          >
-            <span className="port-link">Soundroom</span>
-          </Link>
-          <Link
-            href="/about"
-            className="apple-glass-pill"
-            style={{ padding: "0.42rem 0.9rem" }}
-            onClick={() => audio.playClick()}
-          >
-            <span className="port-link">Portfolio</span>
-          </Link>
-        </div>
-      </header>
+      {/* 4-CORNER SPATIAL HUD */}
+      <SpatialHUD />
 
       {/* 3D HOLOGRAPHIC TITANIUM CARD */}
       <motion.div
@@ -1120,9 +1065,6 @@ Looking forward to connecting!`;
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Unified Apple Liquid Glass Dock */}
-      <AppleLiquidDock />
     </div>
   );
 }

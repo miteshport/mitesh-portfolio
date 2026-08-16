@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import CustomCursor from "@/components/CustomCursor";
 import GalaxyStarfield from "@/components/GalaxyStarfield";
-import AppleLiquidDock from "@/components/AppleLiquidDock";
+import SpatialHUD from "@/components/SpatialHUD";
 import { useSoundroom } from "@/context/SoundroomContext";
 import { audio as uiAudio } from "@/utils/audioSystem";
 import { SoundTrack, SoundChannel } from "@/data/soundroomTracks";
@@ -87,7 +87,8 @@ function SoundVisualizer() {
 export default function SoundroomPage() {
   const [timeStr, setTimeStr] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"player" | "vault">("player");
+  const [playlistSearch, setPlaylistSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"player" | "playlist" | "vault">("player");
   const [vaultCategory, setVaultCategory] = useState<string>("all");
   const [isShuffle, setIsShuffle] = useState(false);
 
@@ -150,6 +151,18 @@ export default function SoundroomPage() {
     return list;
   }, [searchQuery, vaultCategory, allTracks]);
 
+  // Filtered tracks for Current Folder Playlist view
+  const filteredPlaylistTracks = useMemo(() => {
+    if (!playlistSearch.trim()) return currentChannel.tracks;
+    const q = playlistSearch.toLowerCase();
+    return currentChannel.tracks.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.artist.toLowerCase().includes(q) ||
+        t.album.toLowerCase().includes(q)
+    );
+  }, [currentChannel, playlistSearch]);
+
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // Master Apple Liquid Glass 10/10 Style Constants
@@ -191,64 +204,8 @@ export default function SoundroomPage() {
       {/* Exact Three.js WebGL GPU Cosmic Galaxy Background (Preserved 100%) */}
       <GalaxyStarfield />
 
-      {/* 1. TOP FLOATING APPLE DYNAMIC ISLAND HUD */}
-      <header
-        style={{
-          width: "100%",
-          maxWidth: "1200px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          zIndex: 50,
-          flexShrink: 0,
-          padding: "0.2rem 0.5rem",
-        }}
-      >
-        <button
-          onClick={toggleMute}
-          className="apple-glass-pill"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.55rem",
-            padding: "0.4rem 0.95rem",
-            color: "#ffffff",
-            fontSize: "0.72rem",
-            fontWeight: 500,
-            letterSpacing: "0.03em",
-            cursor: "pointer",
-            border: "none",
-          }}
-        >
-          <span
-            style={{
-              width: "7px",
-              height: "7px",
-              borderRadius: "50%",
-              backgroundColor: isMuted ? "rgba(255,255,255,0.3)" : "#30d158",
-              boxShadow: isMuted ? "none" : "0 0 10px #30d158",
-              display: "inline-block",
-            }}
-          />
-          <span>
-            {isMuted ? "AUDIO: MUTED" : `AUDIO: ACTIVE · ${timeStr || "LIVE"}`}
-          </span>
-        </button>
-
-        <Link
-          href="/"
-          className="apple-glass-pill"
-          style={{
-            padding: "0.4rem 0.95rem",
-            fontSize: "0.72rem",
-            fontWeight: 600,
-            letterSpacing: "0.04em",
-            color: "#ffffff",
-          }}
-        >
-          PORTFOLIO
-        </Link>
-      </header>
+      {/* 4-CORNER SPATIAL HUD */}
+      <SpatialHUD />
 
       {/* 2. CENTER STAGE (100% VIEWPORT FIT — ZERO COLLISION) */}
       <div
@@ -331,7 +288,7 @@ export default function SoundroomPage() {
           })}
         </div>
 
-        {/* VIEW SWITCHER TABS */}
+        {/* VIEW SWITCHER TABS (3 MODES) */}
         <div
           style={{
             display: "flex",
@@ -349,14 +306,17 @@ export default function SoundroomPage() {
             marginBottom: "0.7rem",
             gap: "0.2rem",
             flexShrink: 0,
+            maxWidth: "100%",
+            overflowX: "auto",
+            scrollbarWidth: "none",
           }}
         >
           <button
             onClick={() => setActiveTab("player")}
             style={{
-              padding: "0.36rem 1.1rem",
+              padding: "0.36rem 0.95rem",
               borderRadius: "9999px",
-              fontSize: "0.75rem",
+              fontSize: "0.72rem",
               fontWeight: 600,
               color: activeTab === "player" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
               background:
@@ -375,16 +335,52 @@ export default function SoundroomPage() {
                   : "none",
               cursor: "pointer",
               transition: "all 0.18s ease",
+              whiteSpace: "nowrap",
             }}
           >
             Now Playing
           </button>
+
+          <button
+            onClick={() => setActiveTab("playlist")}
+            style={{
+              padding: "0.36rem 0.95rem",
+              borderRadius: "9999px",
+              fontSize: "0.72rem",
+              fontWeight: 600,
+              color: activeTab === "playlist" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+              background:
+                activeTab === "playlist" ? "rgba(255, 255, 255, 0.25)" : "transparent",
+              border:
+                activeTab === "playlist"
+                  ? "1px solid rgba(255, 255, 255, 0.35)"
+                  : "none",
+              borderTop:
+                activeTab === "playlist"
+                  ? "1px solid rgba(255, 255, 255, 0.60)"
+                  : "none",
+              boxShadow:
+                activeTab === "playlist"
+                  ? "inset 0 1px 1px rgba(255, 255, 255, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3)"
+                  : "none",
+              cursor: "pointer",
+              transition: "all 0.18s ease",
+              whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.3rem",
+            }}
+          >
+            <span style={{ color: currentChannel.themeColor || "#38bdf8" }}>✦</span>
+            <span>{currentChannel.title} ({currentChannel.tracks.length})</span>
+          </button>
+
           <button
             onClick={() => setActiveTab("vault")}
             style={{
-              padding: "0.36rem 1.1rem",
+              padding: "0.36rem 0.95rem",
               borderRadius: "9999px",
-              fontSize: "0.75rem",
+              fontSize: "0.72rem",
               fontWeight: 600,
               color: activeTab === "vault" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
               background:
@@ -403,9 +399,10 @@ export default function SoundroomPage() {
                   : "none",
               cursor: "pointer",
               transition: "all 0.18s ease",
+              whiteSpace: "nowrap",
             }}
           >
-            Master Vault (112)
+            Full Vault (112)
           </button>
         </div>
 
@@ -851,10 +848,311 @@ export default function SoundroomPage() {
                 />
               </div>
             </div>
+
+            {/* Quick Playlist Drawer Button */}
+            <button
+              onClick={() => {
+                uiAudio.playClick();
+                setActiveTab("playlist");
+              }}
+              style={{
+                marginTop: "0.85rem",
+                width: "100%",
+                padding: "0.48rem 0.8rem",
+                borderRadius: "9999px",
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.18)",
+                borderTop: "1px solid rgba(255, 255, 255, 0.35)",
+                color: "rgba(255, 255, 255, 0.85)",
+                fontSize: "0.68rem",
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.45rem",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span style={{ color: currentChannel.themeColor || "#38bdf8" }}>✦</span>
+              <span>VIEW {currentChannel.title.toUpperCase()} PLAYLIST ({currentChannel.tracks.length})</span>
+            </button>
           </motion.div>
         )}
 
-        {/* TAB 2: MASTER VAULT (GUARANTEED LENIS-PREVENT SCROLL CONTAINER) */}
+        {/* TAB 2: CURRENT FOLDER PLAYLIST VIEW (GUARANTEED LENIS-PREVENT SCROLL CONTAINER) */}
+        {activeTab === "playlist" && (
+          <motion.div
+            data-lenis-prevent="true"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            style={{
+              ...appleGlass10CardStyle,
+              width: "100%",
+              maxWidth: "520px",
+              height: "calc(100dvh - 210px)",
+              maxHeight: "560px",
+              padding: "1rem 1rem",
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+          >
+            {/* Header info for this playlist */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "0.6rem",
+                padding: "0 0.2rem",
+                flexShrink: 0,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "0.95rem",
+                    fontWeight: 700,
+                    color: "#ffffff",
+                    letterSpacing: "-0.01em",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                  }}
+                >
+                  <span style={{ color: currentChannel.themeColor || "#38bdf8" }}>✦</span>
+                  <span>{currentChannel.title}</span>
+                  <span
+                    style={{
+                      fontSize: "0.65rem",
+                      padding: "0.15rem 0.45rem",
+                      borderRadius: "9999px",
+                      background: "rgba(255, 255, 255, 0.14)",
+                      color: "rgba(255, 255, 255, 0.8)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {currentChannel.tracks.length} Tracks
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.68rem",
+                    color: "rgba(255, 255, 255, 0.55)",
+                    marginTop: "0.15rem",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {currentChannel.description}
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  uiAudio.playClick();
+                  setActiveTab("player");
+                }}
+                style={{
+                  padding: "0.3rem 0.75rem",
+                  borderRadius: "9999px",
+                  background: "rgba(255, 255, 255, 0.12)",
+                  border: "1px solid rgba(255, 255, 255, 0.22)",
+                  color: "#ffffff",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                Now Playing ↗
+              </button>
+            </div>
+
+            {/* Quick Playlist Filter */}
+            <input
+              type="text"
+              placeholder={`Search in ${currentChannel.title}...`}
+              value={playlistSearch}
+              onChange={(e) => setPlaylistSearch(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.55rem 0.9rem",
+                borderRadius: "9999px",
+                background: "rgba(255, 255, 255, 0.09)",
+                border: "1px solid rgba(255, 255, 255, 0.22)",
+                borderTop: "1px solid rgba(255, 255, 255, 0.40)",
+                boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.3)",
+                color: "#ffffff",
+                fontSize: "0.8rem",
+                outline: "none",
+                marginBottom: "0.65rem",
+                flexShrink: 0,
+              }}
+            />
+
+            {/* Scrollable Track list for this playlist */}
+            <div
+              data-lenis-prevent="true"
+              onWheel={(e) => e.stopPropagation()}
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                overscrollBehavior: "contain",
+                touchAction: "pan-y",
+                WebkitOverflowScrolling: "touch",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.3rem",
+                paddingRight: "0.2rem",
+                width: "100%",
+                minHeight: 0,
+              }}
+            >
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  width: 5px;
+                }
+                div::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                div::-webkit-scrollbar-thumb {
+                  background: rgba(255, 255, 255, 0.25);
+                  border-radius: 9999px;
+                }
+              `}</style>
+              {filteredPlaylistTracks.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "2rem",
+                    color: "rgba(255,255,255,0.4)",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  No tracks found in {currentChannel.title} matching "{playlistSearch}"
+                </div>
+              ) : (
+                filteredPlaylistTracks.map((track, idx) => {
+                  const isActive = track.id === currentTrack.id;
+                  return (
+                    <button
+                      key={track.id}
+                      onClick={() => playTrack(track)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "0.45rem 0.65rem",
+                        borderRadius: "14px",
+                        background: isActive
+                          ? "rgba(255, 255, 255, 0.16)"
+                          : "transparent",
+                        border: isActive
+                          ? "1px solid rgba(255, 255, 255, 0.28)"
+                          : "1px solid transparent",
+                        borderTop: isActive
+                          ? "1px solid rgba(255, 255, 255, 0.50)"
+                          : "1px solid transparent",
+                        boxShadow: isActive
+                          ? "inset 0 1px 1px rgba(255, 255, 255, 0.35)"
+                          : "none",
+                        width: "100%",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background 0.15s ease",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.65rem",
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.65rem",
+                            color: "rgba(255,255,255,0.38)",
+                            width: "20px",
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                        <img
+                          src={track.artwork}
+                          alt=""
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "8px",
+                            objectFit: "cover",
+                            flexShrink: 0,
+                            boxShadow: "0 3px 6px rgba(0, 0, 0, 0.4)",
+                          }}
+                        />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: "0.82rem",
+                              fontWeight: 600,
+                              color: isActive ? "#30d158" : "#ffffff",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {track.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.68rem",
+                              color: "rgba(255,255,255,0.58)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {track.artist} · {track.album}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "rgba(255,255,255,0.45)",
+                          marginLeft: "0.5rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isActive && isPlaying ? (
+                          <span style={{ color: "#30d158", fontWeight: 600 }}>
+                            ● PLAYING
+                          </span>
+                        ) : (
+                          formatTime(track.duration)
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB 3: MASTER VAULT (GUARANTEED LENIS-PREVENT SCROLL CONTAINER) */}
         {activeTab === "vault" && (
           <motion.div
             data-lenis-prevent="true"
@@ -1107,11 +1405,6 @@ export default function SoundroomPage() {
             </div>
           </motion.div>
         )}
-      </div>
-
-      {/* 3. BOTTOM FLOATING APPLE LIQUID DOCK */}
-      <div style={{ zIndex: 50, flexShrink: 0 }}>
-        <AppleLiquidDock />
       </div>
     </main>
   );

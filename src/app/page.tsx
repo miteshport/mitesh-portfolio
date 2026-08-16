@@ -1,266 +1,203 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CustomCursor from "@/components/CustomCursor";
-import HeroParticleM from "@/components/HeroParticleM";
-import AppleLiquidDock from "@/components/AppleLiquidDock";
-import { audio } from "@/utils/audioSystem";
+import SpatialHUD from "@/components/SpatialHUD";
+import F1GameCanvas, { TelemetryData } from "@/components/F1GameCanvas";
 import { useSoundroom } from "@/context/SoundroomContext";
+import { initF1Engine, updateF1Engine, stopF1Engine } from "@/utils/f1EngineAudio";
 
-const STAGE_LABELS = [
-  { numeral: "I", title: "THE ARCHITECT", subtitle: "Form · Structure" },
-  { numeral: "II", title: "SACRED LOTUS", subtitle: "Awakening · Radial Harmony" },
-  { numeral: "III", title: "MOBIUS INFINITY", subtitle: "Nirakar · Pure Continuous Light" },
-];
+function formatLapTime(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 100);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(
+    2,
+    "0"
+  )}.${String(ms).padStart(2, "0")}`;
+}
 
 export default function Home() {
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [currentStageIdx, setCurrentStageIdx] = useState(0);
-  const [timeStr, setTimeStr] = useState("");
-  const { isMuted, toggleMute, isPlaying } = useSoundroom();
+  const [isLightsOut, setIsLightsOut] = useState(false);
+  const [showCinematicTitle, setShowCinematicTitle] = useState(true);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
-  // Live Digital Clock
+  const [telemetry, setTelemetry] = useState<TelemetryData>({
+    speed: 190,
+    gear: 5,
+    rpm: 10500,
+    lapTime: 0,
+    isBoosting: false,
+    isDrifting: false,
+    isFlying: false,
+    isLightsOut: false,
+    onKerb: false,
+  });
+
+  const { isMuted } = useSoundroom();
+
+  // Initialize Procedural Web Audio Engine on first gesture
+  const handleUserGesture = useCallback(() => {
+    if (!hasInteracted) {
+      setHasInteracted(true);
+      initF1Engine();
+    }
+  }, [hasInteracted]);
+
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hrs = String(now.getHours()).padStart(2, "0");
-      const mins = String(now.getMinutes()).padStart(2, "0");
-      const secs = String(now.getSeconds()).padStart(2, "0");
-      setTimeStr(`${hrs}:${mins}:${secs}`);
+    window.addEventListener("pointerdown", handleUserGesture, { once: true });
+    window.addEventListener("keydown", handleUserGesture, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", handleUserGesture);
+      window.removeEventListener("keydown", handleUserGesture);
+      stopF1Engine();
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [handleUserGesture]);
 
-  // Continuous Scroll Listener (Smooth 60fps Morphing)
+  // Update Procedural Engine Sound in real-time
   useEffect(() => {
-    const handleScroll = () => {
-      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = totalHeight > 0 ? Math.min(Math.max(window.scrollY / totalHeight, 0), 1) : 0;
-      setScrollProgress(progress);
+    if (hasInteracted) {
+      updateF1Engine(telemetry.rpm, telemetry.speed, telemetry.isBoosting, isMuted);
+    }
+  }, [telemetry.rpm, telemetry.speed, telemetry.isBoosting, isMuted, hasInteracted]);
 
-      if (progress < 0.35) {
-        setCurrentStageIdx(0);
-      } else if (progress < 0.7) {
-        setCurrentStageIdx(1);
-      } else {
-        setCurrentStageIdx(2);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Direct Jump from Dock
-  const handleStageSelect = (stageIdx: number) => {
-    audio.playClick();
-    const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const targetY = stageIdx === 0 ? 0 : stageIdx === 1 ? totalHeight * 0.5 : totalHeight;
-    window.scrollTo({ top: targetY, behavior: "smooth" });
-  };
-
-  const currentStage = STAGE_LABELS[currentStageIdx];
+  // Auto-hide Cinematic Title after 4s or on interaction
+  useEffect(() => {
+    if (telemetry.isBoosting || telemetry.isFlying || Math.abs(telemetry.speed - 190) > 10) {
+      setShowCinematicTitle(false);
+    }
+    const timer = setTimeout(() => {
+      setShowCinematicTitle(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [telemetry.isBoosting, telemetry.isFlying, telemetry.speed]);
 
   return (
-    <div style={{ backgroundColor: "#020204", minHeight: "300vh", position: "relative" }}>
+    <main
+      onClick={handleUserGesture}
+      style={{
+        width: "100vw",
+        height: "100dvh",
+        backgroundColor: "#000000",
+        color: "#ffffff",
+        position: "relative",
+        overflow: "hidden",
+        fontFamily: "var(--font-apple)",
+        userSelect: "none",
+      }}
+    >
       <CustomCursor />
 
-      {/* Global 70mm Volumetric Particle Canvas */}
-      <HeroParticleM currentStage={scrollProgress} />
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        /* TOP BAR — PURE FLOATING GRID */
-        .master-top-bar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          display: grid;
-          grid-template-columns: 1fr auto 1fr;
-          align-items: center;
-          padding: clamp(1rem, 2.8vh, 1.6rem) clamp(1.2rem, 3.5vw, 2.8rem);
-          z-index: 1000;
-          pointer-events: none;
-        }
-
-        .bar-left {
-          justify-self: start;
-          pointer-events: auto;
-          display: flex;
-          align-items: center;
-        }
-        .bar-center {
-          justify-self: center;
-          pointer-events: auto;
-        }
-        .bar-right {
-          justify-self: end;
-          pointer-events: auto;
-          display: flex;
-          align-items: center;
-          gap: clamp(0.7rem, 2vw, 1.2rem);
-        }
-
-        /* Interactive Audio Toggle */
-        .audio-toggle-btn {
-          background: transparent;
-          border: none;
-          display: flex;
-          align-items: center;
-          gap: 0.45rem;
-          cursor: pointer;
-          padding: 0;
-          outline: none;
-          transition: opacity 0.2s ease;
-        }
-        .audio-toggle-btn:hover {
-          opacity: 0.8;
-        }
-        .audio-toggle-label {
-          font-family: monospace;
-          font-size: clamp(0.6rem, 1.6vw, 0.7rem);
-          color: #22c55e;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          white-space: nowrap;
-          transition: color 0.2s ease;
-        }
-        .audio-toggle-label.muted {
-          color: rgba(255, 255, 255, 0.4);
-        }
-        .audio-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 6px #22c55e;
-          flex-shrink: 0;
-          transition: all 0.2s ease;
-        }
-        .audio-dot.muted {
-          background: rgba(255, 255, 255, 0.3);
-          box-shadow: none;
-        }
-
-        /* Stage HUD — no pill, slim serif italic */
-        .stage-label-num {
-          font-family: monospace;
-          font-size: clamp(0.58rem, 1.5vw, 0.66rem);
-          color: rgba(255, 255, 255, 0.38);
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-        }
-        .stage-label-name {
-          font-family: Georgia, serif;
-          font-style: italic;
-          font-size: clamp(0.82rem, 2vw, 0.96rem);
-          color: rgba(255, 255, 255, 0.88);
-          letter-spacing: 0.01em;
-          margin-left: 0.4rem;
-        }
-
-        /* Portfolio link — clean monospace text */
-        .portfolio-link {
-          font-family: monospace;
-          font-size: clamp(0.6rem, 1.6vw, 0.7rem);
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.55);
-          text-decoration: none;
-          transition: color 0.18s ease;
-          white-space: nowrap;
-        }
-        .portfolio-link:hover {
-          color: #ffffff;
-        }
-
-        @media (max-width: 640px) {
-          .bar-center {
-            display: none;
-          }
-        }
-      `,
-        }}
+      {/* 10/10 Gold-Standard 3D WebGL F1 Racing Canvas */}
+      <F1GameCanvas
+        isLightsOut={isLightsOut}
+        onTelemetryUpdate={setTelemetry}
       />
 
-      {/* TOP BAR: APPLE DYNAMIC ISLAND LIQUID GLASS */}
-      <header className="master-top-bar">
-        {/* Left: Interactive Master Audio Toggle */}
-        <div className="bar-left">
-          <button
-            className="apple-glass-pill"
+      {/* HOLLYWOOD OPENING TITLE (Fades out gracefully) */}
+      <AnimatePresence>
+        {showCinematicTitle && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
             style={{
-              display: "inline-flex",
+              position: "fixed",
+              top: "26%",
+              left: 0,
+              right: 0,
+              display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.42rem 0.95rem",
-              cursor: "pointer",
-              border: "none",
+              justifyContent: "center",
+              pointerEvents: "none",
+              zIndex: 35,
+              textAlign: "center",
+              padding: "0 1.5rem",
             }}
-            onClick={toggleMute}
-            aria-label="Toggle Master Audio"
           >
-            <div className={`audio-dot ${isMuted ? "muted" : ""}`} />
-            <span className={`audio-toggle-label ${isMuted ? "muted" : ""}`}>
-              {isMuted ? "AUDIO: MUTED" : "AUDIO: ACTIVE"} {timeStr && `· ${timeStr}`}
-            </span>
-          </button>
-        </div>
-
-        {/* Center: Stage name pill */}
-        <div className="bar-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStageIdx}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="apple-glass-pill"
+            <div
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "0.4rem 1.1rem",
-                gap: "0.45rem",
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                letterSpacing: "0.35em",
+                color: "#38bdf8",
+                textTransform: "uppercase",
+                marginBottom: "0.65rem",
+                textShadow: "0 0 16px rgba(56, 189, 248, 0.6)",
               }}
             >
-              <span className="stage-label-num">Stage {currentStage.numeral} ·</span>
-              <span className="stage-label-name">{currentStage.title}</span>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              FORMULA 1 · GRAND PRIX ENGINE
+            </div>
+            <h1
+              style={{
+                fontSize: "clamp(2.2rem, 6vw, 4.5rem)",
+                fontWeight: 850,
+                letterSpacing: "-0.035em",
+                lineHeight: 0.95,
+                color: "#ffffff",
+                textTransform: "uppercase",
+                margin: 0,
+                textShadow: "0 10px 40px rgba(0, 0, 0, 0.9)",
+              }}
+            >
+              Mitesh Shah
+            </h1>
+            <div
+              style={{
+                marginTop: "0.75rem",
+                fontSize: "0.72rem",
+                fontWeight: 500,
+                letterSpacing: "0.15em",
+                color: "rgba(255, 255, 255, 0.55)",
+                textTransform: "uppercase",
+              }}
+            >
+              TOKYO / GLOBAL · 365 KM/H · 15,000 RPM
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* Right: Soundroom & Portfolio links */}
-        <div className="bar-right">
-          <Link
-            href="/radio"
-            className="apple-glass-pill"
-            style={{ padding: "0.42rem 0.9rem" }}
-            onClick={() => audio.playClick()}
+      {/* UNIVERSAL 4-CORNER SPATIAL HUD */}
+      <SpatialHUD
+        isLightsOut={isLightsOut}
+        onToggleLightsOut={() => setIsLightsOut((prev) => !prev)}
+        bottomLeftExtra={
+          <div
+            style={{
+              fontFamily: "var(--font-mono, monospace)",
+              fontSize: "clamp(0.65rem, 1.1vw, 0.75rem)",
+              letterSpacing: "0.12em",
+              color: "rgba(255, 255, 255, 0.8)",
+              textTransform: "uppercase",
+              lineHeight: 1.6,
+            }}
           >
-            <span className="portfolio-link">Soundroom</span>
-          </Link>
-          <Link
-            href="/about"
-            className="apple-glass-pill"
-            style={{ padding: "0.42rem 0.9rem" }}
-            onClick={() => audio.playClick()}
-          >
-            <span className="portfolio-link">Portfolio</span>
-          </Link>
-        </div>
-      </header>
-
-      {/* DOCK */}
-      <AppleLiquidDock currentStage={currentStageIdx} onSelectStage={handleStageSelect} />
-    </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem" }}>
+              <span
+                style={{
+                  fontSize: "1.4rem",
+                  fontWeight: 800,
+                  color: telemetry.isBoosting ? "#38bdf8" : "#ffffff",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {telemetry.speed}
+              </span>
+              <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.45)" }}>KM/H</span>
+              <span style={{ marginLeft: "0.4rem", color: "rgba(255,255,255,0.6)" }}>
+                GEAR {telemetry.gear}
+              </span>
+            </div>
+            <div style={{ fontSize: "0.62rem", color: "rgba(255, 255, 255, 0.45)" }}>
+              LAP {formatLapTime(telemetry.lapTime)} · {telemetry.rpm} RPM
+            </div>
+          </div>
+        }
+      />
+    </main>
   );
 }

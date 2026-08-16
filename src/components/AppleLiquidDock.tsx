@@ -145,6 +145,7 @@ export default function AppleLiquidDock({
   const isPortfolioPage = pathname === "/about";
   const isCardPage = pathname === "/card";
   const isRadioPage = pathname === "/radio";
+  const isGamePage = pathname === "/game";
 
   return (
     <div
@@ -233,53 +234,14 @@ export default function AppleLiquidDock({
           msOverflowStyle: "none",
         }}
       >
-        {/* If on 3D Home Page: Show Stage Switchers */}
-        {isHomePage && onSelectStage && (
-          <>
-            <TextDockItem
-              mouseX={mouseX}
-              label="The M"
-              isActive={currentStage === 0}
-              onClick={() => {
-                audio.playClick();
-                onSelectStage(0);
-              }}
-            />
-            <TextDockItem
-              mouseX={mouseX}
-              label="Lotus"
-              isActive={currentStage === 1}
-              onClick={() => {
-                audio.playClick();
-                onSelectStage(1);
-              }}
-            />
-            <TextDockItem
-              mouseX={mouseX}
-              label="Nirakar"
-              isActive={currentStage === 2}
-              onClick={() => {
-                audio.playClick();
-                onSelectStage(2);
-              }}
-            />
-            {DIVIDER}
-          </>
-        )}
-
-        {/* If on subpages: allow 1-click jump back to 3D Art Engine */}
-        {!isHomePage && (
-          <>
-            <TextDockItem
-              mouseX={mouseX}
-              label="3D Art Engine"
-              href="/"
-            />
-            {DIVIDER}
-          </>
-        )}
-
         {/* Universal Navigation Links with live route active state */}
+        <TextDockItem
+          mouseX={mouseX}
+          label="Grand Prix"
+          href="/"
+          isActive={isHomePage}
+          isDot={isHomePage}
+        />
         <TextDockItem
           mouseX={mouseX}
           label="Portfolio"
