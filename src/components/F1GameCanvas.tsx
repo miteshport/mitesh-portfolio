@@ -31,14 +31,30 @@ interface SectorGate {
   code: string;
   color: number;
   mesh: THREE.Group;
-  baseZ: number;
+  worldZ: number;
   triggered: boolean;
 }
 
 interface LightMonolith {
   mesh: THREE.Group;
-  baseZ: number;
-  side: number; // -1: Left, +1: Right
+  worldZ: number;
+  side: number;
+}
+
+interface KerbBlock {
+  mesh: THREE.Mesh;
+  worldZ: number;
+  side: number;
+}
+
+interface SmokeParticle {
+  pos: THREE.Vector3;
+  vel: THREE.Vector3;
+  scale: number;
+  maxScale: number;
+  life: number;
+  maxLife: number;
+  opacity: number;
 }
 
 export default function F1GameCanvas({
@@ -62,10 +78,11 @@ export default function F1GameCanvas({
     const container = containerRef.current;
     if (!container) return;
 
-    // --- 1. THREE.JS SCENE SETUP ---
+    // --- 1. THREE.JS SCENE SETUP (NIGHT GP ATMOSPHERE) ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000002);
-    scene.fog = new THREE.FogExp2(0x000002, 0.010);
+    // Deep Singapore GP Midnight Blue Gradient Fog
+    scene.background = new THREE.Color(0x02050e);
+    scene.fog = new THREE.FogExp2(0x02050e, 0.0075);
 
     // RESPONSIVE FULL-CHASSIS CHASE CAMERA (YUTA ABE GOLD STANDARD)
     const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -77,7 +94,7 @@ export default function F1GameCanvas({
       initialFOV,
       window.innerWidth / window.innerHeight,
       0.1,
-      420
+      450
     );
     camera.position.set(0, initialCamY, initialCamZ);
 
@@ -94,15 +111,15 @@ export default function F1GameCanvas({
 
     container.appendChild(renderer.domElement);
 
-    // --- 2. HIGH-CONTRAST STUDIO LIGHTING RIG (70MM CINEMATIC STANDARD) ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    // --- 2. HIGH-CONTRAST STUDIO LIGHTING & HORIZON BEACONS ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
-    const rimLightLeft = new THREE.DirectionalLight(0xffffff, 4.5);
+    const rimLightLeft = new THREE.DirectionalLight(0xdbeafe, 4.5);
     rimLightLeft.position.set(-8, 14, 4);
     scene.add(rimLightLeft);
 
-    const rimLightRight = new THREE.DirectionalLight(0xffffff, 4.5);
+    const rimLightRight = new THREE.DirectionalLight(0xdbeafe, 4.5);
     rimLightRight.position.set(8, 14, 4);
     scene.add(rimLightRight);
 
@@ -110,12 +127,37 @@ export default function F1GameCanvas({
     topSpecularLight.position.set(0, 24, -6);
     scene.add(topSpecularLight);
 
+    // Distant Stadium Floodlight Beacons (Eliminates the empty black void)
+    const beaconGeo = new THREE.CylinderGeometry(0.3, 4.5, 90, 16, 1, true);
+    beaconGeo.translate(0, 45, 0);
+    const beaconMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.08,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    const beaconPositions = [
+      { x: -55, z: -240 },
+      { x: 55, z: -240 },
+      { x: -95, z: -280 },
+      { x: 95, z: -280 },
+    ];
+
+    beaconPositions.forEach((pos) => {
+      const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+      beaconMesh.position.set(pos.x, 0, pos.z);
+      scene.add(beaconMesh);
+    });
+
     // Forward Spotlights (Headlights)
-    const leftHeadlight = new THREE.SpotLight(0x38bdf8, 55, 85, Math.PI / 5, 0.35, 1.2);
+    const leftHeadlight = new THREE.SpotLight(0x38bdf8, 55, 90, Math.PI / 5, 0.35, 1.2);
     leftHeadlight.position.set(-0.7, 0.45, 0);
     scene.add(leftHeadlight);
 
-    const rightHeadlight = new THREE.SpotLight(0x38bdf8, 55, 85, Math.PI / 5, 0.35, 1.2);
+    const rightHeadlight = new THREE.SpotLight(0x38bdf8, 55, 90, Math.PI / 5, 0.35, 1.2);
     rightHeadlight.position.set(0.7, 0.45, 0);
     scene.add(rightHeadlight);
 
@@ -172,7 +214,7 @@ export default function F1GameCanvas({
     rainFlareSprite.scale.set(0.7, 0.7, 1);
     scene.add(rainFlareSprite);
 
-    // --- 3. UNIFIED HIGHWAY SHADER (PERFECT 1:1 WORLD COORDINATE LOCK) ---
+    // --- 3. UNIFIED HIGHWAY SHADER (PERFECT 1:1 SPLINE EQUATION) ---
     const roadWidth = 10.6;
     const roadLength = 280.0;
     const roadSegments = 220;
@@ -189,12 +231,12 @@ export default function F1GameCanvas({
         vUv = uv;
         vec3 pos = position;
 
-        // Exactly map geometry local coordinates to world distance from camera (0 to 280)
+        // Map geometry pos.y (-140 to +140) to world distance from camera (0 to 280)
         float zDist = 140.0 - pos.y;
         vWorldZ = zDist;
 
-        // Single Master Spatial Curvature Anchor
-        float curve = sin((zDist + uDistance) * 0.035) * uCurvature * (zDist * 0.015);
+        // Master Spatial Curvature Spline
+        float curve = sin((zDist + uDistance) * 0.028) * uCurvature * (zDist * 0.014);
         pos.x += curve;
         vWorldX = pos.x;
 
@@ -217,20 +259,19 @@ export default function F1GameCanvas({
       }
 
       void main() {
-        // Master Unified Texture Coordinate (Mathematically Welded to uDistance)
         float movingDist = vWorldZ + uDistance;
         float grain = rand(vUv * 600.0) * 0.04;
 
-        // Rich Obsidian Asphalt
-        vec3 asphaltColor = vec3(0.032, 0.032, 0.038) + grain;
+        // Rich Dark Obsidian Asphalt with Wet Shimmer
+        vec3 asphaltColor = vec3(0.028, 0.030, 0.038) + grain;
 
         // 3-Lane Highway Dashed Centerlines (Warm Gold)
         float laneLeft = abs(vUv.x - 0.35);
         float laneRight = abs(vUv.x - 0.65);
-        float dashPattern = step(0.42, fract(movingDist * 0.18));
+        float dashPattern = step(0.40, fract(movingDist * 0.12));
 
         if ((laneLeft < 0.0075 || laneRight < 0.0075) && dashPattern > 0.5) {
-          asphaltColor = vec3(0.95, 0.82, 0.22);
+          asphaltColor = vec3(0.96, 0.84, 0.20);
         }
 
         // Solid Outer Guard Lines (Pure White)
@@ -239,8 +280,8 @@ export default function F1GameCanvas({
         }
 
         // Anamorphic Wet Road Reflections
-        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.28;
-        asphaltColor += vec3(spec * 0.25, spec * 0.50, spec * 0.90);
+        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.32;
+        asphaltColor += vec3(spec * 0.25, spec * 0.50, spec * 0.95);
 
         // Night Mode Headlight Illumination Mask
         if (uLightsOut > 0.01) {
@@ -248,9 +289,9 @@ export default function F1GameCanvas({
           asphaltColor *= mix(0.10, 1.4, headlightMask);
         }
 
-        // Depth Fog Fade into Infinite Horizon
-        float fogFactor = smoothstep(80.0, 260.0, vDepth);
-        vec3 finalColor = mix(asphaltColor, vec3(0.0, 0.0, 0.002), fogFactor);
+        // Depth Fog Fade into Singapore GP Midnight Horizon
+        float fogFactor = smoothstep(80.0, 270.0, vDepth);
+        vec3 finalColor = mix(asphaltColor, vec3(0.02, 0.03, 0.06), fogFactor);
 
         gl_FragColor = vec4(finalColor, 1.0);
       }
@@ -275,11 +316,12 @@ export default function F1GameCanvas({
     roadMesh.position.set(0, 0, -roadLength / 2);
     scene.add(roadMesh);
 
-    // --- 4. 3D ELEVATED RED & WHITE RUMBLE KERBS (100% UNIFIED COORDINATE LOCK) ---
-    const kerbBlockCount = 90;
-    const kerbLength = 1.4;
-    const kerbGap = 2.4;
-    const kerbBoxGeo = new THREE.BoxGeometry(0.5, 0.12, kerbLength);
+    // --- 4. 3D ELEVATED RED & WHITE RUMBLE KERBS (CONTINUOUS FLOW) ---
+    const kerbBlocks: KerbBlock[] = [];
+    const kerbPairCount = 80;
+    const kerbGap = 3.2;
+    const totalKerbSpan = kerbPairCount * kerbGap;
+    const kerbBoxGeo = new THREE.BoxGeometry(0.5, 0.12, 1.6);
 
     const redKerbMat = new THREE.MeshStandardMaterial({
       color: 0xdd1122,
@@ -292,27 +334,22 @@ export default function F1GameCanvas({
       metalness: 0.1,
     });
 
-    const leftKerbs: THREE.Mesh[] = [];
-    const rightKerbs: THREE.Mesh[] = [];
-
-    for (let i = 0; i < kerbBlockCount; i++) {
+    for (let i = 0; i < kerbPairCount; i++) {
       const isRed = i % 2 === 0;
       const mat = isRed ? redKerbMat : whiteKerbMat;
+      const initZ = -i * kerbGap;
 
       const lKerb = new THREE.Mesh(kerbBoxGeo, mat);
       const rKerb = new THREE.Mesh(kerbBoxGeo, mat);
 
-      lKerb.castShadow = true;
-      rKerb.castShadow = true;
-
       scene.add(lKerb);
       scene.add(rKerb);
 
-      leftKerbs.push(lKerb);
-      rightKerbs.push(rKerb);
+      kerbBlocks.push({ mesh: lKerb, worldZ: initZ, side: -1 });
+      kerbBlocks.push({ mesh: rKerb, worldZ: initZ, side: 1 });
     }
 
-    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (100% UNIFIED COORDINATE LOCK) ---
+    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (PERFECT SPLINE LOCK) ---
     const monoliths: LightMonolith[] = [];
     const monolithCount = 12;
     const monolithSpacing = 36.0;
@@ -345,25 +382,24 @@ export default function F1GameCanvas({
       group.add(laserLine);
 
       const side = i % 2 === 0 ? -1 : 1;
-      const zPos = -i * monolithSpacing - 20.0;
+      const initZ = -i * monolithSpacing - 20.0;
 
-      group.position.set(side * (roadWidth / 2 + 0.4), 0, zPos);
       scene.add(group);
 
       monoliths.push({
         mesh: group,
-        baseZ: zPos,
+        worldZ: initZ,
         side,
       });
     }
 
-    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES (100% UNIFIED COORDINATE LOCK) ---
+    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES ---
     const sectorGates: SectorGate[] = [];
     const totalGateSpan = 360.0;
     const gateDefinitions = [
-      { sectorIndex: 1, name: "SECTOR 1", code: "S1 // DRS SPEED TRAP", color: 0x38bdf8, baseZ: -70.0 },
-      { sectorIndex: 2, name: "SECTOR 2", code: "S2 // HIGH APEX", color: 0xf59e0b, baseZ: -190.0 },
-      { sectorIndex: 3, name: "SECTOR 3", code: "S3 // VELOCITY HORIZON", color: 0xa855f7, baseZ: -310.0 },
+      { sectorIndex: 1, name: "SECTOR 1", code: "S1 // DRS SPEED TRAP", color: 0x38bdf8, worldZ: -70.0 },
+      { sectorIndex: 2, name: "SECTOR 2", code: "S2 // HIGH APEX", color: 0xf59e0b, worldZ: -190.0 },
+      { sectorIndex: 3, name: "SECTOR 3", code: "S3 // VELOCITY HORIZON", color: 0xa855f7, worldZ: -310.0 },
     ];
 
     const gateArchGeo = new THREE.TorusGeometry(4.2, 0.045, 16, 64);
@@ -374,7 +410,6 @@ export default function F1GameCanvas({
       roughness: 0.1,
     });
 
-    // Helper: Create Telemetry Text Signboard Canvas
     function createSectorSignboard(code: string, colorHex: string): THREE.Mesh {
       const sCanvas = document.createElement("canvas");
       sCanvas.width = 512;
@@ -408,7 +443,6 @@ export default function F1GameCanvas({
       const group = new THREE.Group();
       const colorHexStr = def.color === 0x38bdf8 ? "#38bdf8" : def.color === 0xf59e0b ? "#f59e0b" : "#a855f7";
 
-      // 1. Luminous Laser Arch
       const archMat = new THREE.MeshBasicMaterial({
         color: def.color,
         transparent: true,
@@ -418,7 +452,6 @@ export default function F1GameCanvas({
       archMesh.position.y = 2.4;
       group.add(archMesh);
 
-      // 2. Dual Side Pillars
       const pL = new THREE.Mesh(gatePillarGeo, darkTitaniumMat);
       pL.position.set(-roadWidth / 2 - 0.2, 2.25, 0);
       const pR = new THREE.Mesh(gatePillarGeo, darkTitaniumMat);
@@ -426,11 +459,9 @@ export default function F1GameCanvas({
       group.add(pL);
       group.add(pR);
 
-      // 3. Overhead Laser Telemetry Signboard
       const signboard = createSectorSignboard(def.code, colorHexStr);
       group.add(signboard);
 
-      group.position.set(0, 0, def.baseZ);
       scene.add(group);
 
       sectorGates.push({
@@ -439,12 +470,105 @@ export default function F1GameCanvas({
         code: def.code,
         color: def.color,
         mesh: group,
-        baseZ: def.baseZ,
+        worldZ: def.worldZ,
         triggered: false,
       });
     });
 
-    // --- 7. 3D F1 CAR MODEL LOADING ---
+    // --- 7. VOLUMETRIC GAUSSIAN TIRE VAPOR & REAR WING VORTEX TRAILS ---
+    // High-Resolution Soft Gaussian Smoke Texture (Nolan 70mm Standard)
+    const smokeCanvas = document.createElement("canvas");
+    smokeCanvas.width = 128;
+    smokeCanvas.height = 128;
+    const smCtx = smokeCanvas.getContext("2d");
+    if (smCtx) {
+      const grad = smCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, "rgba(220, 230, 255, 0.40)");
+      grad.addColorStop(0.35, "rgba(200, 215, 245, 0.22)");
+      grad.addColorStop(0.7, "rgba(180, 200, 235, 0.06)");
+      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      smCtx.fillStyle = grad;
+      smCtx.fillRect(0, 0, 128, 128);
+    }
+    const smokeTex = new THREE.CanvasTexture(smokeCanvas);
+
+    const smokeParticleCount = 45;
+    const smokeSprites: THREE.Sprite[] = [];
+    const smokePool: SmokeParticle[] = [];
+
+    const smokeMat = new THREE.SpriteMaterial({
+      map: smokeTex,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.NormalBlending,
+      depthWrite: false,
+    });
+
+    for (let i = 0; i < smokeParticleCount; i++) {
+      const sprite = new THREE.Sprite(smokeMat.clone());
+      sprite.scale.set(0, 0, 1);
+      scene.add(sprite);
+      smokeSprites.push(sprite);
+
+      smokePool.push({
+        pos: new THREE.Vector3(0, -10, 0),
+        vel: new THREE.Vector3(),
+        scale: 0.3,
+        maxScale: 2.2,
+        life: 0,
+        maxLife: 0.7,
+        opacity: 0,
+      });
+    }
+
+    // Rear Wing Tip Condensation Vortex Line Trails
+    const vortexLength = 16;
+    const leftVortexGeo = new THREE.BufferGeometry();
+    const rightVortexGeo = new THREE.BufferGeometry();
+    const leftVortexPos = new Float32Array(vortexLength * 3);
+    const rightVortexPos = new Float32Array(vortexLength * 3);
+
+    leftVortexGeo.setAttribute("position", new THREE.BufferAttribute(leftVortexPos, 3));
+    rightVortexGeo.setAttribute("position", new THREE.BufferAttribute(rightVortexPos, 3));
+
+    const vortexMat = new THREE.LineBasicMaterial({
+      color: 0x93c5fd,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const leftVortexLine = new THREE.Line(leftVortexGeo, vortexMat);
+    const rightVortexLine = new THREE.Line(rightVortexGeo, vortexMat);
+    scene.add(leftVortexLine);
+    scene.add(rightVortexLine);
+
+    // --- 8. DIFFUSER GROUND-EFFECT CONTACT SHADOW ---
+    const shadowCanvas = document.createElement("canvas");
+    shadowCanvas.width = 128;
+    shadowCanvas.height = 128;
+    const shCtx = shadowCanvas.getContext("2d");
+    if (shCtx) {
+      const grad = shCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, "rgba(0, 0, 0, 0.95)");
+      grad.addColorStop(0.5, "rgba(0, 0, 0, 0.65)");
+      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      shCtx.fillStyle = grad;
+      shCtx.fillRect(0, 0, 128, 128);
+    }
+    const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: shadowTex,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
+    const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 4.2), shadowMat);
+    groundShadow.rotation.x = -Math.PI / 2;
+    groundShadow.position.y = 0.025;
+    scene.add(groundShadow);
+
+    // --- 9. 3D F1 CAR MODEL LOADING ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
@@ -497,7 +621,7 @@ export default function F1GameCanvas({
       (err) => console.error("Error loading F1 car GLB:", err)
     );
 
-    // --- 8. INTERACTION CONTROLS ---
+    // --- 10. INTERACTION CONTROLS ---
     let pointerX = 0;
     let pointerY = 0;
     let targetCarX = 0;
@@ -509,7 +633,7 @@ export default function F1GameCanvas({
     let currentSpeed = baseSpeed;
     let isBoosting = false;
     let lapTime = 0;
-    let trackDistance = 0; // Master World Spatial Coordinate
+    let trackDistance = 0; // Unified Master World Coordinate
     let sectorsCrossedCount = 0;
     let activeSector = 1;
     let portalFlashOpacity = 0;
@@ -549,7 +673,7 @@ export default function F1GameCanvas({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
-    // --- 9. RESIZE HANDLER ---
+    // --- 11. RESIZE HANDLER ---
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -561,7 +685,7 @@ export default function F1GameCanvas({
     };
     window.addEventListener("resize", handleResize);
 
-    // --- 10. 60FPS CINEMATIC RENDER LOOP ---
+    // --- 12. 60FPS CINEMATIC RENDER LOOP ---
     let animFrameId: number;
     const clock = new THREE.Clock();
 
@@ -574,8 +698,8 @@ export default function F1GameCanvas({
       currentSpeed += (targetSpeed - currentSpeed) * (isBoosting ? 0.08 : 0.045);
       lapTime += delta;
 
-      // 2. UNIFIED WORLD FORWARD ADVANCE (1:1 ZERO-SLIPPAGE SYNCHRONIZATION)
-      const forwardDelta = currentSpeed * 0.45 * delta;
+      // 2. WEIGHTED CINEMATIC VELOCITY (LUXURY PACING)
+      const forwardDelta = currentSpeed * 0.22 * delta;
       trackDistance += forwardDelta;
 
       // Road Shader Uniforms
@@ -587,67 +711,66 @@ export default function F1GameCanvas({
 
       coneMat.opacity = roadUniforms.uLightsOut.value * (isBoosting ? 0.16 : 0.10);
 
-      // 3. Update Rumble Kerbs (100% Mathematically Locked to Road Curve)
-      const kerbScrollOffset = trackDistance % kerbGap;
+      // 3. Update Rumble Kerbs (Smooth Continuous World Flow)
       const trackHalfW = roadWidth / 2 - 0.2;
 
-      for (let i = 0; i < kerbBlockCount; i++) {
-        const zDist = i * kerbGap - kerbScrollOffset;
-        const curveOffset =
-          Math.sin((zDist + trackDistance) * 0.035) *
-          roadUniforms.uCurvature.value *
-          (zDist * 0.015);
+      for (let i = 0; i < kerbBlocks.length; i++) {
+        const kb = kerbBlocks[i];
+        kb.worldZ += forwardDelta;
 
-        const lKerb = leftKerbs[i];
-        const rKerb = rightKerbs[i];
-
-        lKerb.position.set(-trackHalfW + curveOffset, 0.06, -zDist);
-        rKerb.position.set(trackHalfW + curveOffset, 0.06, -zDist);
-
-        const distScale = Math.min(1.0, zDist * 0.04);
-        lKerb.rotation.y = curveOffset * 0.05 * distScale;
-        rKerb.rotation.y = curveOffset * 0.05 * distScale;
-      }
-
-      // 4. Update Slender Titanium Monoliths (100% Mathematically Locked to Road Curve)
-      for (let i = 0; i < monoliths.length; i++) {
-        const m = monoliths[i];
-        m.baseZ += forwardDelta;
-
-        if (m.baseZ > 15.0) {
-          m.baseZ -= totalMonolithSpan;
+        if (kb.worldZ > 8.0) {
+          kb.worldZ -= totalKerbSpan;
         }
 
-        const zDist = -m.baseZ;
-        const curveOffset =
-          Math.sin((zDist + trackDistance) * 0.035) *
+        const zDist = -kb.worldZ;
+        const curve =
+          Math.sin((zDist + trackDistance) * 0.028) *
           roadUniforms.uCurvature.value *
-          (zDist * 0.015);
+          (zDist * 0.014);
 
-        const baseSideX = m.side * (roadWidth / 2 + 0.4);
-        m.mesh.position.set(baseSideX + curveOffset, 0, m.baseZ);
+        kb.mesh.position.set(kb.side * trackHalfW + curve, 0.06, kb.worldZ);
+        kb.mesh.rotation.y = curve * 0.04;
       }
 
-      // 5. Update The 3 Sector Timing Gates (100% Mathematically Locked to Road Curve)
+      // 4. Update Slender Titanium Monoliths (100% Locked to Road Spline)
+      for (let i = 0; i < monoliths.length; i++) {
+        const m = monoliths[i];
+        m.worldZ += forwardDelta;
+
+        if (m.worldZ > 15.0) {
+          m.worldZ -= totalMonolithSpan;
+        }
+
+        const zDist = -m.worldZ;
+        const curve =
+          Math.sin((zDist + trackDistance) * 0.028) *
+          roadUniforms.uCurvature.value *
+          (zDist * 0.014);
+
+        const baseSideX = m.side * (roadWidth / 2 + 0.4);
+        m.mesh.position.set(baseSideX + curve, 0, m.worldZ);
+      }
+
+      // 5. Update The 3 Sector Timing Gates (100% Locked to Road Spline)
       for (let i = 0; i < sectorGates.length; i++) {
         const gate = sectorGates[i];
-        gate.baseZ += forwardDelta;
+        gate.worldZ += forwardDelta;
 
-        if (gate.baseZ > 18.0) {
-          gate.baseZ -= totalGateSpan;
+        if (gate.worldZ > 18.0) {
+          gate.worldZ -= totalGateSpan;
           gate.triggered = false;
         }
 
-        const zDist = -gate.baseZ;
-        const curveOffset =
-          Math.sin((zDist + trackDistance) * 0.035) *
+        const zDist = -gate.worldZ;
+        const curve =
+          Math.sin((zDist + trackDistance) * 0.028) *
           roadUniforms.uCurvature.value *
-          (zDist * 0.015);
+          (zDist * 0.014);
 
-        gate.mesh.position.set(curveOffset, 0, gate.baseZ);
+        gate.mesh.position.set(curve, 0, gate.worldZ);
 
         // Slicing Check (Crossing Sector Timing Gate)
-        if (Math.abs(gate.baseZ - 0.0) < 3.0 && !gate.triggered) {
+        if (Math.abs(gate.worldZ - 0.0) < 3.0 && !gate.triggered) {
           const distX = Math.abs(carX - gate.mesh.position.x);
 
           if (distX < 4.8) {
@@ -678,14 +801,19 @@ export default function F1GameCanvas({
       carGroup.position.y = 0.02 + carY;
       carGroup.position.z = 0;
 
+      // Ground Contact Shadow Follows Car
+      groundShadow.position.x = carX;
+      groundShadow.position.z = 0;
+      groundShadow.material.opacity = Math.max(0.0, 0.85 - carY * 0.8);
+
       const isFlying = carY > 0.15;
       const onKerb = !isFlying && Math.abs(carX) > trackHalfW - 1.6;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
 
-      const highSpeedShake = !isFlying ? Math.sin(time * 80) * 0.006 * (currentSpeed / 190) : 0;
-      const kerbVibration = onKerb ? Math.sin(time * 110) * 0.028 : 0;
+      const highSpeedShake = !isFlying ? Math.sin(time * 80) * 0.005 * (currentSpeed / 190) : 0;
+      const kerbVibration = onKerb ? Math.sin(time * 110) * 0.024 : 0;
       carGroup.position.y += Math.abs(highSpeedShake + kerbVibration);
 
       carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, rollAngle, 0.18);
@@ -709,7 +837,75 @@ export default function F1GameCanvas({
       const flareScale = 0.65 + Math.sin(time * 22) * 0.15;
       rainFlareSprite.scale.set(flareScale, flareScale, 1);
 
-      // 7. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
+      // 7. Volumetric Gaussian Tire Mist / Smoke Updates
+      const isSmokeActive = (!isFlying && onKerb) || Math.abs(carSteerVelocity) > 2.8 || isBoosting;
+
+      for (let i = 0; i < smokeParticleCount; i++) {
+        const p = smokePool[i];
+        const sp = smokeSprites[i];
+
+        if (p.life <= 0 && isSmokeActive && Math.random() < 0.4) {
+          // Spawn at left or right rear tire
+          const isLeft = Math.random() > 0.5;
+          const spawnX = isLeft ? carX - 0.88 : carX + 0.88;
+          p.pos.set(spawnX + (Math.random() - 0.5) * 0.15, 0.14 + carY, 1.25);
+          p.vel.set(
+            (Math.random() - 0.5) * 0.6 - carSteerVelocity * 0.15,
+            Math.random() * 0.4 + 0.15,
+            currentSpeed * 0.04 + Math.random() * 2.0
+          );
+          p.scale = 0.35;
+          p.maxScale = Math.random() * 1.4 + 1.2;
+          p.life = Math.random() * 0.25 + 0.55;
+          p.maxLife = p.life;
+          p.opacity = 0.32;
+        } else if (p.life > 0) {
+          p.life -= delta;
+          const progress = 1.0 - p.life / p.maxLife;
+
+          p.pos.addScaledVector(p.vel, delta);
+          p.scale = THREE.MathUtils.lerp(0.35, p.maxScale, progress);
+          p.opacity = (1.0 - progress) * 0.32;
+
+          sp.position.copy(p.pos);
+          sp.scale.set(p.scale, p.scale, 1);
+          sp.material.opacity = p.opacity;
+        } else {
+          sp.material.opacity = 0;
+        }
+      }
+
+      // 8. Rear Wing Vortex Condensation Ribbons
+      const isVortexActive = currentSpeed > 240;
+      vortexMat.opacity = THREE.MathUtils.lerp(vortexMat.opacity, isVortexActive ? 0.65 : 0.0, 0.1);
+
+      const lArr = leftVortexGeo.attributes.position.array as Float32Array;
+      const rArr = rightVortexGeo.attributes.position.array as Float32Array;
+
+      // Shift trailing segments
+      for (let k = vortexLength - 1; k > 0; k--) {
+        lArr[k * 3 + 0] = lArr[(k - 1) * 3 + 0];
+        lArr[k * 3 + 1] = lArr[(k - 1) * 3 + 1];
+        lArr[k * 3 + 2] = lArr[(k - 1) * 3 + 2] + forwardDelta * 0.85;
+
+        rArr[k * 3 + 0] = rArr[(k - 1) * 3 + 0];
+        rArr[k * 3 + 1] = rArr[(k - 1) * 3 + 1];
+        rArr[k * 3 + 2] = rArr[(k - 1) * 3 + 2] + forwardDelta * 0.85;
+      }
+
+      // Lead tip attached to rear wing endplates
+      lArr[0] = carX - 0.82;
+      lArr[1] = 0.82 + carY;
+      lArr[2] = 1.35;
+
+      rArr[0] = carX + 0.82;
+      rArr[1] = 0.82 + carY;
+      rArr[2] = 1.35;
+
+      leftVortexGeo.attributes.position.needsUpdate = true;
+      rightVortexGeo.attributes.position.needsUpdate = true;
+
+      // 9. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
       const isMobile = window.innerWidth < 768;
       const baseCamZ = isMobile ? 4.9 : 3.6;
       const baseCamY = isMobile ? 1.15 : 0.95;
@@ -727,13 +923,13 @@ export default function F1GameCanvas({
 
       // Dynamic Speed Perspective Warp
       const baseFOV = isMobile ? 58 : 50;
-      const targetFOV = isBoosting ? baseFOV + 16 : baseFOV;
+      const targetFOV = isBoosting ? baseFOV + 14 : baseFOV;
       camera.fov += (targetFOV - camera.fov) * 0.08;
       camera.updateProjectionMatrix();
 
       camera.lookAt(carX * 0.15, 0.4 + (carY * 0.25), -14);
 
-      // 8. Telemetry Callback
+      // 10. Telemetry Callback
       if (onTelemetryUpdate) {
         const gear =
           currentSpeed < 80
@@ -768,14 +964,14 @@ export default function F1GameCanvas({
         });
       }
 
-      // 9. Render Scene
+      // 11. Render Scene
       renderer.render(scene, camera);
       animFrameId = requestAnimationFrame(tick);
     };
 
     animFrameId = requestAnimationFrame(tick);
 
-    // --- 11. CLEANUP ON UNMOUNT ---
+    // --- 13. CLEANUP ON UNMOUNT ---
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("pointermove", handlePointerMove);
@@ -804,6 +1000,15 @@ export default function F1GameCanvas({
       coneMat.dispose();
       flareMat.dispose();
       flareTex.dispose();
+      smokeTex.dispose();
+      smokeMat.dispose();
+      shadowTex.dispose();
+      shadowMat.dispose();
+      leftVortexGeo.dispose();
+      rightVortexGeo.dispose();
+      vortexMat.dispose();
+      beaconGeo.dispose();
+      beaconMat.dispose();
     };
   }, []);
 
