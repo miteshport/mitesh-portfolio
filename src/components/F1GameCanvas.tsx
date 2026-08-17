@@ -172,24 +172,28 @@ export default function F1GameCanvas({
     rainFlareSprite.scale.set(0.7, 0.7, 1);
     scene.add(rainFlareSprite);
 
-    // --- 3. PROCEDURAL ENDLESS ASPHALT HIGHWAY SHADER ---
+    // --- 3. UNIFIED PROCEDURAL HIGHWAY SHADER (100% ZERO-SLIPPAGE SYNCHRONIZATION) ---
     const roadWidth = 10.6;
     const roadLength = 280.0;
     const roadSegments = 220;
 
     const roadVertexShader = `
-      uniform float uTime;
+      uniform float uDistance;
       uniform float uCurvature;
       varying vec2 vUv;
       varying float vDepth;
       varying float vWorldX;
+      varying float vWorldZ;
 
       void main() {
         vUv = uv;
         vec3 pos = position;
 
         float zDist = -pos.y;
-        float curve = sin(zDist * 0.035 + uTime * 1.5) * uCurvature * (zDist * 0.015);
+        vWorldZ = zDist;
+
+        // Unified Spatial Curvature Equation
+        float curve = sin((zDist + uDistance) * 0.035) * uCurvature * (zDist * 0.015);
         pos.x += curve;
         vWorldX = pos.x;
 
@@ -200,35 +204,36 @@ export default function F1GameCanvas({
     `;
 
     const roadFragmentShader = `
-      uniform float uTime;
-      uniform float uSpeed;
+      uniform float uDistance;
       uniform float uLightsOut;
       varying vec2 vUv;
       varying float vDepth;
       varying float vWorldX;
+      varying float vWorldZ;
 
       float rand(vec2 n) {
         return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
       }
 
       void main() {
-        float movingV = vUv.y * 42.0 - uSpeed * 0.7;
+        // Master Unified Texture Coordinate (Matched 100% to World Distance)
+        float movingDist = vWorldZ + uDistance;
         float grain = rand(vUv * 600.0) * 0.05;
 
         // Rich Dark Obsidian Asphalt
         vec3 asphaltColor = vec3(0.030, 0.030, 0.036) + grain;
 
-        // 3-Lane Highway Dashed Centerlines (Warm Gold)
+        // 3-Lane Highway Dashed Centerlines (Warm Gold) - Locked to uDistance
         float laneLeft = abs(vUv.x - 0.35);
         float laneRight = abs(vUv.x - 0.65);
-        float dashPattern = step(0.40, fract(movingV * 0.35));
+        float dashPattern = step(0.42, fract(movingDist * 0.18));
 
-        if ((laneLeft < 0.008 || laneRight < 0.008) && dashPattern > 0.5) {
+        if ((laneLeft < 0.0075 || laneRight < 0.0075) && dashPattern > 0.5) {
           asphaltColor = vec3(0.95, 0.82, 0.22);
         }
 
-        // Solid Outer Guard Lines
-        if (vUv.x < 0.035 || vUv.x > 0.965) {
+        // Solid Outer Guard Lines (Pure White)
+        if (vUv.x < 0.032 || vUv.x > 0.968) {
           asphaltColor = vec3(0.95, 0.95, 0.98);
         }
 
@@ -251,8 +256,7 @@ export default function F1GameCanvas({
     `;
 
     const roadUniforms = {
-      uTime: { value: 0 },
-      uSpeed: { value: 0 },
+      uDistance: { value: 0 },
       uCurvature: { value: 0.85 },
       uLightsOut: { value: 0.0 },
     };
@@ -270,7 +274,7 @@ export default function F1GameCanvas({
     roadMesh.position.set(0, 0, -roadLength / 2);
     scene.add(roadMesh);
 
-    // --- 4. 3D ELEVATED RED & WHITE RUMBLE KERBS ---
+    // --- 4. 3D ELEVATED RED & WHITE RUMBLE KERBS (LOCKED TO UNIFIED DISTANCE) ---
     const kerbBlockCount = 90;
     const kerbLength = 1.4;
     const kerbGap = 2.4;
@@ -307,10 +311,11 @@ export default function F1GameCanvas({
       rightKerbs.push(rKerb);
     }
 
-    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (PARALLAX SPEED MARKERS) ---
+    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (LOCKED TO UNIFIED WORLD POSITION) ---
     const monoliths: LightMonolith[] = [];
     const monolithCount = 12;
     const monolithSpacing = 36.0;
+    const totalMonolithSpan = monolithCount * monolithSpacing;
 
     const monolithBodyGeo = new THREE.BoxGeometry(0.14, 5.2, 0.45);
     const monolithMat = new THREE.MeshStandardMaterial({
@@ -339,10 +344,9 @@ export default function F1GameCanvas({
       group.add(laserLine);
 
       const side = i % 2 === 0 ? -1 : 1;
-      const xPos = side * (roadWidth / 2 + 0.4);
-      const zPos = -i * monolithSpacing - 25.0;
+      const zPos = -i * monolithSpacing - 20.0;
 
-      group.position.set(xPos, 0, zPos);
+      group.position.set(side * (roadWidth / 2 + 0.4), 0, zPos);
       scene.add(group);
 
       monoliths.push({
@@ -352,8 +356,9 @@ export default function F1GameCanvas({
       });
     }
 
-    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES (GOLD STANDARD) ---
+    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES (LOCKED TO UNIFIED WORLD POSITION) ---
     const sectorGates: SectorGate[] = [];
+    const totalGateSpan = 360.0;
     const gateDefinitions = [
       { sectorIndex: 1, name: "SECTOR 1", code: "S1 // DRS SPEED TRAP", color: 0x38bdf8, baseZ: -70.0 },
       { sectorIndex: 2, name: "SECTOR 2", code: "S2 // HIGH APEX", color: 0xf59e0b, baseZ: -190.0 },
@@ -562,6 +567,7 @@ export default function F1GameCanvas({
     let currentSpeed = baseSpeed;
     let isBoosting = false;
     let lapTime = 0;
+    let trackDistance = 0; // Master World Spatial Coordinate
     let sectorsCrossedCount = 0;
     let activeSector = 1;
     let portalFlashOpacity = 0;
@@ -626,9 +632,12 @@ export default function F1GameCanvas({
       currentSpeed += (targetSpeed - currentSpeed) * (isBoosting ? 0.08 : 0.045);
       lapTime += delta;
 
-      // 2. Road Shader Uniforms
-      roadUniforms.uTime.value = time;
-      roadUniforms.uSpeed.value = currentSpeed * 0.085;
+      // 2. UNIFIED WORLD FORWARD ADVANCE (Zero Slippage Standard)
+      const forwardDelta = currentSpeed * 0.45 * delta;
+      trackDistance += forwardDelta;
+
+      // Road Shader Uniforms
+      roadUniforms.uDistance.value = trackDistance;
 
       const targetLightsOut = isLightsOutRef.current ? 1.0 : 0.0;
       roadUniforms.uLightsOut.value +=
@@ -636,14 +645,14 @@ export default function F1GameCanvas({
 
       coneMat.opacity = roadUniforms.uLightsOut.value * (isBoosting ? 0.16 : 0.10);
 
-      // 3. Update Rumble Kerbs
-      const kerbScrollOffset = (time * currentSpeed * 0.085 * 3.5) % kerbGap;
+      // 3. Update Rumble Kerbs (100% Locked to Unified Curvature Anchor)
+      const kerbScrollOffset = trackDistance % kerbGap;
       const trackHalfW = roadWidth / 2 - 0.2;
 
       for (let i = 0; i < kerbBlockCount; i++) {
         const zDist = i * kerbGap - kerbScrollOffset;
         const curveOffset =
-          Math.sin(zDist * 0.035 + time * 1.5) *
+          Math.sin((zDist + trackDistance) * 0.035) *
           roadUniforms.uCurvature.value *
           (zDist * 0.015);
 
@@ -658,43 +667,45 @@ export default function F1GameCanvas({
         rKerb.rotation.y = curveOffset * 0.05 * distScale;
       }
 
-      // 4. Update Slender Titanium Monoliths
+      // 4. Update Slender Titanium Monoliths (100% Locked to Unified Curvature Anchor)
       for (let i = 0; i < monoliths.length; i++) {
         const m = monoliths[i];
-        m.mesh.position.z += currentSpeed * 0.085 * delta * 7.5;
+        m.baseZ += forwardDelta;
 
-        // Follow Road Curvature
-        const mCurvature =
-          Math.sin(-m.mesh.position.z * 0.035 + time * 1.5) *
+        if (m.baseZ > 15.0) {
+          m.baseZ -= totalMonolithSpan;
+        }
+
+        const zDist = -m.baseZ;
+        const curveOffset =
+          Math.sin((zDist + trackDistance) * 0.035) *
           roadUniforms.uCurvature.value *
-          (-m.mesh.position.z * 0.015);
+          (zDist * 0.015);
 
         const baseSideX = m.side * (roadWidth / 2 + 0.4);
-        m.mesh.position.x = baseSideX + mCurvature;
-
-        // Loop Ahead when Passed
-        if (m.mesh.position.z > 15.0) {
-          m.mesh.position.z = -monolithCount * monolithSpacing + 15.0;
-        }
+        m.mesh.position.set(baseSideX + curveOffset, 0, m.baseZ);
       }
 
-      // 5. Update The 3 Sector Timing Gates (Magnetically Glued to Road Racing Line)
-      const totalLoopDistance = 360.0;
-
+      // 5. Update The 3 Sector Timing Gates (100% Locked to Unified Curvature Anchor)
       for (let i = 0; i < sectorGates.length; i++) {
         const gate = sectorGates[i];
-        gate.mesh.position.z += currentSpeed * 0.085 * delta * 7.5;
+        gate.baseZ += forwardDelta;
 
-        // Track Curvature Apex Lock
-        const gCurvature =
-          Math.sin(-gate.mesh.position.z * 0.035 + time * 1.5) *
+        if (gate.baseZ > 18.0) {
+          gate.baseZ -= totalGateSpan;
+          gate.triggered = false;
+        }
+
+        const zDist = -gate.baseZ;
+        const curveOffset =
+          Math.sin((zDist + trackDistance) * 0.035) *
           roadUniforms.uCurvature.value *
-          (-gate.mesh.position.z * 0.015);
+          (zDist * 0.015);
 
-        gate.mesh.position.x = gCurvature;
+        gate.mesh.position.set(curveOffset, 0, gate.baseZ);
 
         // Slicing Check (Crossing Sector Timing Gate)
-        if (Math.abs(gate.mesh.position.z - 0.0) < 3.0 && !gate.triggered) {
+        if (Math.abs(gate.baseZ - 0.0) < 3.0 && !gate.triggered) {
           const distX = Math.abs(carX - gate.mesh.position.x);
 
           if (distX < 4.8) {
@@ -704,12 +715,6 @@ export default function F1GameCanvas({
             portalFlashOpacity = 0.9;
             playSonicPulse(isMutedRef.current);
           }
-        }
-
-        // Loop Sector Gate Ahead to Next Lap Milestone
-        if (gate.mesh.position.z > 18.0) {
-          gate.mesh.position.z -= totalLoopDistance;
-          gate.triggered = false;
         }
       }
 
