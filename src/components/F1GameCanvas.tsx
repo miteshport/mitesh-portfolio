@@ -3,7 +3,8 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
-import { playKerbRumble } from "@/utils/f1EngineAudio";
+import { EffectComposer, RenderPass, UnrealBloomPass } from "three-stdlib";
+import { playKerbRumble, updateF1Engine } from "@/utils/f1EngineAudio";
 
 export interface TelemetryData {
   speed: number;
@@ -15,7 +16,7 @@ export interface TelemetryData {
   isFlying: boolean;
   isLightsOut: boolean;
   onKerb: boolean;
-  currentSector: number; // 1, 2, or 3
+  currentSector: number;
   sectorsCrossed: number;
 }
 
@@ -56,12 +57,11 @@ export default function F1GameCanvas({
     const container = containerRef.current;
     if (!container) return;
 
-    // --- 1. THREE.JS SCENE SETUP (70MM GOTHAM MIDNIGHT ATMOSPHERE) ---
+    // --- 1. THREE.JS SCENE SETUP ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020409);
-    scene.fog = new THREE.FogExp2(0x020409, 0.0065);
+    scene.fog = new THREE.FogExp2(0x020409, 0.0055);
 
-    // RESPONSIVE FULL-CHASSIS CHASE CAMERA (YUTA ABE GOLD STANDARD)
     const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
     const initialFOV = isInitMobile ? 58 : 50;
     const initialCamZ = isInitMobile ? 4.9 : 3.6;
@@ -71,7 +71,7 @@ export default function F1GameCanvas({
       initialFOV,
       window.innerWidth / window.innerHeight,
       0.1,
-      480
+      500
     );
     camera.position.set(0, initialCamY, initialCamZ);
 
@@ -82,79 +82,160 @@ export default function F1GameCanvas({
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.25;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     container.appendChild(renderer.domElement);
 
-    // --- 2. HIGH-CONTRAST PRACTICAL STUDIO LIGHTING ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    // --- 2. 🪞 PROCEDURAL STUDIO HDRI ENVIRONMENT MAP (PMREMGenerator) ---
+    // Generates studio lighting strips for photorealistic metallic clearcoat reflections
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+
+    const envScene = new THREE.Scene();
+    envScene.background = new THREE.Color(0x04060c);
+
+    // Softbox Light Strips around the vehicle reflection volume
+    const createSoftbox = (w: number, h: number, col: number, pos: [number, number, number], rot: [number, number, number]) => {
+      const geo = new THREE.PlaneGeometry(w, h);
+      const mat = new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(...pos);
+      mesh.rotation.set(...rot);
+      envScene.add(mesh);
+    };
+
+    // Overhead high-intensity white studio strip
+    createSoftbox(16, 3, 0xffffff, [0, 8, 0], [Math.PI / 2, 0, 0]);
+    // Lateral cyan/blue rim strips
+    createSoftbox(20, 2, 0x88ccff, [-6, 3, 0], [0, Math.PI / 2, 0]);
+    createSoftbox(20, 2, 0x88ccff, [6, 3, 0], [0, -Math.PI / 2, 0]);
+    // Front and rear specular glints
+    createSoftbox(8, 2, 0xddf0ff, [0, 2, -10], [0, 0, 0]);
+    createSoftbox(8, 2, 0x334466, [0, 2, 10], [0, Math.PI, 0]);
+
+    const studioEnvMap = pmremGenerator.fromScene(envScene, 0.04).texture;
+    scene.environment = studioEnvMap;
+
+    // --- 3. 💥 POST-PROCESSING & CINEMATIC BLOOM COMPOSER ---
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.15, // strength
+      0.40, // radius
+      0.82  // threshold: only high-emissive headlights / bat-signal bleed
+    );
+    composer.addPass(bloomPass);
+
+    // --- 4. LIGHTING RIG ---
+    const ambientLight = new THREE.AmbientLight(0xddeeff, 0.65);
     scene.add(ambientLight);
 
-    const rimLightLeft = new THREE.DirectionalLight(0xdbeafe, 4.5);
-    rimLightLeft.position.set(-8, 14, 4);
-    scene.add(rimLightLeft);
+    const keyRimLeft = new THREE.DirectionalLight(0xdbeafe, 3.8);
+    keyRimLeft.position.set(-8, 12, 4);
+    scene.add(keyRimLeft);
 
-    const rimLightRight = new THREE.DirectionalLight(0xdbeafe, 4.5);
-    rimLightRight.position.set(8, 14, 4);
-    scene.add(rimLightRight);
+    const keyRimRight = new THREE.DirectionalLight(0xdbeafe, 3.8);
+    keyRimRight.position.set(8, 12, 4);
+    scene.add(keyRimRight);
 
-    const topSpecularLight = new THREE.DirectionalLight(0xffffff, 3.5);
-    topSpecularLight.position.set(0, 24, -6);
-    scene.add(topSpecularLight);
+    const topGlanceLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    topGlanceLight.position.set(0, 18, -4);
+    scene.add(topGlanceLight);
 
-    // --- 3. 🦇 MODERN DC BAT-SIGNAL IN THE GOTHAM CLOUDS ---
+    // Forward Tactical Spotlights
+    const leftHeadlight = new THREE.SpotLight(0x7dd3fc, 65, 110, Math.PI / 5, 0.35, 1.2);
+    leftHeadlight.position.set(-0.7, 0.45, 0);
+    scene.add(leftHeadlight);
+
+    const rightHeadlight = new THREE.SpotLight(0x7dd3fc, 65, 110, Math.PI / 5, 0.35, 1.2);
+    rightHeadlight.position.set(0.7, 0.45, 0);
+    scene.add(rightHeadlight);
+
+    const headlightTarget = new THREE.Object3D();
+    headlightTarget.position.set(0, 0.1, -40);
+    scene.add(headlightTarget);
+    leftHeadlight.target = headlightTarget;
+    rightHeadlight.target = headlightTarget;
+
+    // Volumetric Headlight Cones
+    const coneGeo = new THREE.ConeGeometry(3.6, 34, 24, 1, true);
+    coneGeo.rotateX(Math.PI / 2);
+    coneGeo.translate(0, 0, -17);
+
+    const coneMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.055,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    const leftVolCone = new THREE.Mesh(coneGeo, coneMat);
+    scene.add(leftVolCone);
+    const rightVolCone = new THREE.Mesh(coneGeo, coneMat);
+    scene.add(rightVolCone);
+
+    // Underbody Dark Navy AO Glow (No red)
+    const batUnderbody = new THREE.PointLight(0x0e2444, 4.0, 6.0);
+    scene.add(batUnderbody);
+
+    // --- 5. 🦇 1024x1024 RAZOR-SHARP DC BAT-SIGNAL ---
     const batCanvas = document.createElement("canvas");
-    batCanvas.width = 512;
-    batCanvas.height = 512;
+    batCanvas.width = 1024;
+    batCanvas.height = 1024;
     const bCtx = batCanvas.getContext("2d");
     if (bCtx) {
-      // 1. Bright Teal/Cyan Spotlight Disk
-      const spotGrad = bCtx.createRadialGradient(256, 250, 6, 256, 250, 240);
+      // 1. High-Contrast Cinematic Teal/White Spotlight
+      const spotGrad = bCtx.createRadialGradient(512, 500, 10, 512, 500, 480);
       spotGrad.addColorStop(0.00, "rgba(255, 255, 255, 1.00)");
-      spotGrad.addColorStop(0.20, "rgba(200, 248, 255, 0.98)");
-      spotGrad.addColorStop(0.48, "rgba(90, 210, 235, 0.84)");
-      spotGrad.addColorStop(0.72, "rgba(35, 128, 190, 0.48)");
-      spotGrad.addColorStop(0.90, "rgba(12, 58, 115, 0.16)");
+      spotGrad.addColorStop(0.22, "rgba(210, 250, 255, 0.98)");
+      spotGrad.addColorStop(0.46, "rgba(95, 215, 240, 0.88)");
+      spotGrad.addColorStop(0.72, "rgba(30, 130, 195, 0.45)");
+      spotGrad.addColorStop(0.92, "rgba(10, 50, 110, 0.12)");
       spotGrad.addColorStop(1.00, "rgba(0, 0, 0, 0)");
       bCtx.fillStyle = spotGrad;
       bCtx.beginPath();
-      bCtx.arc(256, 256, 240, 0, Math.PI * 2);
+      bCtx.arc(512, 512, 480, 0, Math.PI * 2);
       bCtx.fill();
 
-      // 2. Lens border ring
-      bCtx.strokeStyle = "rgba(40, 165, 210, 0.55)";
-      bCtx.lineWidth = 4;
+      // 2. Projector Lens Ring
+      bCtx.strokeStyle = "rgba(45, 175, 225, 0.65)";
+      bCtx.lineWidth = 8;
       bCtx.beginPath();
-      bCtx.arc(256, 256, 233, 0, Math.PI * 2);
+      bCtx.arc(512, 512, 468, 0, Math.PI * 2);
       bCtx.stroke();
 
-      // 3. Bat cutout using destination-out — transparent hole = dark sky shows through = crisp silhouette
+      // 3. Bat Cutout (Destination-Out = Pure Crisp Void Hole)
       bCtx.save();
-      bCtx.translate(256, 264);
-      bCtx.scale(1.85, 1.85);
+      bCtx.translate(512, 530);
+      bCtx.scale(3.7, 3.7);
       bCtx.globalCompositeOperation = "destination-out";
-      bCtx.fillStyle = "rgba(0,0,0,1)";
+      bCtx.fillStyle = "rgba(0, 0, 0, 1)";
 
       bCtx.beginPath();
-      bCtx.moveTo(0, 30); // bottom center
+      bCtx.moveTo(0, 30);
 
-      // RIGHT WING: bottom edge (2 scallop bumps) → wingtip → top edge → ear
-      bCtx.bezierCurveTo(22, 30, 42, 22, 56, 10);     // body slope out
-      bCtx.bezierCurveTo(66, 2, 76, 10, 86, 18);       // scallop bump 1 (hangs down)
-      bCtx.bezierCurveTo(94, 24, 102, 8, 110, -2);     // scallop notch 1 (cuts up)
-      bCtx.bezierCurveTo(118, -5, 126, 10, 134, 16);   // scallop bump 2 (hangs down)
-      bCtx.bezierCurveTo(140, 20, 148, 4, 152, -12);   // scallop notch 2 (cuts up)
-      bCtx.bezierCurveTo(157, -24, 161, -36, 164, -44);// outer wingtip sweep
-      bCtx.bezierCurveTo(162, -35, 158, -22, 150, -14);// inner wingtip edge back
-      bCtx.bezierCurveTo(140, -4, 126, -18, 112, -30); // inner wing arc
-      bCtx.bezierCurveTo(94, -42, 74, -48, 54, -52);   // top arc inward
-      bCtx.bezierCurveTo(42, -54, 30, -55, 22, -57);   // to ear zone
-      bCtx.bezierCurveTo(16, -58, 10, -58, 7, -55);    // right ear peak
-      bCtx.bezierCurveTo(4, -52, 1, -48, 0, -46);      // center notch
+      // RIGHT WING
+      bCtx.bezierCurveTo(22, 30, 42, 22, 56, 10);
+      bCtx.bezierCurveTo(66, 2, 76, 10, 86, 18);
+      bCtx.bezierCurveTo(94, 24, 102, 8, 110, -2);
+      bCtx.bezierCurveTo(118, -5, 126, 10, 134, 16);
+      bCtx.bezierCurveTo(140, 20, 148, 4, 152, -12);
+      bCtx.bezierCurveTo(157, -24, 161, -36, 164, -44);
+      bCtx.bezierCurveTo(162, -35, 158, -22, 150, -14);
+      bCtx.bezierCurveTo(140, -4, 126, -18, 112, -30);
+      bCtx.bezierCurveTo(94, -42, 74, -48, 54, -52);
+      bCtx.bezierCurveTo(42, -54, 30, -55, 22, -57);
+      bCtx.bezierCurveTo(16, -58, 10, -58, 7, -55);
+      bCtx.bezierCurveTo(4, -52, 1, -48, 0, -46);
 
-      // LEFT WING: exact mirror
+      // LEFT WING (Exact Mirror)
       bCtx.bezierCurveTo(-1, -48, -4, -52, -7, -55);
       bCtx.bezierCurveTo(-10, -58, -16, -58, -22, -57);
       bCtx.bezierCurveTo(-30, -55, -42, -54, -54, -52);
@@ -178,58 +259,127 @@ export default function F1GameCanvas({
     const batMat = new THREE.SpriteMaterial({
       map: batTex,
       transparent: true,
-      opacity: 0.94,
-      blending: THREE.AdditiveBlending, // black bat = transparent = dark sky shows through = silhouette
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
       fog: false,
       depthWrite: false,
     });
     const batSignalSprite = new THREE.Sprite(batMat);
-    batSignalSprite.position.set(0, 30, -128);
-    batSignalSprite.scale.set(28, 28, 1);
+    batSignalSprite.position.set(0, 32, -135);
+    batSignalSprite.scale.set(30, 30, 1);
     scene.add(batSignalSprite);
 
-    // Forward Spotlights (Tactical LED Projectors)
-    const leftHeadlight = new THREE.SpotLight(0x38bdf8, 55, 95, Math.PI / 5, 0.35, 1.2);
-    leftHeadlight.position.set(-0.7, 0.45, 0);
-    scene.add(leftHeadlight);
+    // --- 6. 🌆 GOTHAM CITY SKYLINE (BATMAN: THE ANIMATED SERIES ART DECO SILHOUETTES) ---
+    const buildSkylineTexture = () => {
+      const c = document.createElement("canvas");
+      c.width = 1024;
+      c.height = 512;
+      const ctx = c.getContext("2d");
+      if (!ctx) return new THREE.CanvasTexture(c);
 
-    const rightHeadlight = new THREE.SpotLight(0x38bdf8, 55, 95, Math.PI / 5, 0.35, 1.2);
-    rightHeadlight.position.set(0.7, 0.45, 0);
-    scene.add(rightHeadlight);
+      ctx.fillStyle = "rgba(0,0,0,0)";
+      ctx.fillRect(0, 0, 1024, 512);
 
-    const headlightTarget = new THREE.Object3D();
-    headlightTarget.position.set(0, 0.1, -40);
-    scene.add(headlightTarget);
-    leftHeadlight.target = headlightTarget;
-    rightHeadlight.target = headlightTarget;
+      // Dark Art Deco Monoliths
+      const buildings = [
+        { x: 0, w: 110, h: 360, spires: [30, 50] },
+        { x: 120, w: 140, h: 440, spires: [40, 90] },
+        { x: 270, w: 90, h: 280, spires: [20, 40] },
+        { x: 370, w: 160, h: 480, spires: [50, 110] },
+        { x: 540, w: 120, h: 340, spires: [30, 60] },
+        { x: 670, w: 150, h: 420, spires: [45, 80] },
+        { x: 830, w: 100, h: 310, spires: [25, 45] },
+        { x: 940, w: 84, h: 390, spires: [20, 70] },
+      ];
 
-    // Volumetric Headlight Cones
-    const coneGeo = new THREE.ConeGeometry(3.5, 32, 24, 1, true);
-    coneGeo.rotateX(Math.PI / 2);
-    coneGeo.translate(0, 0, -16);
+      buildings.forEach((b) => {
+        // Main tower body (Midnight Obsidian)
+        ctx.fillStyle = "rgba(4, 7, 14, 0.96)";
+        ctx.fillRect(b.x, 512 - b.h, b.w, b.h);
 
-    const coneMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
+        // Stepped Art Deco Setbacks
+        ctx.fillStyle = "rgba(6, 10, 20, 0.98)";
+        ctx.fillRect(b.x + 15, 512 - b.h - b.spires[0], b.w - 30, b.spires[0]);
+
+        // Needle Spire
+        ctx.fillStyle = "rgba(8, 14, 26, 1.0)";
+        ctx.fillRect(b.x + b.w / 2 - 3, 512 - b.h - b.spires[0] - b.spires[1], 6, b.spires[1]);
+
+        // Ambient Gotham Window Slits (Sparse Cyan/Amber Pinpricks)
+        for (let wy = 512 - b.h + 20; wy < 480; wy += 28) {
+          for (let wx = b.x + 12; wx < b.x + b.w - 12; wx += 22) {
+            if (Math.random() < 0.28) {
+              const isAmber = Math.random() < 0.6;
+              ctx.fillStyle = isAmber ? "rgba(230, 190, 90, 0.55)" : "rgba(100, 210, 255, 0.45)";
+              ctx.fillRect(wx, wy, 4, 9);
+            }
+          }
+        }
+      });
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.repeat.set(3, 1);
+      return tex;
+    };
+
+    const skylineTex = buildSkylineTexture();
+    const skylineMat = new THREE.MeshBasicMaterial({
+      map: skylineTex,
       transparent: true,
-      opacity: 0.055, // Always-on base — visible in normal driving (was 0.0 bug)
-      blending: THREE.AdditiveBlending,
+      opacity: 0.88,
       side: THREE.DoubleSide,
-      depthWrite: false,
+      fog: true,
     });
 
-    const leftVolCone = new THREE.Mesh(coneGeo, coneMat);
-    scene.add(leftVolCone);
-    const rightVolCone = new THREE.Mesh(coneGeo, coneMat);
-    scene.add(rightVolCone);
+    // Left and Right Skyline Flanks framing the highway
+    const skylineGeo = new THREE.PlaneGeometry(360, 48);
+    const leftSkyline = new THREE.Mesh(skylineGeo, skylineMat);
+    leftSkyline.position.set(-24, 20, -160);
+    leftSkyline.rotation.y = Math.PI / 14;
+    scene.add(leftSkyline);
 
-    // 🦇 Batman aesthetic: no red. Replaced with a very faint deep-blue underbody glow.
-    const batUnderbody = new THREE.PointLight(0x0a1a3a, 3.5, 6);
-    scene.add(batUnderbody);
+    const rightSkyline = new THREE.Mesh(skylineGeo, skylineMat);
+    rightSkyline.position.set(24, 20, -160);
+    rightSkyline.rotation.y = -Math.PI / 14;
+    scene.add(rightSkyline);
 
-    // --- 4. ENDLESS WET OBSIDIAN HIGHWAY (PURE MINIMALIST MASTERY) ---
+    // --- 7. 🌧️ HIGH-SPEED RAIN STREAKS ---
+    const rainCount = 180;
+    const rainGeo = new THREE.BufferGeometry();
+    const rainPositions = new Float32Array(rainCount * 2 * 3);
+
+    for (let i = 0; i < rainCount; i++) {
+      const rx = (Math.random() - 0.5) * 22;
+      const ry = Math.random() * 8 + 0.4;
+      const rz = -Math.random() * 80;
+      const len = Math.random() * 0.7 + 0.4;
+
+      const idx = i * 6;
+      rainPositions[idx] = rx;
+      rainPositions[idx + 1] = ry;
+      rainPositions[idx + 2] = rz;
+
+      rainPositions[idx + 3] = rx;
+      rainPositions[idx + 4] = ry - len;
+      rainPositions[idx + 5] = rz - len * 0.5;
+    }
+
+    rainGeo.setAttribute("position", new THREE.BufferAttribute(rainPositions, 3));
+    const rainMat = new THREE.LineBasicMaterial({
+      color: 0x90d5ff,
+      transparent: true,
+      opacity: 0.35,
+      blending: THREE.AdditiveBlending,
+    });
+    const rainLines = new THREE.LineSegments(rainGeo, rainMat);
+    scene.add(rainLines);
+
+    // --- 8. ENDLESS WET OBSIDIAN HIGHWAY SHADER ---
     const roadWidth = 10.4;
-    const roadLength = 390.0; // Spans from Z = +30m behind camera to Z = -360m at horizon
-    const roadCenterZ = -165.0; // (30 - 360) / 2 = -165
+    const roadLength = 390.0;
+    const roadCenterZ = -165.0;
     const roadSegments = 260;
 
     const roadVertexShader = `
@@ -243,13 +393,10 @@ export default function F1GameCanvas({
       void main() {
         vUv = uv;
         vec3 pos = position;
-
-        // pos.y in local plane geometry: from -195 to +195
         float worldZPos = pos.y + (${roadCenterZ.toFixed(1)});
         float zDist = -worldZPos;
         vWorldZ = zDist;
 
-        // Gentle, majestic cinematic curve
         float curve = sin((zDist + uDistance) * 0.022) * uCurvature * (zDist * 0.010);
         pos.x += curve;
         vWorldX = pos.x;
@@ -274,38 +421,35 @@ export default function F1GameCanvas({
 
       void main() {
         float movingDist = vWorldZ + uDistance;
-        float grain = rand(vUv * 600.0) * 0.03;
+        float grain = rand(vUv * 600.0) * 0.028;
 
-        // Pristine Dark Obsidian Asphalt
-        vec3 asphaltColor = vec3(0.024, 0.026, 0.032) + grain;
+        vec3 asphaltColor = vec3(0.022, 0.024, 0.030) + grain;
 
-        // 1. Delicate Pearl-Gold Dashed Centerline
+        // Dashed Centerline
         float centerDist = abs(vUv.x - 0.5);
         float dashPattern = step(0.48, fract(movingDist * 0.08));
-
         if (centerDist < 0.0035 && dashPattern > 0.5) {
           asphaltColor = mix(asphaltColor, vec3(0.92, 0.78, 0.28), 0.75);
         }
 
-        // 2. Razor-Thin Crisp White Shoulder Lines
+        // Shoulder Lines
         float leftEdge = abs(vUv.x - 0.035);
         float rightEdge = abs(vUv.x - 0.965);
-
         if (leftEdge < 0.0028 || rightEdge < 0.0028) {
           asphaltColor = vec3(0.95, 0.95, 0.98);
         }
 
-        // 3. 70mm Anamorphic Wet Asphalt Specular Reflections
-        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 3.5) * 0.28;
-        asphaltColor += vec3(spec * 0.22, spec * 0.45, spec * 0.85);
+        // Wet Specular Asphalt Reflections
+        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 3.5) * 0.32;
+        asphaltColor += vec3(spec * 0.25, spec * 0.50, spec * 0.90);
 
-        // Night Mode Headlight Illumination Mask
+        // Headlight Projection Mask
         if (uLightsOut > 0.01) {
           float headlightMask = smoothstep(130.0, 10.0, vDepth) * smoothstep(5.0, 0.0, abs(vWorldX));
           asphaltColor *= mix(0.10, 1.4, headlightMask);
         }
 
-        // Depth Fog Fade into Infinite Midnight Sky
+        // Depth Fog Fade
         float fogFactor = smoothstep(90.0, 320.0, vDepth);
         vec3 finalColor = mix(asphaltColor, vec3(0.02, 0.04, 0.09), fogFactor);
 
@@ -332,7 +476,7 @@ export default function F1GameCanvas({
     roadMesh.position.set(0, 0, roadCenterZ);
     scene.add(roadMesh);
 
-    // --- 5. VOLUMETRIC GAUSSIAN TIRE VAPOR & CONTACT SHADOW ---
+    // --- 9. TIRE VAPOR & GROUND CONTACT AO SHADOW ---
     const smokeCanvas = document.createElement("canvas");
     smokeCanvas.width = 128;
     smokeCanvas.height = 128;
@@ -348,7 +492,7 @@ export default function F1GameCanvas({
     }
     const smokeTex = new THREE.CanvasTexture(smokeCanvas);
 
-    const smokeParticleCount = 40;
+    const smokeParticleCount = 44;
     const smokeSprites: THREE.Sprite[] = [];
     const smokePool: SmokeParticle[] = [];
 
@@ -377,15 +521,15 @@ export default function F1GameCanvas({
       });
     }
 
-    // Diffuser Ground-Effect Contact Shadow
+    // High-Quality Diffuser Ground AO Shadow
     const shadowCanvas = document.createElement("canvas");
     shadowCanvas.width = 128;
     shadowCanvas.height = 128;
     const shCtx = shadowCanvas.getContext("2d");
     if (shCtx) {
       const grad = shCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
-      grad.addColorStop(0, "rgba(0, 0, 0, 0.95)");
-      grad.addColorStop(0.5, "rgba(0, 0, 0, 0.65)");
+      grad.addColorStop(0, "rgba(0, 0, 0, 0.98)");
+      grad.addColorStop(0.55, "rgba(0, 0, 0, 0.60)");
       grad.addColorStop(1, "rgba(0, 0, 0, 0)");
       shCtx.fillStyle = grad;
       shCtx.fillRect(0, 0, 128, 128);
@@ -394,17 +538,19 @@ export default function F1GameCanvas({
     const shadowMat = new THREE.MeshBasicMaterial({
       map: shadowTex,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.90,
       depthWrite: false,
     });
-    const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 4.2), shadowMat);
+    const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 4.4), shadowMat);
     groundShadow.rotation.x = -Math.PI / 2;
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
 
-    // --- 6. 3D CAR MODEL LOADING (ORIGINAL HIGH-GLOSS RACING FINISH) ---
+    // --- 10. 🏎️ 3D CAR MODEL WITH LIQUID CLEARCOAT & WHEEL HOOKS ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
+
+    const wheelMeshes: THREE.Object3D[] = [];
 
     const loader = new GLTFLoader();
     loader.load(
@@ -423,8 +569,19 @@ export default function F1GameCanvas({
         const targetScale = 3.8 / maxDim;
         model.scale.set(targetScale, targetScale, targetScale);
 
-        // Apply High-Gloss Obsidian Chrome Finish preserving original textures
+        // Apply MeshPhysicalMaterial Automotive Clearcoat & Discover Wheels
         model.traverse((child) => {
+          const nodeName = child.name.toLowerCase();
+          const isWheel =
+            nodeName.includes("wheel") ||
+            nodeName.includes("tire") ||
+            nodeName.includes("tyre") ||
+            nodeName.includes("rim");
+
+          if (isWheel && child.type.includes("Mesh")) {
+            wheelMeshes.push(child);
+          }
+
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             mesh.castShadow = true;
@@ -432,14 +589,18 @@ export default function F1GameCanvas({
 
             if (mesh.material) {
               const originalMat = mesh.material as THREE.MeshStandardMaterial;
-              mesh.material = new THREE.MeshStandardMaterial({
+
+              mesh.material = new THREE.MeshPhysicalMaterial({
                 map: originalMat.map || null,
                 normalMap: originalMat.normalMap || null,
                 roughnessMap: originalMat.roughnessMap || null,
-                color: originalMat.map ? 0xffffff : 0x111115,
-                metalness: 0.96,
-                roughness: 0.10,
-                envMapIntensity: 2.6,
+                color: originalMat.map ? 0xffffff : isWheel ? 0x08080a : 0x0d1017,
+                metalness: isWheel ? 0.40 : 0.88,
+                roughness: isWheel ? 0.60 : 0.12,
+                clearcoat: isWheel ? 0.1 : 1.0,
+                clearcoatRoughness: 0.08,
+                envMapIntensity: 2.8,
+                reflectivity: 0.95,
               });
             }
           }
@@ -455,21 +616,26 @@ export default function F1GameCanvas({
       (err) => console.error("Error loading car GLB:", err)
     );
 
-    // --- 7. INTERACTION CONTROLS ---
+    // --- 11. CONTROLS & SPRING PHYSICS STATE ---
     let pointerX = 0;
-    // pointerY intentionally not used for car position — car stays flat on road always
     let targetCarX = 0;
     let carX = 0;
     let carSteerVelocity = 0;
-    let steerInput = 0; // -1 (full left) to +1 (full right)
+    let steerInput = 0;
     let baseSpeed = 190;
     let currentSpeed = baseSpeed;
     let isBoosting = false;
     let lapTime = 0;
     let trackDistance = 0;
 
+    // Rockstar Spring-Damper Camera State
+    let camPosX = 0;
+    let camVelX = 0;
+    let camPosZ = initialCamZ;
+    let camVelZ = 0;
+    let camRoll = 0;
+
     const handlePointerMove = (e: PointerEvent) => {
-      // Only horizontal input for steering — vertical mouse is ignored
       pointerX = (e.clientX / window.innerWidth - 0.5) * 2.0;
       steerInput = THREE.MathUtils.clamp(pointerX, -1, 1);
     };
@@ -508,7 +674,7 @@ export default function F1GameCanvas({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
-    // --- 8. RESIZE HANDLER ---
+    // --- 12. RESIZE HANDLER ---
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -517,42 +683,45 @@ export default function F1GameCanvas({
       camera.fov = isMob ? 58 : 50;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      composer.setSize(w, h);
+      bloomPass.setSize(w, h);
     };
     window.addEventListener("resize", handleResize);
 
-    // --- 9. 60FPS CINEMATIC RENDER LOOP ---
+    // --- 13. CINEMATIC 60FPS TICK LOOP ---
     let animFrameId: number;
     const clock = new THREE.Clock();
 
     const tick = () => {
-      const delta = clock.getDelta();
+      const delta = Math.min(clock.getDelta(), 0.08);
       const time = clock.getElapsedTime();
 
-      // 1. Smooth Acceleration Curve
+      // 1. Acceleration & Pacing
       const targetSpeed = isBoosting ? 365 : 190;
       currentSpeed += (targetSpeed - currentSpeed) * (isBoosting ? 0.08 : 0.045);
       lapTime += delta;
 
-      // 2. WEIGHTED CINEMATIC VELOCITY (PORSCHE / APPLE PACING)
       const forwardDelta = currentSpeed * 0.20 * delta;
       trackDistance += forwardDelta;
 
       // Road Shader Uniforms
       roadUniforms.uDistance.value = trackDistance;
-
       const targetLightsOut = isLightsOutRef.current ? 1.0 : 0.0;
       roadUniforms.uLightsOut.value +=
         (targetLightsOut - roadUniforms.uLightsOut.value) * 0.1;
 
-      coneMat.opacity = 0.055 + roadUniforms.uLightsOut.value * (isBoosting ? 0.11 : 0.06);
+      coneMat.opacity = 0.055 + roadUniforms.uLightsOut.value * (isBoosting ? 0.12 : 0.06);
 
-      // Gentle Atmospheric Pulse on the Bat-Signal
-      batSignalSprite.material.opacity = 0.88 + Math.sin(time * 1.5) * 0.08;
+      // Bat-Signal Aura Pulse
+      batSignalSprite.material.opacity = 0.90 + Math.sin(time * 1.5) * 0.06;
 
-      // 3. GROUND-LOCKED DRIVING PHYSICS (Real car — stays flat on road always)
+      // Parallax City Skyline Drift
+      if (skylineTex) {
+        skylineTex.offset.x = (trackDistance * 0.00045) % 1;
+      }
+
+      // 2. Ground-Locked Driving Physics
       const trackHalfW = roadWidth / 2 - 0.8;
-
-      // Horizontal steering only — no vertical axis
       targetCarX = THREE.MathUtils.clamp(
         steerInput * (trackHalfW - 0.5),
         -trackHalfW + 0.2,
@@ -560,83 +729,105 @@ export default function F1GameCanvas({
       );
 
       const prevX = carX;
-      // Weighted steering inertia (real tyre slip feel)
       const steerLag = 0.09 + Math.abs(steerInput) * 0.04;
       carX += (targetCarX - carX) * steerLag;
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
 
-      // Car ALWAYS locked flat on the road surface — Y is constant
       const roadY = 0.02;
-
-      // High-speed micro road vibration (chassis chatter on asphalt)
       const highSpeedShake = Math.sin(time * 90) * 0.003 * (currentSpeed / 200);
 
       carGroup.position.x = carX;
       carGroup.position.y = roadY + Math.abs(highSpeedShake);
       carGroup.position.z = 0;
 
-      // Ground Contact Shadow Follows Car (always visible — car never flies)
       groundShadow.position.x = carX;
       groundShadow.position.z = 0;
-      groundShadow.material.opacity = 0.85;
 
-      const isFlying = false; // Car never flies — ground locked
       const onKerb = Math.abs(carX) > trackHalfW - 1.0;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
 
-      // Suspension Body Roll (weight transfer physics — car leans INTO the corner)
-      // Positive steer right → weight shifts left → car leans left (negative Z)
+      // Suspension Roll & Ackermann Yaw
       const suspensionRoll = -carSteerVelocity * 0.028;
       carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, suspensionRoll, 0.14);
 
-      // Subtle Ackermann Yaw — rear of car follows the steering arc naturally
       const ackermann = -carSteerVelocity * 0.012;
       carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermann, 0.12);
-
-      // No pitch — car stays perfectly flat, nose does not lift or dip
       carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, 0, 0.18);
 
-      // Headlight Tracking (fixed Y since car is always on the road)
+      // 🔄 Real Wheel Spin
+      if (wheelMeshes.length > 0) {
+        const wheelDelta = currentSpeed * 0.05 * delta;
+        wheelMeshes.forEach((w) => {
+          w.rotation.x += wheelDelta;
+        });
+      }
+
+      // 3. Headlight & Underbody Tracking
       leftHeadlight.position.set(carX - 0.7, 0.45, -0.2);
       rightHeadlight.position.set(carX + 0.7, 0.45, -0.2);
       leftVolCone.position.set(carX - 0.7, 0.45, -0.2);
       rightVolCone.position.set(carX + 0.7, 0.45, -0.2);
-      // Headlights steer slightly with the car (like real projector headlights)
       headlightTarget.position.set(carX + steerInput * 3.5, 0.1, -40);
 
-      // 🦇 Subtle deep-blue underbody glow follows car (no red)
       batUnderbody.position.set(carX, 0.08, 0.8);
 
-      // 4. Volumetric Gaussian Tire Mist / Smoke Updates
-      const isSmokeActive = onKerb || Math.abs(carSteerVelocity) > 2.8 || isBoosting;
+      // 4. High-Speed Rain Streaks Animation
+      const posAttr = rainGeo.attributes.position as THREE.BufferAttribute;
+      const rainArr = posAttr.array as Float32Array;
+      const rainFallSpeed = (38 + currentSpeed * 0.15) * delta;
+
+      for (let i = 0; i < rainCount; i++) {
+        const idx = i * 6;
+        rainArr[idx + 1] -= rainFallSpeed;
+        rainArr[idx + 4] -= rainFallSpeed;
+        rainArr[idx + 2] += (currentSpeed * 0.18) * delta;
+        rainArr[idx + 5] += (currentSpeed * 0.18) * delta;
+
+        if (rainArr[idx + 1] < 0 || rainArr[idx + 2] > 2.0) {
+          const rx = carX + (Math.random() - 0.5) * 16;
+          const ry = Math.random() * 6 + 1.2;
+          const rz = -Math.random() * 70 - 5;
+          const len = Math.random() * 0.8 + 0.5;
+
+          rainArr[idx] = rx;
+          rainArr[idx + 1] = ry;
+          rainArr[idx + 2] = rz;
+          rainArr[idx + 3] = rx;
+          rainArr[idx + 4] = ry - len;
+          rainArr[idx + 5] = rz - len * 0.5;
+        }
+      }
+      posAttr.needsUpdate = true;
+
+      // 5. Tire Mist Particles (Continuous Ambient Spray + Hard Turn Blast)
+      const isSmokeActive = onKerb || Math.abs(carSteerVelocity) > 2.2 || isBoosting || Math.random() < 0.18;
 
       for (let i = 0; i < smokeParticleCount; i++) {
         const p = smokePool[i];
         const sp = smokeSprites[i];
 
-        if (p.life <= 0 && isSmokeActive && Math.random() < 0.4) {
+        if (p.life <= 0 && isSmokeActive && Math.random() < 0.45) {
           const isLeft = Math.random() > 0.5;
           const spawnX = isLeft ? carX - 0.88 : carX + 0.88;
           p.pos.set(spawnX + (Math.random() - 0.5) * 0.15, 0.14, 1.25);
           p.vel.set(
             (Math.random() - 0.5) * 0.6 - carSteerVelocity * 0.15,
-            Math.random() * 0.4 + 0.15,
+            Math.random() * 0.35 + 0.12,
             currentSpeed * 0.04 + Math.random() * 2.0
           );
           p.scale = 0.35;
-          p.maxScale = Math.random() * 1.4 + 1.2;
+          p.maxScale = Math.random() * 1.4 + 1.1;
           p.life = Math.random() * 0.25 + 0.55;
           p.maxLife = p.life;
-          p.opacity = 0.30;
+          p.opacity = 0.28;
         } else if (p.life > 0) {
           p.life -= delta;
           const progress = 1.0 - p.life / p.maxLife;
-
           p.pos.addScaledVector(p.vel, delta);
           p.scale = THREE.MathUtils.lerp(0.35, p.maxScale, progress);
-          p.opacity = (1.0 - progress) * 0.30;
+          p.opacity = (1.0 - progress) * 0.28;
 
           sp.position.copy(p.pos);
           sp.scale.set(p.scale, p.scale, 1);
@@ -646,50 +837,67 @@ export default function F1GameCanvas({
         }
       }
 
-      // 5. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
+      // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS
       const isMobile = window.innerWidth < 768;
       const baseCamZ = isMobile ? 4.9 : 3.6;
       const baseCamY = isMobile ? 1.15 : 0.95;
 
-      const camTargetX = carX * 0.32;
-      // Camera stays at fixed height — car never leaves the ground
-      const camTargetY = baseCamY + (isBoosting ? -0.06 : 0);
-      const camTargetZ = baseCamZ + (isBoosting ? 0.35 : 0);
+      const targetCamX = carX * 0.35;
+      const targetCamZ = baseCamZ + (isBoosting ? 0.42 : 0);
 
-      camera.position.x += (camTargetX - camera.position.x) * 0.11;
-      camera.position.y += (camTargetY - camera.position.y) * 0.11;
-      camera.position.z += (camTargetZ - camera.position.z) * 0.11;
+      // Spring-damper force integration on X
+      const springK = 18.0;
+      const damping = Math.exp(-6.5 * delta);
+      const forceX = (targetCamX - camPosX) * springK;
+      camVelX = (camVelX + forceX * delta) * damping;
+      camPosX += camVelX * delta;
 
-      // Dynamic Speed Perspective Warp
+      // Spring-damper force integration on Z
+      const forceZ = (targetCamZ - camPosZ) * springK;
+      camVelZ = (camVelZ + forceZ * delta) * damping;
+      camPosZ += camVelZ * delta;
+
+      camera.position.x = camPosX;
+      camera.position.y = baseCamY + (isBoosting ? -0.06 : 0);
+      camera.position.z = camPosZ;
+
+      // Dutch Tilt (Camera banks subtly on hard turns)
+      const targetDutchTilt = -carSteerVelocity * 0.024;
+      camRoll += (targetDutchTilt - camRoll) * 0.12;
+      camera.rotation.z = camRoll;
+
+      // Dynamic Speed Perspective FOV Warp
       const baseFOV = isMobile ? 58 : 50;
-      const targetFOV = isBoosting ? baseFOV + 12 : baseFOV;
+      const targetFOV = isBoosting ? baseFOV + 14 : baseFOV;
       camera.fov += (targetFOV - camera.fov) * 0.08;
       camera.updateProjectionMatrix();
 
-      // LookAt follows car laterally but fixed height
-      camera.lookAt(carX * 0.15, 0.38, -14);
+      // Look-Ahead (Anticipates road curves ahead of car)
+      camera.lookAt(carX * 0.35 + steerInput * 1.5, 0.40, -16);
 
-      // 6. Telemetry Callback
+      // 7. Telemetry & Audio Engine Update
+      const gear =
+        currentSpeed < 80
+          ? 2
+          : currentSpeed < 130
+          ? 3
+          : currentSpeed < 185
+          ? 4
+          : currentSpeed < 240
+          ? 5
+          : currentSpeed < 295
+          ? 6
+          : currentSpeed < 340
+          ? 7
+          : 8;
+      const rpm = Math.floor(
+        10500 + (currentSpeed % 50) * 110 + (isBoosting ? 2400 : 0)
+      );
+      const sectorCycle = Math.floor((lapTime % 90) / 30) + 1;
+
+      updateF1Engine(rpm, currentSpeed, isBoosting, isMutedRef.current, gear);
+
       if (onTelemetryUpdate) {
-        const gear =
-          currentSpeed < 80
-            ? 2
-            : currentSpeed < 130
-            ? 3
-            : currentSpeed < 185
-            ? 4
-            : currentSpeed < 240
-            ? 5
-            : currentSpeed < 295
-            ? 6
-            : currentSpeed < 340
-            ? 7
-            : 8;
-        const rpm = Math.floor(
-          10500 + (currentSpeed % 50) * 110 + (isBoosting ? 2400 : 0)
-        );
-        const sectorCycle = Math.floor((lapTime % 90) / 30) + 1;
-
         onTelemetryUpdate({
           speed: Math.round(currentSpeed),
           gear,
@@ -697,7 +905,7 @@ export default function F1GameCanvas({
           lapTime,
           isBoosting,
           isDrifting: Math.abs(carSteerVelocity) > 3.6,
-          isFlying,
+          isFlying: false,
           isLightsOut: isLightsOutRef.current,
           onKerb,
           currentSector: sectorCycle,
@@ -705,14 +913,14 @@ export default function F1GameCanvas({
         });
       }
 
-      // 7. Render Scene
-      renderer.render(scene, camera);
+      // 8. Render Scene with Post-Processing Bloom
+      composer.render();
       animFrameId = requestAnimationFrame(tick);
     };
 
     animFrameId = requestAnimationFrame(tick);
 
-    // --- 8. CLEANUP ON UNMOUNT ---
+    // --- 14. CLEANUP ON UNMOUNT ---
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("pointermove", handlePointerMove);
@@ -726,11 +934,17 @@ export default function F1GameCanvas({
         container.removeChild(renderer.domElement);
       }
       renderer.dispose();
+      pmremGenerator.dispose();
+      studioEnvMap.dispose();
       roadGeometry.dispose();
       roadMaterial.dispose();
       coneGeo.dispose();
       coneMat.dispose();
-
+      skylineGeo.dispose();
+      skylineMat.dispose();
+      skylineTex.dispose();
+      rainGeo.dispose();
+      rainMat.dispose();
       smokeTex.dispose();
       smokeMat.dispose();
       shadowTex.dispose();
