@@ -89,64 +89,59 @@ export default function F1GameCanvas({
     container.appendChild(renderer.domElement);
 
     // --- 2. HIGH-CONTRAST PRACTICAL STUDIO LIGHTING ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.90);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
-    const rimLightLeft = new THREE.DirectionalLight(0xdbeafe, 4.2);
+    const rimLightLeft = new THREE.DirectionalLight(0xdbeafe, 4.5);
     rimLightLeft.position.set(-8, 14, 4);
     scene.add(rimLightLeft);
 
-    const rimLightRight = new THREE.DirectionalLight(0xdbeafe, 4.2);
+    const rimLightRight = new THREE.DirectionalLight(0xdbeafe, 4.5);
     rimLightRight.position.set(8, 14, 4);
     scene.add(rimLightRight);
 
-    const topSpecularLight = new THREE.DirectionalLight(0xffffff, 3.2);
+    const topSpecularLight = new THREE.DirectionalLight(0xffffff, 3.5);
     topSpecularLight.position.set(0, 24, -6);
     scene.add(topSpecularLight);
 
-    // --- 3. 🦇 70MM NOLAN BAT-SIGNAL IN THE MIDNIGHT SKY ---
-    // Procedural High-Res Bat-Signal Spotlight Canvas
+    // --- 3. 🦇 70MM NOLAN BAT-SIGNAL IN THE GOTHAM CLOUDS ---
     const batCanvas = document.createElement("canvas");
     batCanvas.width = 512;
     batCanvas.height = 512;
     const bCtx = batCanvas.getContext("2d");
     if (bCtx) {
-      // 1. Soft Volumetric Spotlight Cloud Disk
-      const spotGrad = bCtx.createRadialGradient(256, 256, 20, 256, 256, 240);
-      spotGrad.addColorStop(0.0, "rgba(235, 245, 255, 0.98)");
-      spotGrad.addColorStop(0.3, "rgba(200, 225, 255, 0.85)");
-      spotGrad.addColorStop(0.65, "rgba(140, 185, 240, 0.45)");
-      spotGrad.addColorStop(0.9, "rgba(70, 120, 200, 0.12)");
+      // 1. Luminous Spotlight Cloud Disk
+      const spotGrad = bCtx.createRadialGradient(256, 256, 15, 256, 256, 230);
+      spotGrad.addColorStop(0.0, "rgba(240, 248, 255, 0.98)");
+      spotGrad.addColorStop(0.35, "rgba(190, 220, 255, 0.85)");
+      spotGrad.addColorStop(0.7, "rgba(120, 175, 240, 0.35)");
+      spotGrad.addColorStop(0.95, "rgba(60, 110, 190, 0.08)");
       spotGrad.addColorStop(1.0, "rgba(0, 0, 0, 0)");
       bCtx.fillStyle = spotGrad;
       bCtx.beginPath();
-      bCtx.arc(256, 256, 250, 0, Math.PI * 2);
+      bCtx.arc(256, 256, 240, 0, Math.PI * 2);
       bCtx.fill();
 
-      // 2. Iconic Nolan Bat Silhouette (Precise Vector Geometry)
+      // 2. Iconic Nolan Bat Silhouette (Crisp Vector Shape)
       bCtx.save();
       bCtx.translate(256, 256);
-      bCtx.scale(1.45, 1.45);
-      bCtx.fillStyle = "rgba(4, 8, 18, 0.98)";
+      bCtx.scale(1.4, 1.4);
+      bCtx.fillStyle = "rgba(2, 4, 10, 0.98)";
 
       bCtx.beginPath();
-      // Head and Ears
-      bCtx.moveTo(-6, -42);
-      bCtx.lineTo(-14, -62); // Left Ear Tip
-      bCtx.lineTo(-24, -42);
-      // Left Upper Wing Arc
-      bCtx.bezierCurveTo(-55, -45, -95, -28, -125, 8);
-      // Left Wing Serrations
-      bCtx.bezierCurveTo(-110, 25, -90, 42, -75, 42);
-      bCtx.bezierCurveTo(-60, 42, -45, 28, -38, 22);
-      bCtx.bezierCurveTo(-30, 38, -18, 52, 0, 56); // Tail Tip
-      bCtx.bezierCurveTo(18, 52, 30, 38, 38, 22);
-      bCtx.bezierCurveTo(45, 28, 60, 42, 75, 42);
-      bCtx.bezierCurveTo(90, 42, 110, 25, 125, 8);
-      // Right Upper Wing Arc
-      bCtx.bezierCurveTo(95, -28, 55, -45, 24, -42);
-      bCtx.lineTo(14, -62); // Right Ear Tip
-      bCtx.lineTo(6, -42);
+      bCtx.moveTo(-6, -40);
+      bCtx.lineTo(-14, -60); // Left Ear Tip
+      bCtx.lineTo(-24, -40);
+      bCtx.bezierCurveTo(-55, -42, -95, -26, -125, 8);
+      bCtx.bezierCurveTo(-110, 24, -90, 40, -75, 40);
+      bCtx.bezierCurveTo(-60, 40, -45, 26, -38, 20);
+      bCtx.bezierCurveTo(-30, 36, -18, 50, 0, 54); // Tail Tip
+      bCtx.bezierCurveTo(18, 50, 30, 36, 38, 20);
+      bCtx.bezierCurveTo(45, 26, 60, 40, 75, 40);
+      bCtx.bezierCurveTo(90, 40, 110, 24, 125, 8);
+      bCtx.bezierCurveTo(95, -26, 55, -42, 24, -40);
+      bCtx.lineTo(14, -60); // Right Ear Tip
+      bCtx.lineTo(6, -40);
       bCtx.closePath();
       bCtx.fill();
       bCtx.restore();
@@ -158,37 +153,20 @@ export default function F1GameCanvas({
       transparent: true,
       opacity: 0.92,
       blending: THREE.AdditiveBlending,
+      fog: false, // Prevents scene fog from dissolving the Bat-Signal
       depthWrite: false,
     });
     const batSignalSprite = new THREE.Sprite(batMat);
-    batSignalSprite.position.set(0, 52, -330);
-    batSignalSprite.scale.set(42, 42, 1);
+    batSignalSprite.position.set(0, 28, -120);
+    batSignalSprite.scale.set(26, 26, 1);
     scene.add(batSignalSprite);
 
-    // Volumetric Searchlight Cone from City Rooftops to Sky
-    const beamGeo = new THREE.CylinderGeometry(0.8, 32, 210, 24, 1, true);
-    beamGeo.rotateX(Math.PI / 2);
-    beamGeo.translate(0, 0, -105);
-
-    const beamMat = new THREE.MeshBasicMaterial({
-      color: 0x93c5fd,
-      transparent: true,
-      opacity: 0.065,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const searchlightBeam = new THREE.Mesh(beamGeo, beamMat);
-    searchlightBeam.position.set(0, 2, -140);
-    searchlightBeam.lookAt(0, 52, -330);
-    scene.add(searchlightBeam);
-
-    // Forward Spotlights (Batmobile Tactical LED Headlights)
-    const leftHeadlight = new THREE.SpotLight(0xdbeafe, 60, 95, Math.PI / 5, 0.35, 1.2);
+    // Forward Spotlights (Tactical LED Projectors)
+    const leftHeadlight = new THREE.SpotLight(0x38bdf8, 55, 95, Math.PI / 5, 0.35, 1.2);
     leftHeadlight.position.set(-0.7, 0.45, 0);
     scene.add(leftHeadlight);
 
-    const rightHeadlight = new THREE.SpotLight(0xdbeafe, 60, 95, Math.PI / 5, 0.35, 1.2);
+    const rightHeadlight = new THREE.SpotLight(0x38bdf8, 55, 95, Math.PI / 5, 0.35, 1.2);
     rightHeadlight.position.set(0.7, 0.45, 0);
     scene.add(rightHeadlight);
 
@@ -204,7 +182,7 @@ export default function F1GameCanvas({
     coneGeo.translate(0, 0, -16);
 
     const coneMat = new THREE.MeshBasicMaterial({
-      color: 0xdbeafe,
+      color: 0x38bdf8,
       transparent: true,
       opacity: 0.0,
       blending: THREE.AdditiveBlending,
@@ -217,12 +195,9 @@ export default function F1GameCanvas({
     const rightVolCone = new THREE.Mesh(coneGeo, coneMat);
     scene.add(rightVolCone);
 
-    // Rear Jet Turbine Exhaust Light & Rain LED
+    // Rear Rain Light (Red LED Pulse)
     const rearRainLight = new THREE.PointLight(0xff0033, 14, 12);
     scene.add(rearRainLight);
-
-    const turbineExhaustLight = new THREE.PointLight(0x38bdf8, 0, 14);
-    scene.add(turbineExhaustLight);
 
     // Luminous Rear Lens Flare Sprite
     const flareCanvas = document.createElement("canvas");
@@ -247,20 +222,6 @@ export default function F1GameCanvas({
     const rainFlareSprite = new THREE.Sprite(flareMat);
     rainFlareSprite.scale.set(0.7, 0.7, 1);
     scene.add(rainFlareSprite);
-
-    // Supersonic Afterburner Flame Cone (Turbine Boost Jet)
-    const flameGeo = new THREE.ConeGeometry(0.35, 2.4, 16);
-    flameGeo.rotateX(-Math.PI / 2);
-    flameGeo.translate(0, 0, 1.2);
-    const flameMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      transparent: true,
-      opacity: 0.0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const afterburnerFlame = new THREE.Mesh(flameGeo, flameMat);
-    scene.add(afterburnerFlame);
 
     // --- 4. ENDLESS WET OBSIDIAN HIGHWAY (PURE MINIMALIST MASTERY) ---
     const roadWidth = 10.4;
@@ -368,7 +329,7 @@ export default function F1GameCanvas({
     roadMesh.position.set(0, 0, roadCenterZ);
     scene.add(roadMesh);
 
-    // --- 5. VOLUMETRIC GAUSSIAN TIRE VAPOR & REAR WING VORTEX TRAILS ---
+    // --- 5. VOLUMETRIC GAUSSIAN TIRE VAPOR & CONTACT SHADOW ---
     const smokeCanvas = document.createElement("canvas");
     smokeCanvas.width = 128;
     smokeCanvas.height = 128;
@@ -438,7 +399,7 @@ export default function F1GameCanvas({
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
 
-    // --- 6. 🦇 WAYNE ENTERPRISES MATTE STEALTH BATMOBILE 3D MODEL ---
+    // --- 6. 3D CAR MODEL LOADING (ORIGINAL HIGH-GLOSS RACING FINISH) ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
@@ -459,7 +420,7 @@ export default function F1GameCanvas({
         const targetScale = 3.8 / maxDim;
         model.scale.set(targetScale, targetScale, targetScale);
 
-        // Apply Wayne Enterprises Tactical Stealth Armor Finish
+        // Apply High-Gloss Obsidian Chrome Finish preserving original textures
         model.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
@@ -472,11 +433,10 @@ export default function F1GameCanvas({
                 map: originalMat.map || null,
                 normalMap: originalMat.normalMap || null,
                 roughnessMap: originalMat.roughnessMap || null,
-                // Tactical Military Matte Stealth Armor Plate
-                color: originalMat.map ? 0xcccccc : 0x08080b,
-                metalness: 0.35,
-                roughness: 0.68,
-                envMapIntensity: 1.8,
+                color: originalMat.map ? 0xffffff : 0x111115,
+                metalness: 0.96,
+                roughness: 0.10,
+                envMapIntensity: 2.6,
               });
             }
           }
@@ -489,7 +449,7 @@ export default function F1GameCanvas({
         carGroup.add(carPivot);
       },
       undefined,
-      (err) => console.error("Error loading Batmobile GLB:", err)
+      (err) => console.error("Error loading car GLB:", err)
     );
 
     // --- 7. INTERACTION CONTROLS ---
@@ -579,8 +539,8 @@ export default function F1GameCanvas({
 
       coneMat.opacity = roadUniforms.uLightsOut.value * (isBoosting ? 0.16 : 0.10);
 
-      // Atmospheric Cloud Pulse on Bat-Signal
-      batSignalSprite.material.opacity = 0.88 + Math.sin(time * 1.8) * 0.08;
+      // Gentle Atmospheric Pulse on the Bat-Signal
+      batSignalSprite.material.opacity = 0.88 + Math.sin(time * 1.5) * 0.08;
 
       // 3. 6-Axis Physics & Flight Aerodynamics
       const trackHalfW = roadWidth / 2 - 0.8;
@@ -636,17 +596,7 @@ export default function F1GameCanvas({
       const flareScale = 0.65 + Math.sin(time * 22) * 0.15;
       rainFlareSprite.scale.set(flareScale, flareScale, 1);
 
-      // 4. Supersonic Afterburner Turbine Boost Jet Flame
-      afterburnerFlame.position.set(carX, 0.36 + carY, 1.35);
-      const targetFlameOpacity = isBoosting ? 0.90 + Math.sin(time * 45) * 0.10 : 0.0;
-      flameMat.opacity += (targetFlameOpacity - flameMat.opacity) * 0.2;
-      const targetFlameLength = isBoosting ? 1.0 + Math.sin(time * 30) * 0.25 : 0.1;
-      afterburnerFlame.scale.set(1, 1, targetFlameLength);
-
-      turbineExhaustLight.position.set(carX, 0.36 + carY, 2.0);
-      turbineExhaustLight.intensity = isBoosting ? 16 + Math.sin(time * 40) * 4 : 0;
-
-      // 5. Volumetric Gaussian Tire Mist / Smoke Updates
+      // 4. Volumetric Gaussian Tire Mist / Smoke Updates
       const isSmokeActive = (!isFlying && onKerb) || Math.abs(carSteerVelocity) > 2.8 || isBoosting;
 
       for (let i = 0; i < smokeParticleCount; i++) {
@@ -683,7 +633,7 @@ export default function F1GameCanvas({
         }
       }
 
-      // 6. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
+      // 5. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
       const isMobile = window.innerWidth < 768;
       const baseCamZ = isMobile ? 4.9 : 3.6;
       const baseCamY = isMobile ? 1.15 : 0.95;
@@ -704,7 +654,7 @@ export default function F1GameCanvas({
 
       camera.lookAt(carX * 0.15, 0.4 + (carY * 0.25), -14);
 
-      // 7. Telemetry Callback
+      // 6. Telemetry Callback
       if (onTelemetryUpdate) {
         const gear =
           currentSpeed < 80
@@ -740,14 +690,14 @@ export default function F1GameCanvas({
         });
       }
 
-      // 8. Render Scene
+      // 7. Render Scene
       renderer.render(scene, camera);
       animFrameId = requestAnimationFrame(tick);
     };
 
     animFrameId = requestAnimationFrame(tick);
 
-    // --- 9. CLEANUP ON UNMOUNT ---
+    // --- 8. CLEANUP ON UNMOUNT ---
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("pointermove", handlePointerMove);
@@ -773,10 +723,6 @@ export default function F1GameCanvas({
       shadowMat.dispose();
       batTex.dispose();
       batMat.dispose();
-      beamGeo.dispose();
-      beamMat.dispose();
-      flameGeo.dispose();
-      flameMat.dispose();
     };
   }, []);
 
