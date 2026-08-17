@@ -94,7 +94,7 @@ export default function F1GameCanvas({
 
     container.appendChild(renderer.domElement);
 
-    // --- 2. HIGH-CONTRAST STUDIO LIGHTING RIG ---
+    // --- 2. HIGH-CONTRAST STUDIO LIGHTING RIG (70MM CINEMATIC STANDARD) ---
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(ambientLight);
 
@@ -125,7 +125,7 @@ export default function F1GameCanvas({
     leftHeadlight.target = headlightTarget;
     rightHeadlight.target = headlightTarget;
 
-    // Volumetric 3D Headlight Cones
+    // Volumetric Headlight Cones
     const coneGeo = new THREE.ConeGeometry(3.5, 32, 24, 1, true);
     coneGeo.rotateX(Math.PI / 2);
     coneGeo.translate(0, 0, -16);
@@ -172,7 +172,7 @@ export default function F1GameCanvas({
     rainFlareSprite.scale.set(0.7, 0.7, 1);
     scene.add(rainFlareSprite);
 
-    // --- 3. UNIFIED PROCEDURAL HIGHWAY SHADER (100% ZERO-SLIPPAGE SYNCHRONIZATION) ---
+    // --- 3. UNIFIED HIGHWAY SHADER (PERFECT 1:1 WORLD COORDINATE LOCK) ---
     const roadWidth = 10.6;
     const roadLength = 280.0;
     const roadSegments = 220;
@@ -189,10 +189,11 @@ export default function F1GameCanvas({
         vUv = uv;
         vec3 pos = position;
 
-        float zDist = -pos.y;
+        // Exactly map geometry local coordinates to world distance from camera (0 to 280)
+        float zDist = 140.0 - pos.y;
         vWorldZ = zDist;
 
-        // Unified Spatial Curvature Equation
+        // Single Master Spatial Curvature Anchor
         float curve = sin((zDist + uDistance) * 0.035) * uCurvature * (zDist * 0.015);
         pos.x += curve;
         vWorldX = pos.x;
@@ -216,14 +217,14 @@ export default function F1GameCanvas({
       }
 
       void main() {
-        // Master Unified Texture Coordinate (Matched 100% to World Distance)
+        // Master Unified Texture Coordinate (Mathematically Welded to uDistance)
         float movingDist = vWorldZ + uDistance;
-        float grain = rand(vUv * 600.0) * 0.05;
+        float grain = rand(vUv * 600.0) * 0.04;
 
-        // Rich Dark Obsidian Asphalt
-        vec3 asphaltColor = vec3(0.030, 0.030, 0.036) + grain;
+        // Rich Obsidian Asphalt
+        vec3 asphaltColor = vec3(0.032, 0.032, 0.038) + grain;
 
-        // 3-Lane Highway Dashed Centerlines (Warm Gold) - Locked to uDistance
+        // 3-Lane Highway Dashed Centerlines (Warm Gold)
         float laneLeft = abs(vUv.x - 0.35);
         float laneRight = abs(vUv.x - 0.65);
         float dashPattern = step(0.42, fract(movingDist * 0.18));
@@ -238,8 +239,8 @@ export default function F1GameCanvas({
         }
 
         // Anamorphic Wet Road Reflections
-        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.25;
-        asphaltColor += vec3(spec * 0.2, spec * 0.45, spec * 0.85);
+        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.28;
+        asphaltColor += vec3(spec * 0.25, spec * 0.50, spec * 0.90);
 
         // Night Mode Headlight Illumination Mask
         if (uLightsOut > 0.01) {
@@ -274,7 +275,7 @@ export default function F1GameCanvas({
     roadMesh.position.set(0, 0, -roadLength / 2);
     scene.add(roadMesh);
 
-    // --- 4. 3D ELEVATED RED & WHITE RUMBLE KERBS (LOCKED TO UNIFIED DISTANCE) ---
+    // --- 4. 3D ELEVATED RED & WHITE RUMBLE KERBS (100% UNIFIED COORDINATE LOCK) ---
     const kerbBlockCount = 90;
     const kerbLength = 1.4;
     const kerbGap = 2.4;
@@ -311,7 +312,7 @@ export default function F1GameCanvas({
       rightKerbs.push(rKerb);
     }
 
-    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (LOCKED TO UNIFIED WORLD POSITION) ---
+    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (100% UNIFIED COORDINATE LOCK) ---
     const monoliths: LightMonolith[] = [];
     const monolithCount = 12;
     const monolithSpacing = 36.0;
@@ -356,7 +357,7 @@ export default function F1GameCanvas({
       });
     }
 
-    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES (LOCKED TO UNIFIED WORLD POSITION) ---
+    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES (100% UNIFIED COORDINATE LOCK) ---
     const sectorGates: SectorGate[] = [];
     const totalGateSpan = 360.0;
     const gateDefinitions = [
@@ -443,66 +444,7 @@ export default function F1GameCanvas({
       });
     });
 
-    // --- 7. VELOCITY LASER STREAKS & DIFFUSER SPARKS ---
-    const streakCount = 36;
-    const streakPositions = new Float32Array(streakCount * 6);
-    const streakVelocities = new Float32Array(streakCount);
-
-    for (let i = 0; i < streakCount; i++) {
-      const isLeft = Math.random() > 0.5;
-      const x = isLeft ? -0.95 + (Math.random() - 0.5) * 0.35 : 0.95 + (Math.random() - 0.5) * 0.35;
-      const y = Math.random() * 0.15 + 0.05;
-      const z = -Math.random() * roadLength;
-      const len = Math.random() * 6.0 + 3.5;
-
-      streakPositions[i * 6 + 0] = x;
-      streakPositions[i * 6 + 1] = y;
-      streakPositions[i * 6 + 2] = z;
-      streakPositions[i * 6 + 3] = x;
-      streakPositions[i * 6 + 4] = y;
-      streakPositions[i * 6 + 5] = z + len;
-
-      streakVelocities[i] = Math.random() * 60 + 100;
-    }
-
-    const streakGeo = new THREE.BufferGeometry();
-    streakGeo.setAttribute("position", new THREE.BufferAttribute(streakPositions, 3));
-    const streakMat = new THREE.LineBasicMaterial({
-      color: 0xffd700,
-      transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending,
-    });
-    const streakLines = new THREE.LineSegments(streakGeo, streakMat);
-    scene.add(streakLines);
-
-    // Diffuser Sparks
-    const sparkCount = 150;
-    const sparkPositions = new Float32Array(sparkCount * 3);
-    const sparkVelocities: THREE.Vector3[] = [];
-    const sparkLifetimes = new Float32Array(sparkCount);
-
-    for (let i = 0; i < sparkCount; i++) {
-      sparkPositions[i * 3 + 0] = 0;
-      sparkPositions[i * 3 + 1] = 0;
-      sparkPositions[i * 3 + 2] = 0;
-      sparkVelocities.push(new THREE.Vector3());
-      sparkLifetimes[i] = 0;
-    }
-
-    const sparkGeo = new THREE.BufferGeometry();
-    sparkGeo.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
-    const sparkMat = new THREE.PointsMaterial({
-      color: 0xffaa00,
-      size: 0.18,
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending,
-    });
-    const sparkPoints = new THREE.Points(sparkGeo, sparkMat);
-    scene.add(sparkPoints);
-
-    // --- 8. 3D F1 CAR MODEL LOADING ---
+    // --- 7. 3D F1 CAR MODEL LOADING ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
@@ -555,7 +497,7 @@ export default function F1GameCanvas({
       (err) => console.error("Error loading F1 car GLB:", err)
     );
 
-    // --- 9. INTERACTION CONTROLS ---
+    // --- 8. INTERACTION CONTROLS ---
     let pointerX = 0;
     let pointerY = 0;
     let targetCarX = 0;
@@ -607,7 +549,7 @@ export default function F1GameCanvas({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
-    // --- 10. RESIZE HANDLER ---
+    // --- 9. RESIZE HANDLER ---
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -619,7 +561,7 @@ export default function F1GameCanvas({
     };
     window.addEventListener("resize", handleResize);
 
-    // --- 11. 60FPS CINEMATIC RENDER LOOP ---
+    // --- 10. 60FPS CINEMATIC RENDER LOOP ---
     let animFrameId: number;
     const clock = new THREE.Clock();
 
@@ -632,7 +574,7 @@ export default function F1GameCanvas({
       currentSpeed += (targetSpeed - currentSpeed) * (isBoosting ? 0.08 : 0.045);
       lapTime += delta;
 
-      // 2. UNIFIED WORLD FORWARD ADVANCE (Zero Slippage Standard)
+      // 2. UNIFIED WORLD FORWARD ADVANCE (1:1 ZERO-SLIPPAGE SYNCHRONIZATION)
       const forwardDelta = currentSpeed * 0.45 * delta;
       trackDistance += forwardDelta;
 
@@ -645,7 +587,7 @@ export default function F1GameCanvas({
 
       coneMat.opacity = roadUniforms.uLightsOut.value * (isBoosting ? 0.16 : 0.10);
 
-      // 3. Update Rumble Kerbs (100% Locked to Unified Curvature Anchor)
+      // 3. Update Rumble Kerbs (100% Mathematically Locked to Road Curve)
       const kerbScrollOffset = trackDistance % kerbGap;
       const trackHalfW = roadWidth / 2 - 0.2;
 
@@ -667,7 +609,7 @@ export default function F1GameCanvas({
         rKerb.rotation.y = curveOffset * 0.05 * distScale;
       }
 
-      // 4. Update Slender Titanium Monoliths (100% Locked to Unified Curvature Anchor)
+      // 4. Update Slender Titanium Monoliths (100% Mathematically Locked to Road Curve)
       for (let i = 0; i < monoliths.length; i++) {
         const m = monoliths[i];
         m.baseZ += forwardDelta;
@@ -686,7 +628,7 @@ export default function F1GameCanvas({
         m.mesh.position.set(baseSideX + curveOffset, 0, m.baseZ);
       }
 
-      // 5. Update The 3 Sector Timing Gates (100% Locked to Unified Curvature Anchor)
+      // 5. Update The 3 Sector Timing Gates (100% Mathematically Locked to Road Curve)
       for (let i = 0; i < sectorGates.length; i++) {
         const gate = sectorGates[i];
         gate.baseZ += forwardDelta;
@@ -791,61 +733,7 @@ export default function F1GameCanvas({
 
       camera.lookAt(carX * 0.15, 0.4 + (carY * 0.25), -14);
 
-      // 8. Velocity Laser Streaks
-      const streakPos = streakGeo.attributes.position.array as Float32Array;
-      const speedMultiplier = (currentSpeed / 190) * 2.2;
-
-      for (let i = 0; i < streakCount; i++) {
-        streakPos[i * 6 + 2] += streakVelocities[i] * delta * speedMultiplier;
-        streakPos[i * 6 + 5] += streakVelocities[i] * delta * speedMultiplier;
-
-        if (streakPos[i * 6 + 2] > 5) {
-          const isLeft = Math.random() > 0.5;
-          const xNew = isLeft ? carX - 0.95 + (Math.random() - 0.5) * 0.4 : carX + 0.95 + (Math.random() - 0.5) * 0.4;
-          const yNew = Math.random() * 0.15 + 0.05 + carY;
-          const zNew = -roadLength * 0.7;
-          const len = Math.random() * 6.5 + 4.0;
-
-          streakPos[i * 6 + 0] = xNew;
-          streakPos[i * 6 + 1] = yNew;
-          streakPos[i * 6 + 2] = zNew;
-          streakPos[i * 6 + 3] = xNew;
-          streakPos[i * 6 + 4] = yNew;
-          streakPos[i * 6 + 5] = zNew + len;
-        }
-      }
-      streakGeo.attributes.position.needsUpdate = true;
-
-      // 9. Diffuser Sparks
-      const isSparksActive = (!isFlying && onKerb) || Math.abs(carSteerVelocity) > 3.6 || isBoosting;
-      const sparkPosArray = sparkGeo.attributes.position.array as Float32Array;
-
-      for (let i = 0; i < sparkCount; i++) {
-        if (sparkLifetimes[i] <= 0 && isSparksActive && Math.random() < 0.35) {
-          sparkPosArray[i * 3 + 0] = carX + (Math.random() - 0.5) * 0.4;
-          sparkPosArray[i * 3 + 1] = 0.05 + carY;
-          sparkPosArray[i * 3 + 2] = 1.1;
-
-          sparkVelocities[i].set(
-            (Math.random() - 0.5) * 5.0,
-            Math.random() * 3.5 + 1.2,
-            Math.random() * 18.0 + 25.0
-          );
-          sparkLifetimes[i] = Math.random() * 0.35 + 0.1;
-        } else if (sparkLifetimes[i] > 0) {
-          sparkLifetimes[i] -= delta;
-          sparkVelocities[i].y -= 9.8 * delta;
-
-          sparkPosArray[i * 3 + 0] += sparkVelocities[i].x * delta;
-          sparkPosArray[i * 3 + 1] = Math.max(0.02, sparkPosArray[i * 3 + 1] + sparkVelocities[i].y * delta);
-          sparkPosArray[i * 3 + 2] += sparkVelocities[i].z * delta;
-        } else {
-          sparkPosArray[i * 3 + 1] = -10;
-        }
-      }
-      sparkGeo.attributes.position.needsUpdate = true;
-
-      // 10. Telemetry Callback
+      // 8. Telemetry Callback
       if (onTelemetryUpdate) {
         const gear =
           currentSpeed < 80
@@ -880,14 +768,14 @@ export default function F1GameCanvas({
         });
       }
 
-      // 11. Render Scene
+      // 9. Render Scene
       renderer.render(scene, camera);
       animFrameId = requestAnimationFrame(tick);
     };
 
     animFrameId = requestAnimationFrame(tick);
 
-    // --- 12. CLEANUP ON UNMOUNT ---
+    // --- 11. CLEANUP ON UNMOUNT ---
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("pointermove", handlePointerMove);
@@ -912,10 +800,6 @@ export default function F1GameCanvas({
       gateArchGeo.dispose();
       gatePillarGeo.dispose();
       darkTitaniumMat.dispose();
-      streakGeo.dispose();
-      streakMat.dispose();
-      sparkGeo.dispose();
-      sparkMat.dispose();
       coneGeo.dispose();
       coneMat.dispose();
       flareMat.dispose();
