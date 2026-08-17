@@ -41,12 +41,6 @@ interface LightMonolith {
   side: number;
 }
 
-interface KerbBlock {
-  mesh: THREE.Mesh;
-  worldZ: number;
-  side: number;
-}
-
 interface SmokeParticle {
   pos: THREE.Vector3;
   vel: THREE.Vector3;
@@ -78,11 +72,10 @@ export default function F1GameCanvas({
     const container = containerRef.current;
     if (!container) return;
 
-    // --- 1. THREE.JS SCENE SETUP (NIGHT GP ATMOSPHERE) ---
+    // --- 1. THREE.JS SCENE SETUP (SINGAPORE GP ATMOSPHERE) ---
     const scene = new THREE.Scene();
-    // Deep Singapore GP Midnight Blue Gradient Fog
     scene.background = new THREE.Color(0x02050e);
-    scene.fog = new THREE.FogExp2(0x02050e, 0.0075);
+    scene.fog = new THREE.FogExp2(0x02050e, 0.007);
 
     // RESPONSIVE FULL-CHASSIS CHASE CAMERA (YUTA ABE GOLD STANDARD)
     const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -111,7 +104,7 @@ export default function F1GameCanvas({
 
     container.appendChild(renderer.domElement);
 
-    // --- 2. HIGH-CONTRAST STUDIO LIGHTING & HORIZON BEACONS ---
+    // --- 2. HIGH-CONTRAST LIGHTING & HORIZON FLOODLIGHT BEACONS ---
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
@@ -127,13 +120,13 @@ export default function F1GameCanvas({
     topSpecularLight.position.set(0, 24, -6);
     scene.add(topSpecularLight);
 
-    // Distant Stadium Floodlight Beacons (Eliminates the empty black void)
+    // Distant Stadium Floodlight Beacons (Infinite depth on horizon)
     const beaconGeo = new THREE.CylinderGeometry(0.3, 4.5, 90, 16, 1, true);
     beaconGeo.translate(0, 45, 0);
     const beaconMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
-      opacity: 0.08,
+      opacity: 0.09,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -214,10 +207,23 @@ export default function F1GameCanvas({
     rainFlareSprite.scale.set(0.7, 0.7, 1);
     scene.add(rainFlareSprite);
 
-    // --- 3. UNIFIED HIGHWAY SHADER (PERFECT 1:1 SPLINE EQUATION) ---
-    const roadWidth = 10.6;
-    const roadLength = 280.0;
-    const roadSegments = 220;
+    // --- 3. INFINITE GROUND APRON (ELIMINATES ALL BLACK CUTOFFS) ---
+    const groundApronGeo = new THREE.PlaneGeometry(600, 600);
+    const groundApronMat = new THREE.MeshStandardMaterial({
+      color: 0x010308,
+      roughness: 0.95,
+      metalness: 0.1,
+    });
+    const groundApron = new THREE.Mesh(groundApronGeo, groundApronMat);
+    groundApron.rotation.x = -Math.PI / 2;
+    groundApron.position.set(0, -0.05, -150);
+    scene.add(groundApron);
+
+    // --- 4. UNIFIED PROCEDURAL ROAD & KERB RIBBON (EXTENDS BEHIND CAMERA TO Z=+30M) ---
+    const roadWidth = 11.2;
+    const roadLength = 390.0; // Spans from Z = +30m behind camera to Z = -360m at horizon
+    const roadCenterZ = -165.0; // (30 - 360) / 2 = -165
+    const roadSegments = 260;
 
     const roadVertexShader = `
       uniform float uDistance;
@@ -231,12 +237,14 @@ export default function F1GameCanvas({
         vUv = uv;
         vec3 pos = position;
 
-        // Map geometry pos.y (-140 to +140) to world distance from camera (0 to 280)
-        float zDist = 140.0 - pos.y;
+        // pos.y in geometry space is from -195 to +195
+        // Map pos.y directly to world distance from camera (zDist = 0 at camera, 390 at horizon)
+        float worldZPos = pos.y + (${roadCenterZ.toFixed(1)});
+        float zDist = -worldZPos;
         vWorldZ = zDist;
 
-        // Master Spatial Curvature Spline
-        float curve = sin((zDist + uDistance) * 0.028) * uCurvature * (zDist * 0.014);
+        // Single Master Continuous Spline
+        float curve = sin((zDist + uDistance) * 0.025) * uCurvature * (zDist * 0.012);
         pos.x += curve;
         vWorldX = pos.x;
 
@@ -262,36 +270,54 @@ export default function F1GameCanvas({
         float movingDist = vWorldZ + uDistance;
         float grain = rand(vUv * 600.0) * 0.04;
 
-        // Rich Dark Obsidian Asphalt with Wet Shimmer
-        vec3 asphaltColor = vec3(0.028, 0.030, 0.038) + grain;
+        // Rich Dark Obsidian Asphalt
+        vec3 surfaceColor = vec3(0.026, 0.028, 0.035) + grain;
 
-        // 3-Lane Highway Dashed Centerlines (Warm Gold)
-        float laneLeft = abs(vUv.x - 0.35);
-        float laneRight = abs(vUv.x - 0.65);
-        float dashPattern = step(0.40, fract(movingDist * 0.12));
+        // 1. Alternating Red & White Rumble Kerbs (Integrated into Mesh Surface)
+        float kerbPattern = step(0.5, fract(movingDist * 0.18));
+        vec3 kerbColor = mix(vec3(0.88, 0.10, 0.15), vec3(0.95, 0.95, 0.95), kerbPattern);
 
-        if ((laneLeft < 0.0075 || laneRight < 0.0075) && dashPattern > 0.5) {
-          asphaltColor = vec3(0.96, 0.84, 0.20);
+        // Left Kerb (0.0 to 0.055)
+        if (vUv.x < 0.055) {
+          surfaceColor = kerbColor;
         }
-
-        // Solid Outer Guard Lines (Pure White)
-        if (vUv.x < 0.032 || vUv.x > 0.968) {
-          asphaltColor = vec3(0.95, 0.95, 0.98);
+        // Right Kerb (0.945 to 1.0)
+        else if (vUv.x > 0.945) {
+          surfaceColor = kerbColor;
         }
+        // Left Solid White Line (0.055 to 0.072)
+        else if (vUv.x < 0.072) {
+          surfaceColor = vec3(0.96, 0.96, 0.98);
+        }
+        // Right Solid White Line (0.928 to 0.945)
+        else if (vUv.x > 0.928) {
+          surfaceColor = vec3(0.96, 0.96, 0.98);
+        }
+        // Central Racing Surface
+        else {
+          // 3-Lane Highway Dashed Centerlines (Warm Gold)
+          float laneLeft = abs(vUv.x - 0.36);
+          float laneRight = abs(vUv.x - 0.64);
+          float dashPattern = step(0.42, fract(movingDist * 0.10));
 
-        // Anamorphic Wet Road Reflections
-        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.32;
-        asphaltColor += vec3(spec * 0.25, spec * 0.50, spec * 0.95);
+          if ((laneLeft < 0.0075 || laneRight < 0.0075) && dashPattern > 0.5) {
+            surfaceColor = vec3(0.96, 0.84, 0.20);
+          }
+
+          // Anamorphic Wet Road Reflections
+          float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 4.0) * 0.32;
+          surfaceColor += vec3(spec * 0.25, spec * 0.50, spec * 0.95);
+        }
 
         // Night Mode Headlight Illumination Mask
         if (uLightsOut > 0.01) {
           float headlightMask = smoothstep(130.0, 10.0, vDepth) * smoothstep(5.0, 0.0, abs(vWorldX));
-          asphaltColor *= mix(0.10, 1.4, headlightMask);
+          surfaceColor *= mix(0.10, 1.4, headlightMask);
         }
 
         // Depth Fog Fade into Singapore GP Midnight Horizon
-        float fogFactor = smoothstep(80.0, 270.0, vDepth);
-        vec3 finalColor = mix(asphaltColor, vec3(0.02, 0.03, 0.06), fogFactor);
+        float fogFactor = smoothstep(90.0, 310.0, vDepth);
+        vec3 finalColor = mix(surfaceColor, vec3(0.02, 0.03, 0.06), fogFactor);
 
         gl_FragColor = vec4(finalColor, 1.0);
       }
@@ -313,43 +339,10 @@ export default function F1GameCanvas({
 
     const roadMesh = new THREE.Mesh(roadGeometry, roadMaterial);
     roadMesh.rotation.x = -Math.PI / 2;
-    roadMesh.position.set(0, 0, -roadLength / 2);
+    roadMesh.position.set(0, 0, roadCenterZ);
     scene.add(roadMesh);
 
-    // --- 4. 3D ELEVATED RED & WHITE RUMBLE KERBS (CONTINUOUS FLOW) ---
-    const kerbBlocks: KerbBlock[] = [];
-    const kerbPairCount = 80;
-    const kerbGap = 3.2;
-    const totalKerbSpan = kerbPairCount * kerbGap;
-    const kerbBoxGeo = new THREE.BoxGeometry(0.5, 0.12, 1.6);
-
-    const redKerbMat = new THREE.MeshStandardMaterial({
-      color: 0xdd1122,
-      roughness: 0.35,
-      metalness: 0.1,
-    });
-    const whiteKerbMat = new THREE.MeshStandardMaterial({
-      color: 0xeeeeee,
-      roughness: 0.35,
-      metalness: 0.1,
-    });
-
-    for (let i = 0; i < kerbPairCount; i++) {
-      const isRed = i % 2 === 0;
-      const mat = isRed ? redKerbMat : whiteKerbMat;
-      const initZ = -i * kerbGap;
-
-      const lKerb = new THREE.Mesh(kerbBoxGeo, mat);
-      const rKerb = new THREE.Mesh(kerbBoxGeo, mat);
-
-      scene.add(lKerb);
-      scene.add(rKerb);
-
-      kerbBlocks.push({ mesh: lKerb, worldZ: initZ, side: -1 });
-      kerbBlocks.push({ mesh: rKerb, worldZ: initZ, side: 1 });
-    }
-
-    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (PERFECT SPLINE LOCK) ---
+    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (LOCKED TO ROAD SPLINE) ---
     const monoliths: LightMonolith[] = [];
     const monolithCount = 12;
     const monolithSpacing = 36.0;
@@ -476,7 +469,6 @@ export default function F1GameCanvas({
     });
 
     // --- 7. VOLUMETRIC GAUSSIAN TIRE VAPOR & REAR WING VORTEX TRAILS ---
-    // High-Resolution Soft Gaussian Smoke Texture (Nolan 70mm Standard)
     const smokeCanvas = document.createElement("canvas");
     smokeCanvas.width = 128;
     smokeCanvas.height = 128;
@@ -698,8 +690,8 @@ export default function F1GameCanvas({
       currentSpeed += (targetSpeed - currentSpeed) * (isBoosting ? 0.08 : 0.045);
       lapTime += delta;
 
-      // 2. WEIGHTED CINEMATIC VELOCITY (LUXURY PACING)
-      const forwardDelta = currentSpeed * 0.22 * delta;
+      // 2. WEIGHTED CINEMATIC VELOCITY
+      const forwardDelta = currentSpeed * 0.20 * delta;
       trackDistance += forwardDelta;
 
       // Road Shader Uniforms
@@ -711,61 +703,41 @@ export default function F1GameCanvas({
 
       coneMat.opacity = roadUniforms.uLightsOut.value * (isBoosting ? 0.16 : 0.10);
 
-      // 3. Update Rumble Kerbs (Smooth Continuous World Flow)
-      const trackHalfW = roadWidth / 2 - 0.2;
-
-      for (let i = 0; i < kerbBlocks.length; i++) {
-        const kb = kerbBlocks[i];
-        kb.worldZ += forwardDelta;
-
-        if (kb.worldZ > 8.0) {
-          kb.worldZ -= totalKerbSpan;
-        }
-
-        const zDist = -kb.worldZ;
-        const curve =
-          Math.sin((zDist + trackDistance) * 0.028) *
-          roadUniforms.uCurvature.value *
-          (zDist * 0.014);
-
-        kb.mesh.position.set(kb.side * trackHalfW + curve, 0.06, kb.worldZ);
-        kb.mesh.rotation.y = curve * 0.04;
-      }
-
-      // 4. Update Slender Titanium Monoliths (100% Locked to Road Spline)
+      // 3. Update Slender Titanium Monoliths (100% Locked to Road Spline)
       for (let i = 0; i < monoliths.length; i++) {
         const m = monoliths[i];
         m.worldZ += forwardDelta;
 
-        if (m.worldZ > 15.0) {
+        if (m.worldZ > 25.0) {
           m.worldZ -= totalMonolithSpan;
         }
 
         const zDist = -m.worldZ;
         const curve =
-          Math.sin((zDist + trackDistance) * 0.028) *
+          Math.sin((zDist + trackDistance) * 0.025) *
           roadUniforms.uCurvature.value *
-          (zDist * 0.014);
+          (zDist * 0.012);
 
-        const baseSideX = m.side * (roadWidth / 2 + 0.4);
+        const baseSideX = m.side * (roadWidth / 2 + 0.35);
         m.mesh.position.set(baseSideX + curve, 0, m.worldZ);
+        m.mesh.rotation.y = curve * 0.03;
       }
 
-      // 5. Update The 3 Sector Timing Gates (100% Locked to Road Spline)
+      // 4. Update The 3 Sector Timing Gates (100% Locked to Road Spline)
       for (let i = 0; i < sectorGates.length; i++) {
         const gate = sectorGates[i];
         gate.worldZ += forwardDelta;
 
-        if (gate.worldZ > 18.0) {
+        if (gate.worldZ > 25.0) {
           gate.worldZ -= totalGateSpan;
           gate.triggered = false;
         }
 
         const zDist = -gate.worldZ;
         const curve =
-          Math.sin((zDist + trackDistance) * 0.028) *
+          Math.sin((zDist + trackDistance) * 0.025) *
           roadUniforms.uCurvature.value *
-          (zDist * 0.014);
+          (zDist * 0.012);
 
         gate.mesh.position.set(curve, 0, gate.worldZ);
 
@@ -783,9 +755,10 @@ export default function F1GameCanvas({
         }
       }
 
-      // 6. 6-Axis Physics & Flight Aerodynamics
-      const targetSteerX = pointerX * (trackHalfW - 1.2);
-      targetCarX = THREE.MathUtils.clamp(targetSteerX, -trackHalfW + 0.6, trackHalfW - 0.6);
+      // 5. 6-Axis Physics & Flight Aerodynamics
+      const trackHalfW = roadWidth / 2 - 0.6;
+      const targetSteerX = pointerX * (trackHalfW - 0.8);
+      targetCarX = THREE.MathUtils.clamp(targetSteerX, -trackHalfW + 0.4, trackHalfW - 0.4);
       targetCarY = Math.max(0.0, pointerY * 0.85);
 
       const prevX = carX;
@@ -807,7 +780,7 @@ export default function F1GameCanvas({
       groundShadow.material.opacity = Math.max(0.0, 0.85 - carY * 0.8);
 
       const isFlying = carY > 0.15;
-      const onKerb = !isFlying && Math.abs(carX) > trackHalfW - 1.6;
+      const onKerb = !isFlying && Math.abs(carX) > trackHalfW - 1.2;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
@@ -837,7 +810,7 @@ export default function F1GameCanvas({
       const flareScale = 0.65 + Math.sin(time * 22) * 0.15;
       rainFlareSprite.scale.set(flareScale, flareScale, 1);
 
-      // 7. Volumetric Gaussian Tire Mist / Smoke Updates
+      // 6. Volumetric Gaussian Tire Mist / Smoke Updates
       const isSmokeActive = (!isFlying && onKerb) || Math.abs(carSteerVelocity) > 2.8 || isBoosting;
 
       for (let i = 0; i < smokeParticleCount; i++) {
@@ -845,7 +818,6 @@ export default function F1GameCanvas({
         const sp = smokeSprites[i];
 
         if (p.life <= 0 && isSmokeActive && Math.random() < 0.4) {
-          // Spawn at left or right rear tire
           const isLeft = Math.random() > 0.5;
           const spawnX = isLeft ? carX - 0.88 : carX + 0.88;
           p.pos.set(spawnX + (Math.random() - 0.5) * 0.15, 0.14 + carY, 1.25);
@@ -875,14 +847,13 @@ export default function F1GameCanvas({
         }
       }
 
-      // 8. Rear Wing Vortex Condensation Ribbons
+      // 7. Rear Wing Vortex Condensation Ribbons
       const isVortexActive = currentSpeed > 240;
       vortexMat.opacity = THREE.MathUtils.lerp(vortexMat.opacity, isVortexActive ? 0.65 : 0.0, 0.1);
 
       const lArr = leftVortexGeo.attributes.position.array as Float32Array;
       const rArr = rightVortexGeo.attributes.position.array as Float32Array;
 
-      // Shift trailing segments
       for (let k = vortexLength - 1; k > 0; k--) {
         lArr[k * 3 + 0] = lArr[(k - 1) * 3 + 0];
         lArr[k * 3 + 1] = lArr[(k - 1) * 3 + 1];
@@ -893,7 +864,6 @@ export default function F1GameCanvas({
         rArr[k * 3 + 2] = rArr[(k - 1) * 3 + 2] + forwardDelta * 0.85;
       }
 
-      // Lead tip attached to rear wing endplates
       lArr[0] = carX - 0.82;
       lArr[1] = 0.82 + carY;
       lArr[2] = 1.35;
@@ -905,7 +875,7 @@ export default function F1GameCanvas({
       leftVortexGeo.attributes.position.needsUpdate = true;
       rightVortexGeo.attributes.position.needsUpdate = true;
 
-      // 9. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
+      // 8. Responsive Full-Chassis Chase Camera (Yuta Abe Gold Standard)
       const isMobile = window.innerWidth < 768;
       const baseCamZ = isMobile ? 4.9 : 3.6;
       const baseCamY = isMobile ? 1.15 : 0.95;
@@ -929,7 +899,7 @@ export default function F1GameCanvas({
 
       camera.lookAt(carX * 0.15, 0.4 + (carY * 0.25), -14);
 
-      // 10. Telemetry Callback
+      // 9. Telemetry Callback
       if (onTelemetryUpdate) {
         const gear =
           currentSpeed < 80
@@ -964,14 +934,14 @@ export default function F1GameCanvas({
         });
       }
 
-      // 11. Render Scene
+      // 10. Render Scene
       renderer.render(scene, camera);
       animFrameId = requestAnimationFrame(tick);
     };
 
     animFrameId = requestAnimationFrame(tick);
 
-    // --- 13. CLEANUP ON UNMOUNT ---
+    // --- 11. CLEANUP ON UNMOUNT ---
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("pointermove", handlePointerMove);
@@ -987,9 +957,6 @@ export default function F1GameCanvas({
       renderer.dispose();
       roadGeometry.dispose();
       roadMaterial.dispose();
-      kerbBoxGeo.dispose();
-      redKerbMat.dispose();
-      whiteKerbMat.dispose();
       monolithBodyGeo.dispose();
       monolithMat.dispose();
       laserCoreMat.dispose();
@@ -1009,6 +976,8 @@ export default function F1GameCanvas({
       vortexMat.dispose();
       beaconGeo.dispose();
       beaconMat.dispose();
+      groundApronGeo.dispose();
+      groundApronMat.dispose();
     };
   }, []);
 
