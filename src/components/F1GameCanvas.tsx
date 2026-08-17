@@ -72,7 +72,7 @@ export default function F1GameCanvas({
     const container = containerRef.current;
     if (!container) return;
 
-    // --- 1. THREE.JS SCENE SETUP (SINGAPORE GP ATMOSPHERE) ---
+    // --- 1. THREE.JS SCENE SETUP (LUXURY FLOATING TRACK & SINGAPORE GP ATMOSPHERE) ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x02050e);
     scene.fog = new THREE.FogExp2(0x02050e, 0.007);
@@ -207,19 +207,7 @@ export default function F1GameCanvas({
     rainFlareSprite.scale.set(0.7, 0.7, 1);
     scene.add(rainFlareSprite);
 
-    // --- 3. INFINITE GROUND APRON (ELIMINATES ALL BLACK CUTOFFS) ---
-    const groundApronGeo = new THREE.PlaneGeometry(600, 600);
-    const groundApronMat = new THREE.MeshStandardMaterial({
-      color: 0x010308,
-      roughness: 0.95,
-      metalness: 0.1,
-    });
-    const groundApron = new THREE.Mesh(groundApronGeo, groundApronMat);
-    groundApron.rotation.x = -Math.PI / 2;
-    groundApron.position.set(0, -0.05, -150);
-    scene.add(groundApron);
-
-    // --- 4. UNIFIED PROCEDURAL ROAD & KERB RIBBON (EXTENDS BEHIND CAMERA TO Z=+30M) ---
+    // --- 3. UNIFIED PROCEDURAL ROAD RIBBON (Option A: Pristine Floating Track) ---
     const roadWidth = 11.2;
     const roadLength = 390.0; // Spans from Z = +30m behind camera to Z = -360m at horizon
     const roadCenterZ = -165.0; // (30 - 360) / 2 = -165
@@ -237,13 +225,13 @@ export default function F1GameCanvas({
         vUv = uv;
         vec3 pos = position;
 
-        // pos.y in geometry space is from -195 to +195
-        // Map pos.y directly to world distance from camera (zDist = 0 at camera, 390 at horizon)
-        float worldZPos = pos.y + (${roadCenterZ.toFixed(1)});
-        float zDist = -worldZPos;
+        // In Three.js PlaneGeometry with rotation.x = -PI/2:
+        // pos.y goes from -195 (camera Z = +30) to +195 (horizon Z = -360)
+        // Distance along track from coordinate origin (0 at camera, 390 at horizon):
+        float zDist = pos.y + 195.0;
         vWorldZ = zDist;
 
-        // Single Master Continuous Spline
+        // Master Unified Spline Equation (Exact forward direction)
         float curve = sin((zDist + uDistance) * 0.025) * uCurvature * (zDist * 0.012);
         pos.x += curve;
         vWorldX = pos.x;
@@ -342,7 +330,7 @@ export default function F1GameCanvas({
     roadMesh.position.set(0, 0, roadCenterZ);
     scene.add(roadMesh);
 
-    // --- 5. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (LOCKED TO ROAD SPLINE) ---
+    // --- 4. 🏛️ SLENDER TITANIUM LIGHT MONOLITHS (100% IN-PHASE SPLINE LOCK) ---
     const monoliths: LightMonolith[] = [];
     const monolithCount = 12;
     const monolithSpacing = 36.0;
@@ -386,7 +374,7 @@ export default function F1GameCanvas({
       });
     }
 
-    // --- 6. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES ---
+    // --- 5. 🏆 THE 3 ARCHITECTURAL SECTOR TIMING GATES ---
     const sectorGates: SectorGate[] = [];
     const totalGateSpan = 360.0;
     const gateDefinitions = [
@@ -468,7 +456,7 @@ export default function F1GameCanvas({
       });
     });
 
-    // --- 7. VOLUMETRIC GAUSSIAN TIRE VAPOR & REAR WING VORTEX TRAILS ---
+    // --- 6. VOLUMETRIC GAUSSIAN TIRE VAPOR & REAR WING VORTEX TRAILS ---
     const smokeCanvas = document.createElement("canvas");
     smokeCanvas.width = 128;
     smokeCanvas.height = 128;
@@ -535,7 +523,7 @@ export default function F1GameCanvas({
     scene.add(leftVortexLine);
     scene.add(rightVortexLine);
 
-    // --- 8. DIFFUSER GROUND-EFFECT CONTACT SHADOW ---
+    // --- 7. DIFFUSER GROUND-EFFECT CONTACT SHADOW ---
     const shadowCanvas = document.createElement("canvas");
     shadowCanvas.width = 128;
     shadowCanvas.height = 128;
@@ -560,7 +548,7 @@ export default function F1GameCanvas({
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
 
-    // --- 9. 3D F1 CAR MODEL LOADING ---
+    // --- 8. 3D F1 CAR MODEL LOADING ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
@@ -613,7 +601,7 @@ export default function F1GameCanvas({
       (err) => console.error("Error loading F1 car GLB:", err)
     );
 
-    // --- 10. INTERACTION CONTROLS ---
+    // --- 9. INTERACTION CONTROLS ---
     let pointerX = 0;
     let pointerY = 0;
     let targetCarX = 0;
@@ -665,7 +653,7 @@ export default function F1GameCanvas({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
-    // --- 11. RESIZE HANDLER ---
+    // --- 10. RESIZE HANDLER ---
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -677,7 +665,7 @@ export default function F1GameCanvas({
     };
     window.addEventListener("resize", handleResize);
 
-    // --- 12. 60FPS CINEMATIC RENDER LOOP ---
+    // --- 11. 60FPS CINEMATIC RENDER LOOP ---
     let animFrameId: number;
     const clock = new THREE.Clock();
 
@@ -703,7 +691,7 @@ export default function F1GameCanvas({
 
       coneMat.opacity = roadUniforms.uLightsOut.value * (isBoosting ? 0.16 : 0.10);
 
-      // 3. Update Slender Titanium Monoliths (100% Locked to Road Spline)
+      // 3. Update Slender Titanium Monoliths (100% Locked to Forward Road Spline)
       for (let i = 0; i < monoliths.length; i++) {
         const m = monoliths[i];
         m.worldZ += forwardDelta;
@@ -712,7 +700,8 @@ export default function F1GameCanvas({
           m.worldZ -= totalMonolithSpan;
         }
 
-        const zDist = -m.worldZ;
+        // Exact match with vertex shader coordinate space
+        const zDist = -m.worldZ + 30.0;
         const curve =
           Math.sin((zDist + trackDistance) * 0.025) *
           roadUniforms.uCurvature.value *
@@ -723,7 +712,7 @@ export default function F1GameCanvas({
         m.mesh.rotation.y = curve * 0.03;
       }
 
-      // 4. Update The 3 Sector Timing Gates (100% Locked to Road Spline)
+      // 4. Update The 3 Sector Timing Gates (100% Locked to Forward Road Spline)
       for (let i = 0; i < sectorGates.length; i++) {
         const gate = sectorGates[i];
         gate.worldZ += forwardDelta;
@@ -733,7 +722,7 @@ export default function F1GameCanvas({
           gate.triggered = false;
         }
 
-        const zDist = -gate.worldZ;
+        const zDist = -gate.worldZ + 30.0;
         const curve =
           Math.sin((zDist + trackDistance) * 0.025) *
           roadUniforms.uCurvature.value *
@@ -976,8 +965,6 @@ export default function F1GameCanvas({
       vortexMat.dispose();
       beaconGeo.dispose();
       beaconMat.dispose();
-      groundApronGeo.dispose();
-      groundApronMat.dispose();
     };
   }, []);
 
