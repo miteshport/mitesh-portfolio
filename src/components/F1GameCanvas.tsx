@@ -104,44 +104,86 @@ export default function F1GameCanvas({
     topSpecularLight.position.set(0, 24, -6);
     scene.add(topSpecularLight);
 
-    // --- 3. 🦇 70MM NOLAN BAT-SIGNAL IN THE GOTHAM CLOUDS ---
+    // --- 3. 🦇 MODERN DC BAT-SIGNAL IN THE GOTHAM CLOUDS ---
     const batCanvas = document.createElement("canvas");
     batCanvas.width = 512;
     batCanvas.height = 512;
     const bCtx = batCanvas.getContext("2d");
     if (bCtx) {
-      // 1. Luminous Spotlight Cloud Disk
-      const spotGrad = bCtx.createRadialGradient(256, 256, 15, 256, 256, 230);
-      spotGrad.addColorStop(0.0, "rgba(240, 248, 255, 0.98)");
-      spotGrad.addColorStop(0.35, "rgba(190, 220, 255, 0.85)");
-      spotGrad.addColorStop(0.7, "rgba(120, 175, 240, 0.35)");
-      spotGrad.addColorStop(0.95, "rgba(60, 110, 190, 0.08)");
-      spotGrad.addColorStop(1.0, "rgba(0, 0, 0, 0)");
+      // 1. Bright Teal/Cyan Spotlight Disk (matches BvS / DC style)
+      const spotGrad = bCtx.createRadialGradient(256, 250, 6, 256, 250, 240);
+      spotGrad.addColorStop(0.00, "rgba(245, 255, 255, 1.00)");  // pure white hot center
+      spotGrad.addColorStop(0.18, "rgba(185, 245, 250, 0.98)");  // bright teal
+      spotGrad.addColorStop(0.42, "rgba(80, 200, 225, 0.80)");   // mid cyan
+      spotGrad.addColorStop(0.68, "rgba(30, 120, 180, 0.40)");   // deeper blue
+      spotGrad.addColorStop(0.88, "rgba(10, 50, 100, 0.12)");    // dark edge
+      spotGrad.addColorStop(1.00, "rgba(0, 0, 0, 0)");           // fade out
       bCtx.fillStyle = spotGrad;
       bCtx.beginPath();
       bCtx.arc(256, 256, 240, 0, Math.PI * 2);
       bCtx.fill();
 
-      // 2. Iconic Nolan Bat Silhouette (Crisp Vector Shape)
-      bCtx.save();
-      bCtx.translate(256, 256);
-      bCtx.scale(1.4, 1.4);
-      bCtx.fillStyle = "rgba(2, 4, 10, 0.98)";
-
+      // 2. Thin circular border ring (like a real bat-signal lens)
+      bCtx.strokeStyle = "rgba(40, 160, 200, 0.50)";
+      bCtx.lineWidth = 4;
       bCtx.beginPath();
-      bCtx.moveTo(-6, -40);
-      bCtx.lineTo(-14, -60); // Left Ear Tip
-      bCtx.lineTo(-24, -40);
-      bCtx.bezierCurveTo(-55, -42, -95, -26, -125, 8);
-      bCtx.bezierCurveTo(-110, 24, -90, 40, -75, 40);
-      bCtx.bezierCurveTo(-60, 40, -45, 26, -38, 20);
-      bCtx.bezierCurveTo(-30, 36, -18, 50, 0, 54); // Tail Tip
-      bCtx.bezierCurveTo(18, 50, 30, 36, 38, 20);
-      bCtx.bezierCurveTo(45, 26, 60, 40, 75, 40);
-      bCtx.bezierCurveTo(90, 40, 110, 24, 125, 8);
-      bCtx.bezierCurveTo(95, -26, 55, -42, 24, -40);
-      bCtx.lineTo(14, -60); // Right Ear Tip
-      bCtx.lineTo(6, -40);
+      bCtx.arc(256, 256, 234, 0, Math.PI * 2);
+      bCtx.stroke();
+
+      // 3. Modern DC / BvS Bat Silhouette — wide swept wings, angular scallops
+      bCtx.save();
+      bCtx.translate(256, 272); // slightly below center in spotlight
+      bCtx.scale(1.35, 1.35);
+      bCtx.fillStyle = "rgba(4, 7, 18, 0.97)";
+      bCtx.beginPath();
+
+      // Bottom center
+      bCtx.moveTo(0, 36);
+
+      // === RIGHT SIDE ===
+      // Inner body curve up and right
+      bCtx.bezierCurveTo(20, 36, 44, 26, 60, 10);
+      // First bottom wing scallop notch
+      bCtx.bezierCurveTo(70, 2, 80, -4, 94, -10);
+      bCtx.bezierCurveTo(103, -15, 112, -10, 122, -4);
+      // Second scallop notch
+      bCtx.bezierCurveTo(132, 2, 138, -7, 148, -20);
+      // Sweep out to wingtip
+      bCtx.bezierCurveTo(156, -30, 162, -40, 170, -46);
+      // Wingtip outer point
+      bCtx.bezierCurveTo(172, -38, 168, -28, 164, -20);
+      // Inner sweep of wingtip back toward body
+      bCtx.bezierCurveTo(156, -10, 144, -2, 136, -14);
+      // Wing top edge arcing inward to ear zone
+      bCtx.bezierCurveTo(122, -26, 104, -38, 84, -47);
+      bCtx.bezierCurveTo(66, -54, 46, -58, 32, -61);
+      // Right ear hump
+      bCtx.bezierCurveTo(26, -63, 21, -64, 18, -62);
+      // Inner ear slope to center notch
+      bCtx.bezierCurveTo(14, -59, 10, -54, 6, -50);
+      // Center top peak
+      bCtx.bezierCurveTo(3, -56, 0, -58, 0, -58);
+
+      // === LEFT SIDE (mirror) ===
+      bCtx.bezierCurveTo(0, -58, -3, -56, -6, -50);
+      bCtx.bezierCurveTo(-10, -54, -14, -59, -18, -62);
+      // Left ear hump
+      bCtx.bezierCurveTo(-21, -64, -26, -63, -32, -61);
+      bCtx.bezierCurveTo(-46, -58, -66, -54, -84, -47);
+      bCtx.bezierCurveTo(-104, -38, -122, -26, -136, -14);
+      // Left inner wingtip
+      bCtx.bezierCurveTo(-144, -2, -156, -10, -164, -20);
+      // Left wingtip outer
+      bCtx.bezierCurveTo(-168, -28, -172, -38, -170, -46);
+      bCtx.bezierCurveTo(-162, -40, -156, -30, -148, -20);
+      // Left second scallop
+      bCtx.bezierCurveTo(-138, -7, -132, 2, -122, -4);
+      bCtx.bezierCurveTo(-112, -10, -103, -15, -94, -10);
+      // Left first scallop
+      bCtx.bezierCurveTo(-80, -4, -70, 2, -60, 10);
+      // Left body back to bottom center
+      bCtx.bezierCurveTo(-44, 26, -20, 36, 0, 36);
+
       bCtx.closePath();
       bCtx.fill();
       bCtx.restore();
@@ -151,14 +193,14 @@ export default function F1GameCanvas({
     const batMat = new THREE.SpriteMaterial({
       map: batTex,
       transparent: true,
-      opacity: 0.92,
-      blending: THREE.AdditiveBlending,
-      fog: false, // Prevents scene fog from dissolving the Bat-Signal
+      opacity: 0.94,
+      blending: THREE.AdditiveBlending, // black bat = transparent = dark sky shows through = silhouette
+      fog: false,
       depthWrite: false,
     });
     const batSignalSprite = new THREE.Sprite(batMat);
-    batSignalSprite.position.set(0, 28, -120);
-    batSignalSprite.scale.set(26, 26, 1);
+    batSignalSprite.position.set(0, 30, -128);
+    batSignalSprite.scale.set(28, 28, 1);
     scene.add(batSignalSprite);
 
     // Forward Spotlights (Tactical LED Projectors)
@@ -184,7 +226,7 @@ export default function F1GameCanvas({
     const coneMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
-      opacity: 0.0,
+      opacity: 0.055, // Always-on base — visible in normal driving (was 0.0 bug)
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -195,33 +237,9 @@ export default function F1GameCanvas({
     const rightVolCone = new THREE.Mesh(coneGeo, coneMat);
     scene.add(rightVolCone);
 
-    // Rear Rain Light (Red LED Pulse)
-    const rearRainLight = new THREE.PointLight(0xff0033, 14, 12);
-    scene.add(rearRainLight);
-
-    // Luminous Rear Lens Flare Sprite
-    const flareCanvas = document.createElement("canvas");
-    flareCanvas.width = 64;
-    flareCanvas.height = 64;
-    const fCtx = flareCanvas.getContext("2d");
-    if (fCtx) {
-      const grad = fCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      grad.addColorStop(0, "rgba(255, 0, 50, 1)");
-      grad.addColorStop(0.3, "rgba(255, 50, 50, 0.6)");
-      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
-      fCtx.fillStyle = grad;
-      fCtx.fillRect(0, 0, 64, 64);
-    }
-    const flareTex = new THREE.CanvasTexture(flareCanvas);
-    const flareMat = new THREE.SpriteMaterial({
-      map: flareTex,
-      blending: THREE.AdditiveBlending,
-      transparent: true,
-      opacity: 0.9,
-    });
-    const rainFlareSprite = new THREE.Sprite(flareMat);
-    rainFlareSprite.scale.set(0.7, 0.7, 1);
-    scene.add(rainFlareSprite);
+    // 🦇 Batman aesthetic: no red. Replaced with a very faint deep-blue underbody glow.
+    const batUnderbody = new THREE.PointLight(0x0a1a3a, 3.5, 6);
+    scene.add(batUnderbody);
 
     // --- 4. ENDLESS WET OBSIDIAN HIGHWAY (PURE MINIMALIST MASTERY) ---
     const roadWidth = 10.4;
@@ -541,7 +559,7 @@ export default function F1GameCanvas({
       roadUniforms.uLightsOut.value +=
         (targetLightsOut - roadUniforms.uLightsOut.value) * 0.1;
 
-      coneMat.opacity = roadUniforms.uLightsOut.value * (isBoosting ? 0.16 : 0.10);
+      coneMat.opacity = 0.055 + roadUniforms.uLightsOut.value * (isBoosting ? 0.11 : 0.06);
 
       // Gentle Atmospheric Pulse on the Bat-Signal
       batSignalSprite.material.opacity = 0.88 + Math.sin(time * 1.5) * 0.08;
@@ -603,15 +621,8 @@ export default function F1GameCanvas({
       // Headlights steer slightly with the car (like real projector headlights)
       headlightTarget.position.set(carX + steerInput * 3.5, 0.1, -40);
 
-      // Rear Rain LED & Lens Flare (fixed Y — car is always on ground)
-      const rainPulse = 10.0 + Math.sin(time * 22) * 6.0;
-      rearRainLight.position.set(carX, 0.38, 1.4);
-      rearRainLight.intensity = rainPulse;
-
-      rainFlareSprite.position.set(carX, 0.38, 1.42);
-      rainFlareSprite.material.opacity = 0.6 + Math.sin(time * 22) * 0.35;
-      const flareScale = 0.65 + Math.sin(time * 22) * 0.15;
-      rainFlareSprite.scale.set(flareScale, flareScale, 1);
+      // 🦇 Subtle deep-blue underbody glow follows car (no red)
+      batUnderbody.position.set(carX, 0.08, 0.8);
 
       // 4. Volumetric Gaussian Tire Mist / Smoke Updates
       const isSmokeActive = onKerb || Math.abs(carSteerVelocity) > 2.8 || isBoosting;
@@ -734,8 +745,7 @@ export default function F1GameCanvas({
       roadMaterial.dispose();
       coneGeo.dispose();
       coneMat.dispose();
-      flareMat.dispose();
-      flareTex.dispose();
+
       smokeTex.dispose();
       smokeMat.dispose();
       shadowTex.dispose();
