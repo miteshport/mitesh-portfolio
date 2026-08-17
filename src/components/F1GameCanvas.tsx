@@ -110,82 +110,67 @@ export default function F1GameCanvas({
     batCanvas.height = 512;
     const bCtx = batCanvas.getContext("2d");
     if (bCtx) {
-      // 1. Bright Teal/Cyan Spotlight Disk (matches BvS / DC style)
+      // 1. Bright Teal/Cyan Spotlight Disk
       const spotGrad = bCtx.createRadialGradient(256, 250, 6, 256, 250, 240);
-      spotGrad.addColorStop(0.00, "rgba(245, 255, 255, 1.00)");  // pure white hot center
-      spotGrad.addColorStop(0.18, "rgba(185, 245, 250, 0.98)");  // bright teal
-      spotGrad.addColorStop(0.42, "rgba(80, 200, 225, 0.80)");   // mid cyan
-      spotGrad.addColorStop(0.68, "rgba(30, 120, 180, 0.40)");   // deeper blue
-      spotGrad.addColorStop(0.88, "rgba(10, 50, 100, 0.12)");    // dark edge
-      spotGrad.addColorStop(1.00, "rgba(0, 0, 0, 0)");           // fade out
+      spotGrad.addColorStop(0.00, "rgba(255, 255, 255, 1.00)");
+      spotGrad.addColorStop(0.20, "rgba(200, 248, 255, 0.98)");
+      spotGrad.addColorStop(0.48, "rgba(90, 210, 235, 0.84)");
+      spotGrad.addColorStop(0.72, "rgba(35, 128, 190, 0.48)");
+      spotGrad.addColorStop(0.90, "rgba(12, 58, 115, 0.16)");
+      spotGrad.addColorStop(1.00, "rgba(0, 0, 0, 0)");
       bCtx.fillStyle = spotGrad;
       bCtx.beginPath();
       bCtx.arc(256, 256, 240, 0, Math.PI * 2);
       bCtx.fill();
 
-      // 2. Thin circular border ring (like a real bat-signal lens)
-      bCtx.strokeStyle = "rgba(40, 160, 200, 0.50)";
+      // 2. Lens border ring
+      bCtx.strokeStyle = "rgba(40, 165, 210, 0.55)";
       bCtx.lineWidth = 4;
       bCtx.beginPath();
-      bCtx.arc(256, 256, 234, 0, Math.PI * 2);
+      bCtx.arc(256, 256, 233, 0, Math.PI * 2);
       bCtx.stroke();
 
-      // 3. Modern DC / BvS Bat Silhouette — wide swept wings, angular scallops
+      // 3. Bat cutout using destination-out — transparent hole = dark sky shows through = crisp silhouette
       bCtx.save();
-      bCtx.translate(256, 272); // slightly below center in spotlight
-      bCtx.scale(1.35, 1.35);
-      bCtx.fillStyle = "rgba(4, 7, 18, 0.97)";
+      bCtx.translate(256, 264);
+      bCtx.scale(1.85, 1.85);
+      bCtx.globalCompositeOperation = "destination-out";
+      bCtx.fillStyle = "rgba(0,0,0,1)";
+
       bCtx.beginPath();
+      bCtx.moveTo(0, 30); // bottom center
 
-      // Bottom center
-      bCtx.moveTo(0, 36);
+      // RIGHT WING: bottom edge (2 scallop bumps) → wingtip → top edge → ear
+      bCtx.bezierCurveTo(22, 30, 42, 22, 56, 10);     // body slope out
+      bCtx.bezierCurveTo(66, 2, 76, 10, 86, 18);       // scallop bump 1 (hangs down)
+      bCtx.bezierCurveTo(94, 24, 102, 8, 110, -2);     // scallop notch 1 (cuts up)
+      bCtx.bezierCurveTo(118, -5, 126, 10, 134, 16);   // scallop bump 2 (hangs down)
+      bCtx.bezierCurveTo(140, 20, 148, 4, 152, -12);   // scallop notch 2 (cuts up)
+      bCtx.bezierCurveTo(157, -24, 161, -36, 164, -44);// outer wingtip sweep
+      bCtx.bezierCurveTo(162, -35, 158, -22, 150, -14);// inner wingtip edge back
+      bCtx.bezierCurveTo(140, -4, 126, -18, 112, -30); // inner wing arc
+      bCtx.bezierCurveTo(94, -42, 74, -48, 54, -52);   // top arc inward
+      bCtx.bezierCurveTo(42, -54, 30, -55, 22, -57);   // to ear zone
+      bCtx.bezierCurveTo(16, -58, 10, -58, 7, -55);    // right ear peak
+      bCtx.bezierCurveTo(4, -52, 1, -48, 0, -46);      // center notch
 
-      // === RIGHT SIDE ===
-      // Inner body curve up and right
-      bCtx.bezierCurveTo(20, 36, 44, 26, 60, 10);
-      // First bottom wing scallop notch
-      bCtx.bezierCurveTo(70, 2, 80, -4, 94, -10);
-      bCtx.bezierCurveTo(103, -15, 112, -10, 122, -4);
-      // Second scallop notch
-      bCtx.bezierCurveTo(132, 2, 138, -7, 148, -20);
-      // Sweep out to wingtip
-      bCtx.bezierCurveTo(156, -30, 162, -40, 170, -46);
-      // Wingtip outer point
-      bCtx.bezierCurveTo(172, -38, 168, -28, 164, -20);
-      // Inner sweep of wingtip back toward body
-      bCtx.bezierCurveTo(156, -10, 144, -2, 136, -14);
-      // Wing top edge arcing inward to ear zone
-      bCtx.bezierCurveTo(122, -26, 104, -38, 84, -47);
-      bCtx.bezierCurveTo(66, -54, 46, -58, 32, -61);
-      // Right ear hump
-      bCtx.bezierCurveTo(26, -63, 21, -64, 18, -62);
-      // Inner ear slope to center notch
-      bCtx.bezierCurveTo(14, -59, 10, -54, 6, -50);
-      // Center top peak
-      bCtx.bezierCurveTo(3, -56, 0, -58, 0, -58);
-
-      // === LEFT SIDE (mirror) ===
-      bCtx.bezierCurveTo(0, -58, -3, -56, -6, -50);
-      bCtx.bezierCurveTo(-10, -54, -14, -59, -18, -62);
-      // Left ear hump
-      bCtx.bezierCurveTo(-21, -64, -26, -63, -32, -61);
-      bCtx.bezierCurveTo(-46, -58, -66, -54, -84, -47);
-      bCtx.bezierCurveTo(-104, -38, -122, -26, -136, -14);
-      // Left inner wingtip
-      bCtx.bezierCurveTo(-144, -2, -156, -10, -164, -20);
-      // Left wingtip outer
-      bCtx.bezierCurveTo(-168, -28, -172, -38, -170, -46);
-      bCtx.bezierCurveTo(-162, -40, -156, -30, -148, -20);
-      // Left second scallop
-      bCtx.bezierCurveTo(-138, -7, -132, 2, -122, -4);
-      bCtx.bezierCurveTo(-112, -10, -103, -15, -94, -10);
-      // Left first scallop
-      bCtx.bezierCurveTo(-80, -4, -70, 2, -60, 10);
-      // Left body back to bottom center
-      bCtx.bezierCurveTo(-44, 26, -20, 36, 0, 36);
+      // LEFT WING: exact mirror
+      bCtx.bezierCurveTo(-1, -48, -4, -52, -7, -55);
+      bCtx.bezierCurveTo(-10, -58, -16, -58, -22, -57);
+      bCtx.bezierCurveTo(-30, -55, -42, -54, -54, -52);
+      bCtx.bezierCurveTo(-74, -48, -94, -42, -112, -30);
+      bCtx.bezierCurveTo(-126, -18, -140, -4, -150, -14);
+      bCtx.bezierCurveTo(-158, -22, -162, -35, -164, -44);
+      bCtx.bezierCurveTo(-161, -36, -157, -24, -152, -12);
+      bCtx.bezierCurveTo(-148, 4, -140, 20, -134, 16);
+      bCtx.bezierCurveTo(-126, 10, -118, -5, -110, -2);
+      bCtx.bezierCurveTo(-102, 8, -94, 24, -86, 18);
+      bCtx.bezierCurveTo(-76, 10, -66, 2, -56, 10);
+      bCtx.bezierCurveTo(-42, 22, -22, 30, 0, 30);
 
       bCtx.closePath();
       bCtx.fill();
+      bCtx.globalCompositeOperation = "source-over";
       bCtx.restore();
     }
 
