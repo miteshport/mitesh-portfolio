@@ -454,12 +454,11 @@ export default function F1GameCanvas({
 
     // --- 7. INTERACTION CONTROLS ---
     let pointerX = 0;
-    let pointerY = 0;
+    // pointerY intentionally not used for car position — car stays flat on road always
     let targetCarX = 0;
-    let targetCarY = 0;
     let carX = 0;
-    let carY = 0;
     let carSteerVelocity = 0;
+    let steerInput = 0; // -1 (full left) to +1 (full right)
     let baseSpeed = 190;
     let currentSpeed = baseSpeed;
     let isBoosting = false;
@@ -467,8 +466,9 @@ export default function F1GameCanvas({
     let trackDistance = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
+      // Only horizontal input for steering — vertical mouse is ignored
       pointerX = (e.clientX / window.innerWidth - 0.5) * 2.0;
-      pointerY = (e.clientY / window.innerHeight - 0.5) * 2.0;
+      steerInput = THREE.MathUtils.clamp(pointerX, -1, 1);
     };
 
     const handlePointerDown = () => {
@@ -481,16 +481,20 @@ export default function F1GameCanvas({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        pointerX = Math.max(-1.0, pointerX - 0.25);
+        steerInput = Math.max(-1.0, steerInput - 0.35);
       } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        pointerX = Math.min(1.0, pointerX + 0.25);
+        steerInput = Math.min(1.0, steerInput + 0.35);
       } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = true;
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        steerInput = 0;
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        steerInput = 0;
+      } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = false;
       }
     };
@@ -542,62 +546,75 @@ export default function F1GameCanvas({
       // Gentle Atmospheric Pulse on the Bat-Signal
       batSignalSprite.material.opacity = 0.88 + Math.sin(time * 1.5) * 0.08;
 
-      // 3. 6-Axis Physics & Flight Aerodynamics
+      // 3. GROUND-LOCKED DRIVING PHYSICS (Real car — stays flat on road always)
       const trackHalfW = roadWidth / 2 - 0.8;
-      const targetSteerX = pointerX * (trackHalfW - 0.6);
-      targetCarX = THREE.MathUtils.clamp(targetSteerX, -trackHalfW + 0.2, trackHalfW - 0.2);
-      targetCarY = Math.max(0.0, pointerY * 0.85);
+
+      // Horizontal steering only — no vertical axis
+      targetCarX = THREE.MathUtils.clamp(
+        steerInput * (trackHalfW - 0.5),
+        -trackHalfW + 0.2,
+        trackHalfW - 0.2
+      );
 
       const prevX = carX;
-      carX += (targetCarX - carX) * 0.12;
-      carY += (targetCarY - carY) * 0.10;
+      // Weighted steering inertia (real tyre slip feel)
+      const steerLag = 0.09 + Math.abs(steerInput) * 0.04;
+      carX += (targetCarX - carX) * steerLag;
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
 
-      const rollAngle = -carSteerVelocity * 0.038;
-      const yawAngle = -carSteerVelocity * 0.022;
-      const pitchAngle = pointerY * 0.14;
+      // Car ALWAYS locked flat on the road surface — Y is constant
+      const roadY = 0.02;
+
+      // High-speed micro road vibration (chassis chatter on asphalt)
+      const highSpeedShake = Math.sin(time * 90) * 0.003 * (currentSpeed / 200);
 
       carGroup.position.x = carX;
-      carGroup.position.y = 0.02 + carY;
+      carGroup.position.y = roadY + Math.abs(highSpeedShake);
       carGroup.position.z = 0;
 
-      // Ground Contact Shadow Follows Car
+      // Ground Contact Shadow Follows Car (always visible — car never flies)
       groundShadow.position.x = carX;
       groundShadow.position.z = 0;
-      groundShadow.material.opacity = Math.max(0.0, 0.85 - carY * 0.8);
+      groundShadow.material.opacity = 0.85;
 
-      const isFlying = carY > 0.15;
-      const onKerb = !isFlying && Math.abs(carX) > trackHalfW - 1.0;
+      const isFlying = false; // Car never flies — ground locked
+      const onKerb = Math.abs(carX) > trackHalfW - 1.0;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
 
-      const highSpeedShake = !isFlying ? Math.sin(time * 80) * 0.004 * (currentSpeed / 190) : 0;
-      carGroup.position.y += Math.abs(highSpeedShake);
+      // Suspension Body Roll (weight transfer physics — car leans INTO the corner)
+      // Positive steer right → weight shifts left → car leans left (negative Z)
+      const suspensionRoll = -carSteerVelocity * 0.028;
+      carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, suspensionRoll, 0.14);
 
-      carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, rollAngle, 0.18);
-      carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, yawAngle, 0.18);
-      carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, pitchAngle, 0.15);
+      // Subtle Ackermann Yaw — rear of car follows the steering arc naturally
+      const ackermann = -carSteerVelocity * 0.012;
+      carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermann, 0.12);
 
-      // Headlight Tracking
-      leftHeadlight.position.set(carX - 0.7, 0.45 + carY, -0.2);
-      rightHeadlight.position.set(carX + 0.7, 0.45 + carY, -0.2);
-      leftVolCone.position.set(carX - 0.7, 0.45 + carY, -0.2);
-      rightVolCone.position.set(carX + 0.7, 0.45 + carY, -0.2);
-      headlightTarget.position.set(carX + carSteerVelocity * 0.3, 0.1, -40);
+      // No pitch — car stays perfectly flat, nose does not lift or dip
+      carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, 0, 0.18);
 
-      // Rear Rain LED & Lens Flare
+      // Headlight Tracking (fixed Y since car is always on the road)
+      leftHeadlight.position.set(carX - 0.7, 0.45, -0.2);
+      rightHeadlight.position.set(carX + 0.7, 0.45, -0.2);
+      leftVolCone.position.set(carX - 0.7, 0.45, -0.2);
+      rightVolCone.position.set(carX + 0.7, 0.45, -0.2);
+      // Headlights steer slightly with the car (like real projector headlights)
+      headlightTarget.position.set(carX + steerInput * 3.5, 0.1, -40);
+
+      // Rear Rain LED & Lens Flare (fixed Y — car is always on ground)
       const rainPulse = 10.0 + Math.sin(time * 22) * 6.0;
-      rearRainLight.position.set(carX, 0.38 + carY, 1.4);
+      rearRainLight.position.set(carX, 0.38, 1.4);
       rearRainLight.intensity = rainPulse;
 
-      rainFlareSprite.position.set(carX, 0.38 + carY, 1.42);
+      rainFlareSprite.position.set(carX, 0.38, 1.42);
       rainFlareSprite.material.opacity = 0.6 + Math.sin(time * 22) * 0.35;
       const flareScale = 0.65 + Math.sin(time * 22) * 0.15;
       rainFlareSprite.scale.set(flareScale, flareScale, 1);
 
       // 4. Volumetric Gaussian Tire Mist / Smoke Updates
-      const isSmokeActive = (!isFlying && onKerb) || Math.abs(carSteerVelocity) > 2.8 || isBoosting;
+      const isSmokeActive = onKerb || Math.abs(carSteerVelocity) > 2.8 || isBoosting;
 
       for (let i = 0; i < smokeParticleCount; i++) {
         const p = smokePool[i];
@@ -606,7 +623,7 @@ export default function F1GameCanvas({
         if (p.life <= 0 && isSmokeActive && Math.random() < 0.4) {
           const isLeft = Math.random() > 0.5;
           const spawnX = isLeft ? carX - 0.88 : carX + 0.88;
-          p.pos.set(spawnX + (Math.random() - 0.5) * 0.15, 0.14 + carY, 1.25);
+          p.pos.set(spawnX + (Math.random() - 0.5) * 0.15, 0.14, 1.25);
           p.vel.set(
             (Math.random() - 0.5) * 0.6 - carSteerVelocity * 0.15,
             Math.random() * 0.4 + 0.15,
@@ -639,7 +656,8 @@ export default function F1GameCanvas({
       const baseCamY = isMobile ? 1.15 : 0.95;
 
       const camTargetX = carX * 0.32;
-      const camTargetY = baseCamY + (carY * 0.45) + (isBoosting ? -0.08 : 0);
+      // Camera stays at fixed height — car never leaves the ground
+      const camTargetY = baseCamY + (isBoosting ? -0.06 : 0);
       const camTargetZ = baseCamZ + (isBoosting ? 0.35 : 0);
 
       camera.position.x += (camTargetX - camera.position.x) * 0.11;
@@ -652,7 +670,8 @@ export default function F1GameCanvas({
       camera.fov += (targetFOV - camera.fov) * 0.08;
       camera.updateProjectionMatrix();
 
-      camera.lookAt(carX * 0.15, 0.4 + (carY * 0.25), -14);
+      // LookAt follows car laterally but fixed height
+      camera.lookAt(carX * 0.15, 0.38, -14);
 
       // 6. Telemetry Callback
       if (onTelemetryUpdate) {
