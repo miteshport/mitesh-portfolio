@@ -51,6 +51,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const [is432Hz, setIs432Hz] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isPlayingRef = useRef(false);
   const freqDataRef = useRef<Uint8Array>(new Uint8Array(64));
 
   const currentChannel =
@@ -94,12 +95,30 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Continuous Gapless Autoplay on Track Ended
     const handleEnded = () => {
+      isPlayingRef.current = true;
       handleNextTrack();
     };
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      isPlayingRef.current = true;
+      if (typeof window !== "undefined" && "mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "playing";
+      }
+    };
+
+    const handlePause = () => {
+      // Only set playing to false if not in the middle of track transition
+      if (!audio.ended) {
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        if (typeof window !== "undefined" && "mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "paused";
+        }
+      }
+    };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
@@ -118,7 +137,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     };
   }, [handleNextTrack]);
 
-  // 2. Track Change: Load Native Audio Source & Sync Media Session
+  // 2. Track Change: Seamless Autoplay Next Track & Sync Media Session
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
@@ -127,9 +146,13 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     audio.src = nativeSrc;
     audio.volume = isMuted ? 0 : volume;
 
-    if (isPlaying) {
-      audio.play().catch((err) => {
-        console.warn("[Soundroom] Auto-playback interrupted:", err);
+    // Autoplay if session is active
+    if (isPlayingRef.current || isPlaying) {
+      audio.play().then(() => {
+        setIsPlaying(true);
+        isPlayingRef.current = true;
+      }).catch((err) => {
+        console.warn("[Soundroom] Auto-playback transition:", err);
       });
     }
 
@@ -150,11 +173,13 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         });
 
         navigator.mediaSession.setActionHandler("play", () => {
+          isPlayingRef.current = true;
           audio.play().catch(() => {});
           setIsPlaying(true);
         });
 
         navigator.mediaSession.setActionHandler("pause", () => {
+          isPlayingRef.current = false;
           audio.pause();
           setIsPlaying(false);
         });
@@ -187,9 +212,11 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     if (!audio) return;
 
     if (isPlaying) {
+      isPlayingRef.current = false;
       audio.pause();
       setIsPlaying(false);
     } else {
+      isPlayingRef.current = true;
       audio.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
@@ -204,6 +231,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     }
     const audio = audioRef.current;
     if (audio) {
+      isPlayingRef.current = true;
       audio.src = `/audio/${track.id}.m4a`;
       audio.play().then(() => setIsPlaying(true)).catch(() => {});
     }
