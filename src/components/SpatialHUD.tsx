@@ -147,8 +147,17 @@ export default function SpatialHUD({
           )}
         </div>
 
-        {/* Center: Audio Status & Time */}
-        <div style={{ pointerEvents: "auto", display: "flex", justifyContent: "center" }}>
+        {/* Center: Audio Status & Time (Mathematically 100% Dead-Center) */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            pointerEvents: "auto",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           <button
             onClick={() => {
               audio.playClick();

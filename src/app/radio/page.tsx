@@ -33,7 +33,7 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const data = getFrequencyData();
-      const numBars = 32;
+      const numBars = 30;
       const width = canvas.width;
       const height = canvas.height;
       const barWidth = (width / numBars) * 0.65;
@@ -68,12 +68,12 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
   return (
     <canvas
       ref={canvasRef}
-      width={240}
-      height={22}
+      width={220}
+      height={20}
       style={{
         width: "100%",
-        maxWidth: "240px",
-        height: "22px",
+        maxWidth: "220px",
+        height: "20px",
         display: "block",
         margin: "0 auto",
       }}
@@ -82,10 +82,10 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
 }
 
 export default function SoundroomPage() {
+  const [isFlipped, setIsFlipped] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<string>("user-vault");
   const [isShuffle, setIsShuffle] = useState(false);
-  const [mobileTab, setMobileTab] = useState<"player" | "playlist">("player");
 
   const {
     currentTrack,
@@ -127,7 +127,7 @@ export default function SoundroomPage() {
     return found || channels[0];
   }, [selectedFolder, channels, allTracks]);
 
-  // Filtered tracks by search
+  // Filtered tracks by search query
   const displayedTracks = useMemo(() => {
     if (!searchQuery.trim()) return activePlaylist.tracks;
     const q = searchQuery.toLowerCase();
@@ -152,9 +152,15 @@ export default function SoundroomPage() {
     seek(Math.max(0, currentTime - 10));
   };
 
+  // Flip Toggle
+  const handleFlipCard = () => {
+    uiAudio.playClick();
+    setIsFlipped((prev) => !prev);
+  };
+
   // Apple Liquid Glass 10/10 Style
   const glassCardStyle: React.CSSProperties = {
-    borderRadius: "26px",
+    borderRadius: "28px",
     background:
       "linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.12) 100%)",
     backdropFilter: "blur(40px) saturate(220%) brightness(110%)",
@@ -162,7 +168,7 @@ export default function SoundroomPage() {
     border: "1px solid rgba(255, 255, 255, 0.22)",
     borderTop: "1px solid rgba(255, 255, 255, 0.50)",
     boxShadow:
-      "inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.45), 0 28px 56px -12px rgba(0, 0, 0, 0.8)",
+      "inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.45), 0 30px 60px -15px rgba(0, 0, 0, 0.85)",
   };
 
   return (
@@ -178,6 +184,9 @@ export default function SoundroomPage() {
         fontFamily: "var(--font-apple)",
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
         boxSizing: "border-box",
       }}
     >
@@ -187,8 +196,12 @@ export default function SoundroomPage() {
 
       {/* INJECT SLEEK GLASS SCROLLBAR CSS */}
       <style jsx global>{`
+        .custom-apple-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+        }
         .custom-apple-scrollbar::-webkit-scrollbar {
-          width: 6px;
+          width: 5px;
         }
         .custom-apple-scrollbar::-webkit-scrollbar-track {
           background: rgba(255, 255, 255, 0.03);
@@ -203,138 +216,50 @@ export default function SoundroomPage() {
         }
       `}</style>
 
-      {/* MAIN IPAD / APPLE MUSIC CONTAINER (CLEAN TOP MARGIN — ZERO HUD COLLISION) */}
+      {/* 3D FLIP PERSPECTIVE WRAPPER (RESPONSIVE SINGLE CARD ON ALL DEVICES) */}
       <div
         style={{
-          flex: 1,
+          perspective: 1200,
           width: "100%",
-          maxWidth: "1160px",
-          margin: "0 auto",
-          marginTop: "4.4rem",
-          marginBottom: "1rem",
-          padding: "0 1.2rem",
-          display: "flex",
-          flexDirection: "column",
+          maxWidth: "440px",
+          height: "min(84vh, 640px)",
+          minHeight: "540px",
           position: "relative",
           zIndex: 10,
-          minHeight: 0,
-          boxSizing: "border-box",
+          marginTop: "2.8rem",
         }}
       >
-        {/* FOLDER / PLAYLIST SELECTOR PILLS */}
-        <div
+        <motion.div
+          animate={{ rotateY: isFlipped ? 180 : 0 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.45rem",
-            overflowX: "auto",
-            maxWidth: "100%",
-            padding: "0.2rem 0.1rem",
-            marginBottom: "0.85rem",
-            scrollbarWidth: "none",
-            WebkitOverflowScrolling: "touch",
-            flexShrink: 0,
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            transformStyle: "preserve-3d",
           }}
         >
-          {channels.map((ch) => {
-            const isSelected = selectedFolder === ch.id;
-            return (
-              <button
-                key={ch.id}
-                onClick={() => {
-                  uiAudio.playClick();
-                  setSelectedFolder(ch.id);
-                }}
-                style={{
-                  flexShrink: 0,
-                  padding: "0.42rem 0.95rem",
-                  borderRadius: "9999px",
-                  fontSize: "0.74rem",
-                  fontWeight: 600,
-                  color: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.70)",
-                  background: isSelected
-                    ? "linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.16) 100%)"
-                    : "rgba(255, 255, 255, 0.08)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  border: isSelected
-                    ? `1px solid ${ch.themeColor || "rgba(255, 255, 255, 0.5)"}`
-                    : "1px solid rgba(255, 255, 255, 0.15)",
-                  boxShadow: isSelected
-                    ? `0 0 16px ${ch.themeColor ? `${ch.themeColor}55` : "rgba(255,255,255,0.25)"}`
-                    : "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                }}
-              >
-                <span style={{ color: isSelected ? ch.themeColor : "rgba(255,255,255,0.4)" }}>
-                  ●
-                </span>
-                <span>{ch.title}</span>
-                <span style={{ fontSize: "0.64rem", opacity: 0.6 }}>({ch.tracks.length})</span>
-              </button>
-            );
-          })}
-
-          <button
-            onClick={() => {
-              uiAudio.playClick();
-              setSelectedFolder("all");
-            }}
-            style={{
-              flexShrink: 0,
-              padding: "0.42rem 0.95rem",
-              borderRadius: "9999px",
-              fontSize: "0.74rem",
-              fontWeight: 600,
-              color: selectedFolder === "all" ? "#ffffff" : "rgba(255, 255, 255, 0.70)",
-              background: selectedFolder === "all"
-                ? "linear-gradient(135deg, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0.16) 100%)"
-                : "rgba(255, 255, 255, 0.08)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              border: selectedFolder === "all"
-                ? "1px solid #38bdf8"
-                : "1px solid rgba(255, 255, 255, 0.15)",
-              boxShadow: selectedFolder === "all" ? "0 0 16px rgba(56, 189, 248, 0.35)" : "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <span>All Songs</span>
-            <span style={{ fontSize: "0.64rem", opacity: 0.6 }}>({allTracks.length})</span>
-          </button>
-        </div>
-
-        {/* IPAD SPLIT VIEW: LEFT (NOW PLAYING HERO DECK) + RIGHT (PLAYLIST TRACKS) */}
-        <div
-          style={{
-            flex: 1,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "1.2rem",
-            minHeight: 0,
-          }}
-        >
-          {/* ============================================================== */}
-          {/* LEFT CARD: APPLE / SAMSUNG FULL NOW PLAYING DECK               */}
-          {/* ============================================================== */}
+          {/* ================================================================= */}
+          {/* FACE 1: FRONT (APPLE / SAMSUNG NOW PLAYING HERO DECK)              */}
+          {/* ================================================================= */}
           <div
             style={{
               ...glassCardStyle,
-              padding: "1.4rem",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "space-between",
-              position: "relative",
+              padding: "1.4rem 1.5rem",
+              boxSizing: "border-box",
               overflow: "hidden",
+              pointerEvents: isFlipped ? "none" : "auto",
             }}
           >
             {/* Dynamic Saturated Ambient Bloom */}
@@ -347,8 +272,8 @@ export default function SoundroomPage() {
                 width: "280px",
                 height: "280px",
                 borderRadius: "50%",
-                filter: "blur(80px)",
-                opacity: 0.50,
+                filter: "blur(85px)",
+                opacity: 0.55,
                 pointerEvents: "none",
                 zIndex: 0,
                 backgroundColor: currentChannel?.themeColor || "#38bdf8",
@@ -356,19 +281,63 @@ export default function SoundroomPage() {
               }}
             />
 
-            {/* Album Artwork */}
+            {/* Top Bar on Card: Mode tag & Flip Button */}
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.68rem",
+                  fontFamily: "var(--font-mono, monospace)",
+                  letterSpacing: "0.14em",
+                  color: "rgba(255, 255, 255, 0.6)",
+                  textTransform: "uppercase",
+                }}
+              >
+                SOUNDROOM // NOW PLAYING
+              </div>
+              <button
+                onClick={handleFlipCard}
+                style={{
+                  background: "rgba(255, 255, 255, 0.12)",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  borderRadius: "9999px",
+                  padding: "0.25rem 0.65rem",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                <span>🗂️</span>
+                <span>Tracklist</span>
+              </button>
+            </div>
+
+            {/* Large Album Artwork */}
             <div
               style={{
                 position: "relative",
                 zIndex: 1,
-                width: "min(24vh, 180px)",
-                height: "min(24vh, 180px)",
+                width: "min(24vh, 175px)",
+                height: "min(24vh, 175px)",
                 borderRadius: "20px",
                 overflow: "hidden",
-                boxShadow: "0 18px 45px -8px rgba(0, 0, 0, 0.85)",
+                boxShadow: "0 20px 45px -8px rgba(0, 0, 0, 0.85)",
                 border: "1px solid rgba(255, 255, 255, 0.25)",
-                marginBottom: "0.8rem",
                 flexShrink: 0,
+                margin: "0.4rem 0",
               }}
             >
               <img
@@ -379,7 +348,7 @@ export default function SoundroomPage() {
             </div>
 
             {/* Live Audio Visualizer */}
-            <div style={{ width: "100%", marginBottom: "0.6rem", position: "relative", zIndex: 1 }}>
+            <div style={{ width: "100%", position: "relative", zIndex: 1 }}>
               <SoundVisualizer color={currentChannel?.themeColor || "#38bdf8"} />
             </div>
 
@@ -390,12 +359,11 @@ export default function SoundroomPage() {
                 zIndex: 1,
                 textAlign: "center",
                 width: "100%",
-                marginBottom: "0.8rem",
               }}
             >
               <div
                 style={{
-                  fontSize: "1.15rem",
+                  fontSize: "1.18rem",
                   fontWeight: 750,
                   color: "#ffffff",
                   letterSpacing: "-0.02em",
@@ -410,7 +378,7 @@ export default function SoundroomPage() {
                 style={{
                   fontSize: "0.82rem",
                   color: "rgba(255, 255, 255, 0.70)",
-                  marginTop: "0.2rem",
+                  marginTop: "0.15rem",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -422,7 +390,7 @@ export default function SoundroomPage() {
                 style={{
                   fontSize: "0.68rem",
                   color: currentChannel?.themeColor || "#38bdf8",
-                  marginTop: "0.2rem",
+                  marginTop: "0.15rem",
                   fontWeight: 600,
                 }}
               >
@@ -430,8 +398,8 @@ export default function SoundroomPage() {
               </div>
             </div>
 
-            {/* Scrubber Timeline Bar */}
-            <div style={{ width: "100%", marginBottom: "0.8rem", position: "relative", zIndex: 1 }}>
+            {/* Timeline Scrubber Bar */}
+            <div style={{ width: "100%", position: "relative", zIndex: 1 }}>
               <div
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -465,7 +433,7 @@ export default function SoundroomPage() {
                   fontSize: "0.68rem",
                   fontFamily: "var(--font-mono, monospace)",
                   color: "rgba(255, 255, 255, 0.50)",
-                  marginTop: "0.4rem",
+                  marginTop: "0.35rem",
                 }}
               >
                 <span>{formatTime(currentTime)}</span>
@@ -473,14 +441,13 @@ export default function SoundroomPage() {
               </div>
             </div>
 
-            {/* Transport Controls (Full Rewind, Prev, Play/Pause, Next, Fast-Forward) */}
+            {/* Transport Controls Row */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "1.1rem",
-                marginBottom: "0.9rem",
                 position: "relative",
                 zIndex: 1,
               }}
@@ -508,14 +475,14 @@ export default function SoundroomPage() {
                   background: "none",
                   border: "none",
                   color: "rgba(255, 255, 255, 0.75)",
-                  fontSize: "1.1rem",
+                  fontSize: "1.05rem",
                   cursor: "pointer",
                 }}
               >
                 ↺ 10s
               </button>
 
-              {/* Previous Track */}
+              {/* Previous */}
               <button
                 onClick={prevTrack}
                 title="Previous Song"
@@ -530,13 +497,13 @@ export default function SoundroomPage() {
                 ⏮
               </button>
 
-              {/* Big Play / Pause Button */}
+              {/* Big Play / Pause */}
               <motion.button
                 onClick={togglePlay}
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.90 }}
                 style={{
-                  width: "52px",
-                  height: "52px",
+                  width: "54px",
+                  height: "54px",
                   borderRadius: "50%",
                   backgroundColor: "#ffffff",
                   border: "none",
@@ -552,7 +519,7 @@ export default function SoundroomPage() {
                 {isPlaying ? "❚❚" : "▶"}
               </motion.button>
 
-              {/* Next Track */}
+              {/* Next */}
               <button
                 onClick={nextTrack}
                 title="Next Song"
@@ -575,14 +542,14 @@ export default function SoundroomPage() {
                   background: "none",
                   border: "none",
                   color: "rgba(255, 255, 255, 0.75)",
-                  fontSize: "1.1rem",
+                  fontSize: "1.05rem",
                   cursor: "pointer",
                 }}
               >
                 10s ↻
               </button>
 
-              {/* 432Hz Spatial Toggle */}
+              {/* 432Hz */}
               <button
                 onClick={toggle432Hz}
                 title="432Hz Harmonic Tuning"
@@ -590,7 +557,7 @@ export default function SoundroomPage() {
                   background: is432Hz ? "rgba(56, 189, 248, 0.25)" : "none",
                   border: is432Hz ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.2)",
                   borderRadius: "8px",
-                  padding: "0.2rem 0.45rem",
+                  padding: "0.2rem 0.4rem",
                   color: is432Hz ? "#38bdf8" : "rgba(255, 255, 255, 0.5)",
                   fontSize: "0.68rem",
                   fontWeight: 700,
@@ -635,29 +602,64 @@ export default function SoundroomPage() {
               />
               <span style={{ fontSize: "0.85rem", opacity: 0.75 }}>🔊</span>
             </div>
+
+            {/* Bottom Flip Button */}
+            <button
+              onClick={handleFlipCard}
+              style={{
+                width: "100%",
+                padding: "0.55rem",
+                borderRadius: "14px",
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.16)",
+                color: "#ffffff",
+                fontSize: "0.76rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.45rem",
+                position: "relative",
+                zIndex: 1,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>🗂️</span>
+              <span>View Tracklist & Folders ({activePlaylist.tracks.length} Songs)</span>
+              <span style={{ opacity: 0.5, fontSize: "0.7rem" }}>➔</span>
+            </button>
           </div>
 
-          {/* ============================================================== */}
-          {/* RIGHT CARD: PLAYLIST TRACKLIST BROWSER                         */}
-          {/* ============================================================== */}
+          {/* ================================================================= */}
+          {/* FACE 2: BACK (TRACKLIST & FOLDERS LIBRARY DECK)                   */}
+          {/* ================================================================= */}
           <div
             style={{
               ...glassCardStyle,
-              padding: "1.2rem",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              transform: "rotateY(180deg)",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
               display: "flex",
               flexDirection: "column",
-              minHeight: 0,
+              padding: "1.2rem 1.4rem",
+              boxSizing: "border-box",
               overflow: "hidden",
+              pointerEvents: isFlipped ? "auto" : "none",
             }}
           >
-            {/* Playlist Title & Search */}
+            {/* Top Back Header: Active Folder & Flip Close Button */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: "0.8rem",
-                paddingBottom: "0.8rem",
+                paddingBottom: "0.65rem",
                 borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
                 flexShrink: 0,
               }}
@@ -665,20 +667,20 @@ export default function SoundroomPage() {
               <div>
                 <div
                   style={{
-                    fontSize: "1.05rem",
+                    fontSize: "1.02rem",
                     fontWeight: 750,
                     color: "#ffffff",
                     letterSpacing: "-0.02em",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem",
+                    gap: "0.45rem",
                   }}
                 >
                   <span>{activePlaylist.title}</span>
                   <span
                     style={{
-                      fontSize: "0.68rem",
-                      padding: "0.15rem 0.55rem",
+                      fontSize: "0.66rem",
+                      padding: "0.15rem 0.5rem",
                       borderRadius: "9999px",
                       background: "rgba(255, 255, 255, 0.15)",
                       color: activePlaylist.themeColor || "#38bdf8",
@@ -689,60 +691,163 @@ export default function SoundroomPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: "0.68rem",
+                    fontSize: "0.66rem",
                     color: "rgba(255, 255, 255, 0.55)",
-                    marginTop: "0.15rem",
+                    marginTop: "0.1rem",
                   }}
                 >
                   {activePlaylist.subtitle}
                 </div>
               </div>
 
-              {/* Live Search */}
-              <div style={{ position: "relative", minWidth: "150px", maxWidth: "200px" }}>
-                <input
-                  type="text"
-                  placeholder="Search songs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.38rem 0.75rem",
-                    paddingLeft: "1.8rem",
-                    borderRadius: "9999px",
-                    background: "rgba(255, 255, 255, 0.10)",
-                    border: "1px solid rgba(255, 255, 255, 0.20)",
-                    color: "#ffffff",
-                    fontSize: "0.72rem",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    left: "0.6rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    fontSize: "0.68rem",
-                    opacity: 0.5,
-                    pointerEvents: "none",
-                  }}
-                >
-                  🔍
-                </span>
-              </div>
+              {/* Close Button to Flip Back to Player */}
+              <button
+                onClick={handleFlipCard}
+                title="Return to Player"
+                style={{
+                  background: "rgba(255, 255, 255, 0.15)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "32px",
+                  height: "32px",
+                  color: "#ffffff",
+                  fontSize: "1.1rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ✕
+              </button>
             </div>
 
-            {/* Scrollable Song List with Custom Sleek Scrollbar */}
+            {/* Folder Selector Pills */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                overflowX: "auto",
+                maxWidth: "100%",
+                padding: "0.55rem 0.1rem 0.4rem 0.1rem",
+                scrollbarWidth: "none",
+                WebkitOverflowScrolling: "touch",
+                flexShrink: 0,
+              }}
+            >
+              {channels.map((ch) => {
+                const isSelected = selectedFolder === ch.id;
+                return (
+                  <button
+                    key={ch.id}
+                    onClick={() => {
+                      uiAudio.playClick();
+                      setSelectedFolder(ch.id);
+                    }}
+                    style={{
+                      flexShrink: 0,
+                      padding: "0.32rem 0.75rem",
+                      borderRadius: "9999px",
+                      fontSize: "0.7rem",
+                      fontWeight: 600,
+                      color: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.70)",
+                      background: isSelected
+                        ? "linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.16) 100%)"
+                        : "rgba(255, 255, 255, 0.08)",
+                      border: isSelected
+                        ? `1px solid ${ch.themeColor || "rgba(255, 255, 255, 0.5)"}`
+                        : "1px solid rgba(255, 255, 255, 0.15)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <span style={{ color: isSelected ? ch.themeColor : "rgba(255,255,255,0.4)" }}>
+                      ●
+                    </span>
+                    <span>{ch.title}</span>
+                    <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>({ch.tracks.length})</span>
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => {
+                  uiAudio.playClick();
+                  setSelectedFolder("all");
+                }}
+                style={{
+                  flexShrink: 0,
+                  padding: "0.32rem 0.75rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: selectedFolder === "all" ? "#ffffff" : "rgba(255, 255, 255, 0.70)",
+                  background: selectedFolder === "all"
+                    ? "linear-gradient(135deg, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0.16) 100%)"
+                    : "rgba(255, 255, 255, 0.08)",
+                  border: selectedFolder === "all"
+                    ? "1px solid #38bdf8"
+                    : "1px solid rgba(255, 255, 255, 0.15)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>All Songs</span>
+                <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>({allTracks.length})</span>
+              </button>
+            </div>
+
+            {/* Live Search Bar */}
+            <div style={{ position: "relative", width: "100%", margin: "0.4rem 0 0.5rem 0", flexShrink: 0 }}>
+              <input
+                type="text"
+                placeholder="Search tracks, artists..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "0.38rem 0.75rem",
+                  paddingLeft: "1.8rem",
+                  borderRadius: "9999px",
+                  background: "rgba(255, 255, 255, 0.10)",
+                  border: "1px solid rgba(255, 255, 255, 0.20)",
+                  color: "#ffffff",
+                  fontSize: "0.72rem",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+              <span
+                style={{
+                  position: "absolute",
+                  left: "0.6rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  fontSize: "0.68rem",
+                  opacity: 0.5,
+                  pointerEvents: "none",
+                }}
+              >
+                🔍
+              </span>
+            </div>
+
+            {/* Smooth Trackpad 2-Finger Scrollable Tracklist */}
             <div
               className="custom-apple-scrollbar"
               style={{
                 flex: 1,
                 overflowY: "auto",
-                paddingTop: "0.6rem",
-                paddingRight: "0.35rem",
+                paddingRight: "0.25rem",
                 minHeight: 0,
+                touchAction: "pan-y",
               }}
             >
               {displayedTracks.length === 0 ? (
@@ -760,19 +865,17 @@ export default function SoundroomPage() {
                 displayedTracks.map((track, idx) => {
                   const isCurrent = currentTrack?.id === track.id;
                   return (
-                    <motion.div
+                    <div
                       key={track.id}
                       onClick={() => {
                         playTrack(track);
                       }}
-                      whileHover={{ scale: 1.01, backgroundColor: "rgba(255, 255, 255, 0.14)" }}
-                      whileTap={{ scale: 0.99 }}
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "0.8rem",
-                        padding: "0.55rem 0.75rem",
-                        borderRadius: "14px",
+                        gap: "0.75rem",
+                        padding: "0.5rem 0.65rem",
+                        borderRadius: "12px",
                         background: isCurrent
                           ? "linear-gradient(90deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.08) 100%)"
                           : "transparent",
@@ -780,14 +883,14 @@ export default function SoundroomPage() {
                           ? "1px solid rgba(255, 255, 255, 0.35)"
                           : "1px solid transparent",
                         cursor: "pointer",
-                        marginBottom: "0.3rem",
+                        marginBottom: "0.25rem",
                         transition: "all 0.15s ease",
                       }}
                     >
-                      {/* Number or Playing Icon */}
+                      {/* Index or Playing Icon */}
                       <div
                         style={{
-                          width: "22px",
+                          width: "20px",
                           textAlign: "center",
                           fontSize: "0.72rem",
                           fontWeight: 600,
@@ -802,11 +905,11 @@ export default function SoundroomPage() {
                         src={track.artwork}
                         alt={track.title}
                         style={{
-                          width: "38px",
-                          height: "38px",
+                          width: "36px",
+                          height: "36px",
                           borderRadius: "8px",
                           objectFit: "cover",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
                         }}
                       />
 
@@ -814,7 +917,7 @@ export default function SoundroomPage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
-                            fontSize: "0.82rem",
+                            fontSize: "0.80rem",
                             fontWeight: isCurrent ? 750 : 550,
                             color: isCurrent ? "#ffffff" : "rgba(255, 255, 255, 0.90)",
                             whiteSpace: "nowrap",
@@ -826,7 +929,7 @@ export default function SoundroomPage() {
                         </div>
                         <div
                           style={{
-                            fontSize: "0.68rem",
+                            fontSize: "0.66rem",
                             color: "rgba(255, 255, 255, 0.50)",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
@@ -841,7 +944,7 @@ export default function SoundroomPage() {
                       {/* Duration */}
                       <div
                         style={{
-                          fontSize: "0.7rem",
+                          fontSize: "0.68rem",
                           fontFamily: "var(--font-mono, monospace)",
                           color: isCurrent ? "#38bdf8" : "rgba(255, 255, 255, 0.45)",
                           flexShrink: 0,
@@ -849,13 +952,38 @@ export default function SoundroomPage() {
                       >
                         {formatTime(track.duration)}
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })
               )}
             </div>
+
+            {/* Bottom Return Button */}
+            <button
+              onClick={handleFlipCard}
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                borderRadius: "12px",
+                background: "rgba(255, 255, 255, 0.12)",
+                border: "1px solid rgba(255, 255, 255, 0.22)",
+                color: "#ffffff",
+                fontSize: "0.74rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.4rem",
+                marginTop: "0.5rem",
+                flexShrink: 0,
+              }}
+            >
+              <span>◀</span>
+              <span>Return to Player Deck</span>
+            </button>
           </div>
-        </div>
+        </motion.div>
       </div>
     </main>
   );
