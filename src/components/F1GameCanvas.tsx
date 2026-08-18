@@ -255,54 +255,42 @@ export default function F1GameCanvas({
     batSignalSprite.scale.set(22, 22, 1);
     scene.add(batSignalSprite);
 
-    // --- 6. 🏙️ 24 FLANKING 3D GOTHAM MONOLITH SKYSCRAPERS & SKYLINE ---
-    const skylineCanvas = document.createElement("canvas");
-    skylineCanvas.width = 1024;
-    skylineCanvas.height = 512;
-    const sCtx = skylineCanvas.getContext("2d");
-    if (sCtx) {
-      const skyGrad = sCtx.createLinearGradient(0, 0, 0, 512);
-      skyGrad.addColorStop(0.0, "#010206");
-      skyGrad.addColorStop(0.5, "#040916");
-      skyGrad.addColorStop(1.0, "#071224");
-      sCtx.fillStyle = skyGrad;
-      sCtx.fillRect(0, 0, 1024, 512);
-    }
-    const skylineTex = new THREE.CanvasTexture(skylineCanvas);
-    const skylineGeo = new THREE.CylinderGeometry(260, 260, 120, 32, 1, true, -Math.PI / 2, Math.PI);
-    const skylineMat = new THREE.MeshBasicMaterial({
-      map: skylineTex,
-      side: THREE.BackSide,
-      depthWrite: false,
-    });
-    const skylineMesh = new THREE.Mesh(skylineGeo, skylineMat);
-    skylineMesh.position.set(0, 40, -110);
-    scene.add(skylineMesh);
-
-    // 24 3D Monolithic Skyscrapers Lining Highway Left & Right
+    // --- 6. 🏙️ 28 VIVID 3D GOTHAM MONOLITH SKYSCRAPERS (MAJESTIC ROAD FLANKING) ---
     const buildingGroup = new THREE.Group();
     scene.add(buildingGroup);
     const buildingList: THREE.Mesh[] = [];
+
     const bGeoList = [
-      new THREE.BoxGeometry(8, 48, 14),
-      new THREE.BoxGeometry(10, 68, 16),
-      new THREE.BoxGeometry(7, 36, 12),
-      new THREE.BoxGeometry(12, 85, 18),
+      new THREE.BoxGeometry(6.5, 42, 10),
+      new THREE.BoxGeometry(8.5, 62, 12),
+      new THREE.BoxGeometry(5.5, 32, 9),
+      new THREE.BoxGeometry(9.5, 78, 14),
+      new THREE.BoxGeometry(7.0, 52, 11),
     ];
 
-    // High-Res Illuminated Windows Canvas
+    // High-Contrast Vivid Glowing Window Texture Canvas
     const winCanvas = document.createElement("canvas");
-    winCanvas.width = 256;
-    winCanvas.height = 512;
+    winCanvas.width = 512;
+    winCanvas.height = 1024;
     const wCtx = winCanvas.getContext("2d");
     if (wCtx) {
-      wCtx.fillStyle = "#03060f";
-      wCtx.fillRect(0, 0, 256, 512);
-      for (let wy = 12; wy < 500; wy += 14) {
-        for (let wx = 8; wx < 248; wx += 10) {
-          if (Math.random() > 0.40) {
-            wCtx.fillStyle = Math.random() > 0.28 ? "rgba(225, 240, 255, 0.88)" : "rgba(56, 189, 248, 0.75)";
-            wCtx.fillRect(wx, wy, 4, 7);
+      // Dark Gotham Obsidian Facade
+      wCtx.fillStyle = "#030712";
+      wCtx.fillRect(0, 0, 512, 1024);
+
+      // Multi-Color Illuminated Office Windows Grid
+      for (let wy = 16; wy < 1000; wy += 18) {
+        for (let wx = 12; wx < 500; wx += 16) {
+          const rand = Math.random();
+          if (rand > 0.35) {
+            if (rand > 0.85) {
+              wCtx.fillStyle = "rgba(255, 235, 160, 0.95)"; // Warm Amber Penthouse
+            } else if (rand > 0.55) {
+              wCtx.fillStyle = "rgba(56, 189, 248, 0.95)"; // Wayne Cyan Tech Lab
+            } else {
+              wCtx.fillStyle = "rgba(240, 248, 255, 0.90)"; // Pure Cool White Office
+            }
+            wCtx.fillRect(wx, wy, 8, 11);
           }
         }
       }
@@ -310,39 +298,41 @@ export default function F1GameCanvas({
     const winTex = new THREE.CanvasTexture(winCanvas);
     winTex.wrapS = THREE.RepeatWrapping;
     winTex.wrapT = THREE.RepeatWrapping;
-    winTex.repeat.set(1, 3);
+    winTex.repeat.set(1, 2.5);
 
     const bMat = new THREE.MeshStandardMaterial({
-      color: 0x050914,
+      color: 0x080f1e,
       map: winTex,
-      emissive: 0x0a1628,
+      emissive: 0xffffff,
       emissiveMap: winTex,
-      emissiveIntensity: 0.75,
-      roughness: 0.25,
+      emissiveIntensity: 1.25,
+      roughness: 0.20,
       metalness: 0.85,
     });
 
-    const numSkyscrapers = 24;
+    const beaconGeo = new THREE.SphereGeometry(0.45, 8, 8);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+
+    const numSkyscrapers = 28;
     for (let i = 0; i < numSkyscrapers; i++) {
       const geo = bGeoList[i % bGeoList.length];
       const mesh = new THREE.Mesh(geo, bMat);
       const isLeft = i % 2 === 0;
-      const xPos = isLeft ? -19.0 - Math.random() * 8.0 : 19.0 + Math.random() * 8.0;
-      const zPos = -15.0 - Math.floor(i / 2) * 26.0;
-      const yPos = geo.parameters.height / 2;
+
+      // Positioned close to the highway curbs (±5.2m road width) so they tower majestically on mobile & desktop!
+      const xPos = isLeft ? -9.5 - (i % 3) * 3.5 : 9.5 + (i % 3) * 3.5;
+      const zPos = -10.0 - Math.floor(i / 2) * 22.0;
+      const yPos = geo.parameters.height / 2 - 2.0;
       mesh.position.set(xPos, yPos, zPos);
 
       // Red Aviation Warning Beacon on Rooftop
-      const beaconGeo = new THREE.SphereGeometry(0.35, 8, 8);
-      const beaconMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
       const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-      beacon.position.set(0, geo.parameters.height / 2 + 0.8, 0);
+      beacon.position.set(0, geo.parameters.height / 2 + 0.9, 0);
       mesh.add(beacon);
 
       buildingGroup.add(mesh);
       buildingList.push(mesh);
     }
-
     // --- 7. 🛣️ UNIFIED 3-LANE ROCK-SOLID ASPHALT HIGHWAY ---
     const roadWidth = 10.4;
     const roadLength = 390.0;
@@ -1024,7 +1014,7 @@ export default function F1GameCanvas({
         if (isDriving) {
           b.position.z += forwardDelta;
           if (b.position.z > 25.0) {
-            b.position.z -= 26.0 * (numSkyscrapers / 2);
+            b.position.z -= 22.0 * (numSkyscrapers / 2);
           }
         }
       }
@@ -1188,10 +1178,6 @@ export default function F1GameCanvas({
 
       batUnderbody.position.set(carX, 0.08, 0.6);
 
-      // Parallax Skyline
-      if (skylineTex && isDriving) {
-        skylineTex.offset.x = (trackDistance * 0.0003) % 1;
-      }
 
       // Jet Afterburner Flame
       if (isBoosting && isDriving) {
@@ -1285,9 +1271,6 @@ export default function F1GameCanvas({
       studioEnvMap.dispose();
       roadGeometry.dispose();
       roadMaterial.dispose();
-      skylineGeo.dispose();
-      skylineMat.dispose();
-      skylineTex.dispose();
       shadowTex.dispose();
       shadowMat.dispose();
       flareTex.dispose();
