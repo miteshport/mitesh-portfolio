@@ -32,6 +32,8 @@ interface F1GameCanvasProps {
   isLightsOut?: boolean;
   isMuted?: boolean;
   onTelemetryUpdate?: (data: TelemetryData) => void;
+  onLoadProgress?: (progress: number) => void;
+  onLoadComplete?: () => void;
 }
 
 interface SmokeParticle {
@@ -48,6 +50,8 @@ export default function F1GameCanvas({
   isLightsOut = false,
   isMuted = false,
   onTelemetryUpdate,
+  onLoadProgress,
+  onLoadComplete,
 }: F1GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isLightsOutRef = useRef(isLightsOut);
@@ -89,7 +93,7 @@ export default function F1GameCanvas({
       powerPreference: "high-performance",
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.25;
     renderer.shadowMap.enabled = true;
@@ -160,10 +164,10 @@ export default function F1GameCanvas({
     composer.addPass(renderPass);
 
     const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      1.15, // strength
-      0.40, // radius
-      0.82  // threshold: only high-emissive headlights / bat-signal bleed
+      new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
+      0.95, // strength: cinematic soft aura
+      0.38, // radius
+      0.82  // threshold
     );
     composer.addPass(bloomPass);
 
@@ -529,29 +533,26 @@ export default function F1GameCanvas({
       };
     };
 
-    // Canvas Texture Cache for Dynamic Number Decals
-    const numberTextureCache = new Map<number, THREE.CanvasTexture>();
-    const getNumberTexture = (val: number, hexColor: string) => {
-      if (numberTextureCache.has(val)) return numberTextureCache.get(val)!;
+        // Static Pre-rendered Canvas Texture Pool (Zero allocations during gameplay)
+    const STATIC_NUMBER_TEXTURES = new Map<number, THREE.CanvasTexture>();
+    [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048].forEach((val) => {
+      const info = BLOCK_COLORS[val] || BLOCK_COLORS[2];
       const canvas = document.createElement("canvas");
       canvas.width = 256;
       canvas.height = 256;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        // Dark futuristic WayneTech plate
         ctx.fillStyle = "rgba(6, 9, 16, 0.95)";
         ctx.beginPath();
         ctx.roundRect(8, 8, 240, 240, 36);
         ctx.fill();
 
-        // Neon glowing rim
-        ctx.strokeStyle = hexColor;
+        ctx.strokeStyle = info.hex;
         ctx.lineWidth = 14;
-        ctx.shadowColor = hexColor;
+        ctx.shadowColor = info.hex;
         ctx.shadowBlur = 18;
         ctx.stroke();
 
-        // Glowing center number
         ctx.fillStyle = "#ffffff";
         ctx.font = `900 ${val >= 1000 ? "68px" : val >= 100 ? "82px" : "106px"} system-ui, sans-serif`;
         ctx.textAlign = "center";
@@ -560,8 +561,11 @@ export default function F1GameCanvas({
       }
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
-      numberTextureCache.set(val, tex);
-      return tex;
+      STATIC_NUMBER_TEXTURES.set(val, tex);
+    });
+
+    const getNumberTexture = (val: number, hexColor: string) => {
+      return STATIC_NUMBER_TEXTURES.get(val) || STATIC_NUMBER_TEXTURES.get(2)!;
     };
 
     interface PowerBlockItem {
@@ -796,7 +800,19 @@ export default function F1GameCanvas({
     const suspensionSprings: THREE.Object3D[] = [];
     const jetNozzlePetals: THREE.Object3D[] = [];
 
-    const loader = new GLTFLoader();
+    const loadingManager = new THREE.LoadingManager();
+    loadingManager.onProgress = (_url, itemsLoaded, itemsTotal) => {
+      const progress = Math.min(100, Math.round((itemsLoaded / Math.max(1, itemsTotal)) * 100));
+      if (onLoadProgress) onLoadProgress(progress);
+    };
+    loadingManager.onLoad = () => {
+      // 🚀 Pre-warm all shaders on GPU before gameplay to eliminate frame drops
+      renderer.compile(scene, camera);
+      if (onLoadProgress) onLoadProgress(100);
+      if (onLoadComplete) onLoadComplete();
+    };
+
+    const loader = new GLTFLoader(loadingManager);
     loader.load(
       "/models/batmobile.glb",
       (gltf) => {
@@ -966,8 +982,9 @@ export default function F1GameCanvas({
       camera.fov = isMob ? 70 : 65;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       composer.setSize(w, h);
-      bloomPass.setSize(w, h);
+      bloomPass.setSize(w / 2, h / 2);
     };
     window.addEventListener("resize", handleResize);
 
