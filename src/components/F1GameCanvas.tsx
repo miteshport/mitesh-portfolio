@@ -1047,11 +1047,19 @@ export default function F1GameCanvas({
         spawnWaveFormation(newWaveZ, passedIndices.slice(0, 3));
       }
 
-      // 5. 🏎️ 3 HEAVY TUMBLER MECHANICAL RIGS & SUSPENSION DYNAMICS
-      const steerDiff = targetCarX - carX;
-      carSteerVelocity = steerDiff * 14.0;
-      carX += steerDiff * Math.min(1.0, delta * 13.5);
+      // 5. 🏎️ VELVETY SMOOTH CRITICALLY-DAMPED SPRING PHYSICS & BODY ROLL
+      const springConstant = 88.0; // Crisp arcade responsiveness
+      const dampingFactor = 16.8; // Critical damping (buttery smooth settle, zero jumpiness)
+      const force = (targetCarX - carX) * springConstant - carSteerVelocity * dampingFactor;
+      carSteerVelocity += force * delta;
+      carX += carSteerVelocity * delta;
 
+      if (Math.abs(targetCarX - carX) < 0.005 && Math.abs(carSteerVelocity) < 0.05) {
+        carX = targetCarX;
+        carSteerVelocity = 0;
+      }
+
+      const steerDiff = targetCarX - carX;
       const skidWobble = skidTimer > 0 ? Math.sin(time * 40) * 0.14 * skidTimer : 0;
 
       carGroup.position.x = carX + skidWobble;
@@ -1071,7 +1079,7 @@ export default function F1GameCanvas({
       }
 
       // 🪽 RIG 2: Active Aero Air-Brake Flaps (Winglets)
-      const targetFlapAngle = (Math.abs(steerDiff) > 0.35 || isBraking) ? 0.45 : (isBoosting ? -0.15 : 0.0);
+      const targetFlapAngle = (Math.abs(carSteerVelocity) > 1.2 || isBraking) ? 0.45 : (isBoosting ? -0.15 : 0.0);
       if (carGroup.children[2]) {
         carGroup.children[2].traverse((child: any) => {
           if (child.isMesh && (child.name.toLowerCase().includes("wing") || child.name.toLowerCase().includes("flap") || child.name.toLowerCase().includes("aero") || child.name.toLowerCase().includes("spoiler"))) {
@@ -1083,8 +1091,8 @@ export default function F1GameCanvas({
       // 🏋️ RIG 3: Heavy 2.5-Ton Suspension (6-8° Body Roll, Yaw Counter-Steer, Boost Squat)
       if (carGroup.children[2]) {
         const carPivot = carGroup.children[2];
-        carPivot.rotation.z = -steerDiff * 0.14; // Heavy Body Roll into corner
-        carPivot.rotation.y = Math.PI / 2 + steerDiff * 0.08; // Yaw drift
+        carPivot.rotation.z = -carSteerVelocity * 0.065; // Proportional smooth body roll
+        carPivot.rotation.y = Math.PI / 2 + carSteerVelocity * 0.035; // Gentle yaw counter-steer
         carPivot.rotation.x = isBoosting ? 0.035 : (isBraking ? -0.025 : 0.0); // Squat / Dive
       }
 
