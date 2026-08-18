@@ -19,13 +19,11 @@ export interface TelemetryData {
   onKerb: boolean;
   currentSector: number;
   sectorsCrossed: number;
-  cargoStack: number[];
   score: number;
   multiplier: number;
-  lastMergeVal: number;
-  isOverloaded: boolean;
-  isHyperCharged: boolean;
-  targetMatch: number | null;
+  turboBoost: number;
+  isMachTurbo: boolean;
+  nearMissCount: number;
 }
 
 interface F1GameCanvasProps {
@@ -421,8 +419,6 @@ export default function F1GameCanvas({
         float zDist = -worldZPos;
         vWorldZ = zDist;
 
-        float curve = sin((zDist + uDistance) * 0.022) * uCurvature * (zDist * 0.010);
-        pos.x += curve;
         vWorldX = pos.x;
 
         vec4 modelViewPosition = modelViewMatrix * vec4(pos, 1.0);
@@ -517,109 +513,56 @@ export default function F1GameCanvas({
 
     
 
-                // Static Pre-rendered Canvas Texture Pool (Crystal-Clear High-Contrast Badges)
-    const STATIC_NUMBER_TEXTURES = new Map<number, THREE.CanvasTexture>();
-    [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048].forEach((val) => {
-      const info = BLOCK_COLORS[val] || BLOCK_COLORS[2];
-      const canvas = document.createElement("canvas");
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // Deep obsidian solid plate
-        ctx.fillStyle = "rgba(4, 7, 14, 0.98)";
-        ctx.beginPath();
-        ctx.roundRect(24, 24, 464, 464, 88);
-        ctx.fill();
-
-        // Thick glowing neon border
-        ctx.strokeStyle = info.hex;
-        ctx.lineWidth = 32;
-        ctx.shadowColor = info.hex;
-        ctx.shadowBlur = 30;
-        ctx.stroke();
-
-        // Secondary inner hairline ring
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-        ctx.lineWidth = 6;
-        ctx.shadowBlur = 0;
-        ctx.stroke();
-
-        // Bold stroke around number to prevent bloom bleed
-        ctx.font = `900 ${val >= 1000 ? "160px" : val >= 100 ? "190px" : "240px"} system-ui, -apple-system, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        ctx.lineWidth = 22;
-        ctx.strokeStyle = "#04070e";
-        ctx.strokeText(String(val), 256, 256);
-
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(String(val), 256, 256);
-      }
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      STATIC_NUMBER_TEXTURES.set(val, tex);
-    });
-
-    const getNumberTexture = (val: number, hexColor: string) => {
-      return STATIC_NUMBER_TEXTURES.get(val) || STATIC_NUMBER_TEXTURES.get(2)!;
-    };
-
-        interface PowerBlockItem {
+// --- 9. ⚡ ROAD FIGHTER GOTHAM ENTITIES (ENERGY CORES & HAZARDS) ---
+    interface RoadFighterEntity {
       group: THREE.Group;
-      boxMesh: THREE.Mesh;
-      billboardSprite: THREE.Sprite;
+      mesh: THREE.Mesh;
       skyBeam: THREE.Mesh;
-      targetReticle: THREE.Mesh;
       light: THREE.PointLight;
-      value: number;
+      isHazard: boolean;
       laneIndex: number;
       z: number;
       active: boolean;
+      nearMissed: boolean;
     }
 
-    const lanePositions = [-2.4, 0.0, 2.4];
-    const powerBlockPool: PowerBlockItem[] = [];
-    const blockCount = 8;
+    const lanePositions = [-2.5, 0.0, 2.5];
+    const entityPool: RoadFighterEntity[] = [];
+    const poolSize = 10;
 
-    const blockBoxGeo = new THREE.BoxGeometry(1.2, 0.70, 1.2);
-    const skyBeamGeo = new THREE.CylinderGeometry(0.04, 0.18, 16, 8);
-    const reticleGeo = new THREE.RingGeometry(0.9, 1.15, 32);
+    const coreGeo = new THREE.OctahedronGeometry(0.65, 2);
+    const hazardGeo = new THREE.BoxGeometry(1.4, 0.75, 1.4);
+    const skyBeamGeo = new THREE.CylinderGeometry(0.04, 0.16, 16, 8);
 
-    for (let i = 0; i < blockCount; i++) {
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x0c1e30,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 0.95,
+      metalness: 0.85,
+      roughness: 0.15,
+    });
+
+    const hazardMat = new THREE.MeshStandardMaterial({
+      color: 0x200a0a,
+      emissive: 0xef4444,
+      emissiveIntensity: 0.90,
+      metalness: 0.85,
+      roughness: 0.20,
+    });
+
+    for (let i = 0; i < poolSize; i++) {
       const group = new THREE.Group();
+      const isHazard = i % 3 === 0;
 
-      // 3D Core Block
-      const boxMat = new THREE.MeshStandardMaterial({
-        color: 0x0c1220,
-        metalness: 0.85,
-        roughness: 0.20,
-        emissive: 0x38bdf8,
-        emissiveIntensity: 0.55,
-      });
-      const boxMesh = new THREE.Mesh(blockBoxGeo, boxMat);
-      boxMesh.position.y = 0.35;
-      group.add(boxMesh);
+      const mesh = new THREE.Mesh(isHazard ? hazardGeo : coreGeo, isHazard ? hazardMat.clone() : coreMat.clone());
+      mesh.position.y = 0.45;
+      group.add(mesh);
 
-      // 🎯 1. CAMERA-FACING HOLOGRAPHIC BILLBOARD BADGE (Always upright & 100% visible)
-      const initInfo = BLOCK_COLORS[2];
-      const decalTex = getNumberTexture(2, initInfo.hex);
-      const spriteMat = new THREE.SpriteMaterial({
-        map: decalTex,
-        transparent: true,
-        depthWrite: false,
-      });
-      const billboardSprite = new THREE.Sprite(spriteMat);
-      billboardSprite.position.set(0, 1.45, 0);
-      billboardSprite.scale.set(1.55, 1.55, 1.0);
-      group.add(billboardSprite);
-
-      // 🗼 2. VERTICAL SKY LASER BEAM (Visible from 200m away in the Gotham skyline)
+      // Sky Laser Pillar
       const beamMat = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
+        color: isHazard ? 0xef4444 : 0x38bdf8,
         transparent: true,
-        opacity: 0.35,
+        opacity: isHazard ? 0.20 : 0.40,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -628,70 +571,47 @@ export default function F1GameCanvas({
       skyBeam.position.set(0, 8.5, 0);
       group.add(skyBeam);
 
-      // 🎯 3. SMART TARGET RETICLE (Pulsing ring when block matches player's needed number)
-      const reticleMat = new THREE.MeshBasicMaterial({
-        color: 0xffd700,
-        transparent: true,
-        opacity: 0,
-        side: THREE.DoubleSide,
-      });
-      const targetReticle = new THREE.Mesh(reticleGeo, reticleMat);
-      targetReticle.rotation.x = -Math.PI / 2;
-      targetReticle.position.set(0, 0.08, 0);
-      group.add(targetReticle);
-
-      // Point Light
-      const pLight = new THREE.PointLight(0x38bdf8, 2.2, 7.0);
-      pLight.position.set(0, 0.9, 0);
+      const pLight = new THREE.PointLight(isHazard ? 0xef4444 : 0x38bdf8, 2.0, 7.0);
+      pLight.position.set(0, 0.8, 0);
       group.add(pLight);
 
-      const initZ = -45 - i * 28;
+      const initZ = -45 - i * 26;
       const initLane = i % 3;
       group.position.set(lanePositions[initLane], 0, initZ);
 
       scene.add(group);
 
-      powerBlockPool.push({
+      entityPool.push({
         group,
-        boxMesh,
-        billboardSprite,
+        mesh,
         skyBeam,
-        targetReticle,
         light: pLight,
-        value: 2,
+        isHazard,
         laneIndex: initLane,
         z: initZ,
         active: true,
+        nearMissed: false,
       });
     }
 
-    const updateBlockVisuals = (item: PowerBlockItem, val: number, isTarget = false) => {
-      item.value = val;
-      const info = BLOCK_COLORS[val] || BLOCK_COLORS[2];
-      const tex = getNumberTexture(val, info.hex);
+    const resetEntity = (item: RoadFighterEntity, zPos: number, lane: number, isHazard: boolean) => {
+      item.z = zPos;
+      item.laneIndex = lane;
+      item.isHazard = isHazard;
+      item.active = true;
+      item.nearMissed = false;
+      item.group.visible = true;
 
-      const bMat = item.boxMesh.material as THREE.MeshStandardMaterial;
-      bMat.emissive.setHex(info.color);
+      item.mesh.geometry = isHazard ? hazardGeo : coreGeo;
+      const col = isHazard ? 0xef4444 : 0x38bdf8;
+      (item.mesh.material as THREE.MeshStandardMaterial).emissive.setHex(col);
+      (item.skyBeam.material as THREE.MeshBasicMaterial).color.setHex(col);
+      item.light.color.setHex(col);
 
-      (item.billboardSprite.material as THREE.SpriteMaterial).map = tex;
-      (item.skyBeam.material as THREE.MeshBasicMaterial).color.setHex(info.color);
-      item.light.color.setHex(info.color);
-
-      // Target Highlight
-      const retMat = item.targetReticle.material as THREE.MeshBasicMaterial;
-      if (isTarget) {
-        retMat.opacity = 0.85;
-        retMat.color.setHex(info.color);
-        item.billboardSprite.scale.set(1.85, 1.85, 1.0);
-        (item.skyBeam.material as THREE.MeshBasicMaterial).opacity = 0.65;
-      } else {
-        retMat.opacity = 0.0;
-        item.billboardSprite.scale.set(1.45, 1.45, 1.0);
-        (item.skyBeam.material as THREE.MeshBasicMaterial).opacity = 0.28;
-      }
+      item.group.position.set(lanePositions[lane], 0, zPos);
     };
 
-    // Merge Shockwave Ring Particle Effect
+        // Merge Shockwave Ring Particle Effect
     const shockwaveGeo = new THREE.RingGeometry(0.2, 0.45, 32);
     const shockwaveMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
@@ -825,54 +745,44 @@ export default function F1GameCanvas({
     roadTargetDecal.position.set(0, 0.03, -12);
     scene.add(roadTargetDecal);
 
-    // Dynamic Roof Hologram Renderer
-    const updateRoofHologram = (stack: number[], multiplier: number, isOverload: boolean, isHyper: boolean) => {
+        // Dynamic Roof Hologram Renderer (Road Fighter Turbo & Streak)
+    const updateRoofHologram = (score: number, turbo: number, isMach: boolean, streak: number) => {
       if (!hCtx) return;
       hCtx.clearRect(0, 0, 512, 140);
 
-      // Frosted Glass Holographic Pill
-      hCtx.fillStyle = "rgba(4, 8, 16, 0.88)";
+      // Frosted Obsidian Pill
+      hCtx.fillStyle = "rgba(4, 8, 16, 0.90)";
       hCtx.beginPath();
       hCtx.roundRect(8, 8, 496, 124, 32);
       hCtx.fill();
 
-      const topVal = stack.length > 0 ? stack[stack.length - 1] : null;
-      const topHex = topVal ? (BLOCK_COLORS[topVal]?.hex || "#38bdf8") : "#38bdf8";
-
-      hCtx.strokeStyle = isOverload ? "#ef4444" : isHyper ? "#38bdf8" : topHex;
-      hCtx.lineWidth = 8;
-      hCtx.shadowColor = hCtx.strokeStyle;
-      hCtx.shadowBlur = 18;
+      hCtx.strokeStyle = isMach ? "#38bdf8" : "#0284c7";
+      hCtx.lineWidth = 6;
       hCtx.stroke();
 
-      hCtx.shadowBlur = 0;
-      hCtx.font = "900 32px system-ui, -apple-system, sans-serif";
+      hCtx.font = "900 28px system-ui, -apple-system, sans-serif";
       hCtx.textAlign = "center";
       hCtx.textBaseline = "middle";
 
-      if (isHyper) {
+      if (isMach) {
         hCtx.fillStyle = "#38bdf8";
-        hCtx.fillText("⚡ HYPER AFTERBURNER ⚡", 256, 70);
-      } else if (isOverload) {
-        hCtx.fillStyle = "#ef4444";
-        hCtx.fillText("⚠️ OVERLOAD // EJECTING ⚠️", 256, 70);
-      } else if (!topVal) {
-        hCtx.fillStyle = "#ffffff";
-        hCtx.fillText("🎯 RAM [ 2 ] OR [ 4 ]", 256, 70);
+        hCtx.fillText("⚡ MACH 1 AFTERBURNER ⚡", 256, 70);
       } else {
-        // Active Core + Target to Hunt
-        hCtx.fillStyle = "rgba(255, 255, 255, 0.65)";
-        hCtx.font = "800 24px system-ui, sans-serif";
-        hCtx.fillText("HUNT ➔", 210, 70);
+        // Turbo Progress Bar Inside Hologram
+        const filledBars = Math.floor(turbo / 20); // 0 to 5
+        let barStr = "";
+        for (let b = 0; b < 5; b++) {
+          barStr += b < filledBars ? "■ " : "□ ";
+        }
 
-        hCtx.fillStyle = topHex;
-        hCtx.font = "900 48px system-ui, sans-serif";
-        hCtx.fillText(`[${topVal}]`, 330, 70);
+        hCtx.fillStyle = "#ffffff";
+        hCtx.font = "800 22px system-ui, sans-serif";
+        hCtx.fillText(`TURBO: ${barStr}`, 230, 70);
 
-        if (multiplier > 1) {
+        if (streak > 1) {
           hCtx.fillStyle = "#38bdf8";
-          hCtx.font = "800 22px system-ui, sans-serif";
-          hCtx.fillText(`x${multiplier}`, 80, 70);
+          hCtx.font = "900 24px system-ui, sans-serif";
+          hCtx.fillText(`x${streak}`, 420, 70);
         }
       }
 
@@ -1027,13 +937,13 @@ export default function F1GameCanvas({
       }
     );
 
-    // --- 11B. ⚡ 2048 TUMBLER CASCADE LIFO STACK STATE ---
-    let cargoStack: number[] = [];
+        // --- 11B. ⚡ ROAD FIGHTER GOTHAM ARCADE STATE ---
     let gameScore = 0;
     let comboMultiplier = 1;
-    let lastMergeValue = 0;
-    let hyperChargeTime = 0;
-    let consecutiveMerges = 0;
+    let turboCharge = 0; // 0 to 100%
+    let machTurboTimer = 0; // Duration of Mach 1 Afterburner
+    let nearMissCount = 0;
+    let fishtailTimer = 0;
     // --- 11. CONTROLS & SPRING PHYSICS STATE ---
     let pointerX = 0;
     let targetSteerInput = 0;
@@ -1121,11 +1031,13 @@ export default function F1GameCanvas({
       const delta = Math.min(clock.getDelta(), 0.08);
       const time = clock.getElapsedTime();
 
-      // 0. ⚡ 2048 TUMBLER CASCADE GAME TICKS
-      const isOverloaded = cargoStack.length >= 4;
-      const isHyperCharged = hyperChargeTime > 0;
-      if (hyperChargeTime > 0) {
-        hyperChargeTime -= delta;
+      // 0. ⚡ ROAD FIGHTER GOTHAM ARCADE TICKS
+      const isMach = machTurboTimer > 0;
+      if (machTurboTimer > 0) {
+        machTurboTimer -= delta;
+      }
+      if (fishtailTimer > 0) {
+        fishtailTimer -= delta;
       }
 
       // Shockwave Ring Animation
@@ -1137,20 +1049,19 @@ export default function F1GameCanvas({
         (shockwaveMesh.material as THREE.MeshBasicMaterial).opacity = 0;
       }
 
-      // Heavy Input Inertia (Sluggish resistance if reactor is overloaded)
-      const steerInertia = isOverloaded ? 0.038 : 0.075;
-      steerInput = THREE.MathUtils.lerp(steerInput, targetSteerInput, steerInertia);
+      // 1:1 Crisp Responsive Steering (Buttery-smooth, zero phantom drift)
+      steerInput = THREE.MathUtils.lerp(steerInput, targetSteerInput, 0.16);
 
       // 1. Acceleration & Pacing
-      const boostActive = isBoosting || isHyperCharged;
-      const targetSpeed = boostActive ? 365 : (isOverloaded ? 170 : 190);
-      currentSpeed += (targetSpeed - currentSpeed) * (boostActive ? 0.08 : 0.045);
+      const boostActive = isBoosting || isMach;
+      const targetSpeed = isMach ? 385 : isBoosting ? 320 : 200;
+      currentSpeed += (targetSpeed - currentSpeed) * (isMach ? 0.12 : 0.06);
       lapTime += delta;
 
       const forwardDelta = currentSpeed * 0.20 * delta;
       trackDistance += forwardDelta;
 
-      // Road Shader Uniforms
+      // Road Dash Shader Scrolling
       roadUniforms.uDistance.value = trackDistance;
       const targetLightsOut = isLightsOutRef.current ? 1.0 : 0.0;
       roadUniforms.uLightsOut.value +=
@@ -1161,193 +1072,131 @@ export default function F1GameCanvas({
       // Bat-Signal Aura Pulse
       batSignalSprite.material.opacity = 0.90 + Math.sin(time * 1.5) * 0.06;
 
-            // 1B. ⚡ ROAD FIGHTER CHOREOGRAPHED BLOCKS & TARGET RETICLES
-      const targetMatchVal = cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null;
-
-      for (let i = 0; i < powerBlockPool.length; i++) {
-        const item = powerBlockPool[i];
+      // 1B. ⚡ ROAD FIGHTER ENTITY MOVEMENTS & COLLISIONS
+      for (let i = 0; i < entityPool.length; i++) {
+        const item = entityPool[i];
         item.z += forwardDelta;
         item.group.position.z = item.z;
         item.group.position.x = lanePositions[item.laneIndex];
-        item.group.position.y = 0.45 + Math.sin(time * 3.6 + i * 1.2) * 0.08;
-        item.boxMesh.rotation.y += 0.022;
 
-        // Target Reticle Spin & Pulse
-        const isTarget = targetMatchVal !== null && item.value === targetMatchVal;
-        const retMat = item.targetReticle.material as THREE.MeshBasicMaterial;
-        if (isTarget) {
-          retMat.opacity = 0.65 + Math.sin(time * 8.0) * 0.25;
-          item.targetReticle.rotation.z += 0.04;
+        if (!item.isHazard) {
+          item.mesh.rotation.y += 0.035;
+          item.group.position.y = 0.45 + Math.sin(time * 4.0 + i) * 0.10;
         } else {
-          retMat.opacity = 0;
+          item.group.position.y = 0.38;
         }
 
         // Collision Check with Batmobile Tumbler
-        if (
-          item.active &&
-          Math.abs(item.z - 0) < 1.65 &&
-          Math.abs(carX - lanePositions[item.laneIndex]) < 1.35
-        ) {
+        const distZ = Math.abs(item.z - 0);
+        const distX = Math.abs(carX - lanePositions[item.laneIndex]);
+
+        if (item.active && distZ < 1.65 && distX < 1.35) {
           item.active = false;
           item.group.visible = false;
-          cargoStack.push(item.value);
 
-          // 🔄 LIFO Cascade Stack Resolver
-          let cascades = 0;
-          let lastMerged = 0;
-          while (cargoStack.length >= 2) {
-            const top = cargoStack[cargoStack.length - 1];
-            const second = cargoStack[cargoStack.length - 2];
-            if (top === second) {
-              cargoStack.pop();
-              const merged = top * 2;
-              cargoStack[cargoStack.length - 1] = merged;
-              cascades++;
-              lastMerged = merged;
-              audio.playMergeChime(merged, cascades);
-            } else {
-              break;
-            }
-          }
+          if (!item.isHazard) {
+            // ⚡ COLLECTED ENERGY CORE!
+            audio.playMergeChime(8, 1);
+            gameScore += 250 * comboMultiplier;
+            turboCharge = Math.min(100, turboCharge + 20);
 
-          if (cascades > 0) {
-            consecutiveMerges += cascades;
-            comboMultiplier = Math.min(8, 1 + Math.floor(consecutiveMerges / 2));
-            lastMergeValue = lastMerged;
             shockwaveMesh.position.set(carX, 0.15, 0);
             shockwaveMesh.scale.set(1, 1, 1);
-            const mCol = BLOCK_COLORS[lastMerged]?.color || 0x38bdf8;
-            (shockwaveMesh.material as THREE.MeshBasicMaterial).color.setHex(mCol);
+            (shockwaveMesh.material as THREE.MeshBasicMaterial).color.setHex(0x38bdf8);
             (shockwaveMesh.material as THREE.MeshBasicMaterial).opacity = 0.95;
             shockwaveLife = 1.0;
+
+            // Trigger Mach 1 Afterburner when turbo gauge reaches 100%
+            if (turboCharge >= 100) {
+              turboCharge = 0;
+              machTurboTimer = 6.0; // 6 seconds of supersonic boost!
+              audio.playSuperchargePurge();
+            }
           } else {
-            audio.playClick();
-            consecutiveMerges = Math.max(0, consecutiveMerges - 1);
-            comboMultiplier = Math.max(1, comboMultiplier - 1);
-          }
-
-          gameScore += item.value * 10 * (1 + cascades * 2) * comboMultiplier;
-
-          // 2048 Hyper-Core Supercharge Check
-          if (cargoStack.includes(2048) || lastMerged >= 2048) {
-            cargoStack = cargoStack.filter((v) => v < 2048);
-            gameScore += 10000;
-            hyperChargeTime = 10.0;
-            audio.playSuperchargePurge();
-          }
-
-          // Reactor Overload Warning / Safety Purge
-          if (cargoStack.length >= 6) {
-            cargoStack.shift(); // Eject bottom block on critical overflow
-            audio.playOverloadAlarm();
-          } else if (cargoStack.length >= 4 && cascades === 0) {
-            audio.playOverloadAlarm();
+            // ⚠️ HIT A HAZARD
+            if (isMach) {
+              audio.playMergeChime(16, 2);
+              gameScore += 500 * comboMultiplier;
+              shockwaveMesh.position.set(carX, 0.15, 0);
+              shockwaveMesh.scale.set(1, 1, 1);
+              (shockwaveMesh.material as THREE.MeshBasicMaterial).color.setHex(0xffd700);
+              (shockwaveMesh.material as THREE.MeshBasicMaterial).opacity = 1.0;
+              shockwaveLife = 1.2;
+            } else {
+              audio.playOverloadAlarm();
+              fishtailTimer = 0.6;
+              comboMultiplier = 1;
+              turboCharge = Math.max(0, turboCharge - 20);
+            }
           }
         }
 
-        // 🛣️ ROAD FIGHTER WAVE SPAWNING CHOREOGRAPHY
+        // 🌟 "NEAR-MISS" SLIPSTREAM BONUS (Road Fighter Signature Thrill!)
+        if (item.active && item.isHazard && !item.nearMissed && distZ < 2.8 && distX >= 1.35 && distX < 2.2) {
+          item.nearMissed = true;
+          audio.playClick();
+          gameScore += 150 * comboMultiplier;
+          comboMultiplier = Math.min(8, comboMultiplier + 1);
+          nearMissCount++;
+        }
+
+        // Reset Entity Ahead
         if (item.z > 8.0) {
-          const minZ = Math.min(...powerBlockPool.map((b) => b.z));
-          item.z = minZ - 26 - Math.random() * 8;
+          const minZ = Math.min(...entityPool.map((e) => e.z));
+          const newZ = minZ - 26 - Math.random() * 8;
+          const newLane = (i + Math.floor(trackDistance / 60)) % 3;
+          const newIsHazard = (i + Math.floor(trackDistance / 40)) % 3 === 0;
 
-          // Wave formation: Slalom rhythm (0 -> 1 -> 2 -> 1)
-          item.laneIndex = (i + Math.floor(trackDistance / 80)) % 3;
-
-          // Intelligent Road Fighter Target Match Spawning (45% chance to spawn needed target)
-          let spawnVal = 2;
-          const currentTop = cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null;
-          const rand = Math.random();
-
-          if (currentTop && rand < 0.45 && currentTop <= 512) {
-            spawnVal = currentTop;
-          } else if (rand < 0.60) {
-            spawnVal = 2;
-          } else if (rand < 0.85) {
-            spawnVal = 4;
-          } else if (rand < 0.95) {
-            spawnVal = 8;
-          } else {
-            spawnVal = 16;
-          }
-
-          const willBeTarget = currentTop !== null && spawnVal === currentTop;
-          updateBlockVisuals(item, spawnVal, willBeTarget);
-          item.active = true;
-          item.group.visible = true;
-          item.group.position.x = lanePositions[item.laneIndex];
-          item.group.position.z = item.z;
+          resetEntity(item, newZ, newLane, newIsHazard);
         }
       }
 
-      // 2. 🎮 ROCKSTAR AAA VEHICLE WEIGHT & DRIVING DYNAMICS
-      // Strict Lane Envelope: 2.75 units locks wide 2.2m Tumbler track completely within lane markings
-      const maxSafeAsphaltOffset = 2.75;
-      targetCarX = THREE.MathUtils.clamp(
-        steerInput * maxSafeAsphaltOffset,
-        -maxSafeAsphaltOffset,
-        maxSafeAsphaltOffset
-      );
-
-      // Heavy vehicle inertia with progressive steering resistance
-      const steerSpeed = isOverloaded ? 3.2 : 5.4;
+      // 2. 🎮 ROAD FIGHTER 1:1 CRISP STEERING (Rock-Solid Centered Alignment)
+      const maxSafeOffset = 2.85;
+      const targetCarX = THREE.MathUtils.clamp(steerInput * maxSafeOffset, -maxSafeOffset, maxSafeOffset);
+      
+      // Fast, responsive, crisp steering glide (No sluggish lag)
       const prevX = carX;
-      carX += (targetCarX - carX) * (steerSpeed * delta);
+      carX = THREE.MathUtils.lerp(carX, targetCarX, 0.18);
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
 
-      // Suspension road vibration
-      const roadY = 0.02;
-      const suspensionChatter = Math.sin(time * 70) * 0.002 * (currentSpeed / 200);
+      // Fishtail wobble on crash
+      const fishtailOffset = fishtailTimer > 0 ? Math.sin(time * 35) * 0.18 * fishtailTimer : 0;
 
-      carGroup.position.x = carX;
-      carGroup.position.y = roadY + suspensionChatter;
+      carGroup.position.x = carX + fishtailOffset;
+      carGroup.position.y = 0.02;
       carGroup.position.z = 0;
 
-      groundShadow.position.x = carX;
+      groundShadow.position.x = carX + fishtailOffset;
       groundShadow.position.z = 0;
 
-      const onKerb = Math.abs(carX) > maxSafeAsphaltOffset - 0.4;
+      const onKerb = Math.abs(carX) > maxSafeOffset - 0.4;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
 
-      // Dynamic Weight Transfer (Pitch & Squat):
-      // Acceleration -> nose lifts slightly; Deceleration -> nose dips
-      const accelPitch = isBoosting ? -0.045 : (currentSpeed < 185 ? 0.025 : -0.008);
-      carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, accelPitch, 0.09);
+      // Subtle dynamic chassis lean on turns
+      carGroup.rotation.z = -carSteerVelocity * 0.018;
+      carGroup.rotation.y = -carSteerVelocity * 0.014;
+      carGroup.rotation.x = isMach ? -0.035 : 0;
 
-      // Centrifugal Suspension Body Roll (heavy Tumbler leans out into corner)
-      const suspensionRoll = -carSteerVelocity * 0.038;
-      carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, suspensionRoll, 0.12);
+            // 2B. 🎯 REFRESH IN-WORLD ROOF HOLOGRAM & CHASSIS PODS
+      updateRoofHologram(gameScore, turboCharge, isMach, comboMultiplier);
 
-      // Ackermann Steering Yaw (nose leads turn with calculated slip angle)
-      const ackermannYaw = -carSteerVelocity * 0.024 + steerInput * 0.045;
-      carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermannYaw, 0.14);
-
-      // 2B. 🎯 REFRESH IN-WORLD ROOF HOLOGRAM & CHASSIS PODS
-      updateRoofHologram(cargoStack, comboMultiplier, isOverloaded, isHyperCharged);
-
-      // Update 4 Chassis LEDs
+      // Update 4 Chassis LEDs (Show Turbo Energy Bar!)
+      const numActivePods = Math.floor(turboCharge / 25);
       for (let p = 0; p < 4; p++) {
-        if (p < cargoStack.length) {
-          if (isOverloaded) {
-            podMaterials[p].color.setHex(0xef4444); // Amber-Red Overload
-          } else {
-            const v = cargoStack[p];
-            podMaterials[p].color.setHex(BLOCK_COLORS[v]?.color || 0x38bdf8);
-          }
+        if (p < numActivePods || isMach) {
+          podMaterials[p].color.setHex(isMach ? 0xffd700 : 0x38bdf8);
         } else {
           podMaterials[p].color.setHex(0x0f172a); // Dim Inactive
         }
       }
 
-      // Projected Road Target Decal (Ahead of Tumbler)
+      // Road Target Decal (Projected Ahead)
       roadTargetDecal.position.x = carX;
-      if (targetMatchVal) {
-        roadTargetMat.color.setHex(BLOCK_COLORS[targetMatchVal]?.color || 0x38bdf8);
-        roadTargetMat.opacity = 0.45 + Math.sin(time * 6.0) * 0.20;
-      } else {
-        roadTargetMat.opacity = 0.20;
-      }
+      roadTargetMat.color.setHex(isMach ? 0xffd700 : 0x38bdf8);
+      roadTargetMat.opacity = isMach ? 0.80 : 0.35;
 
       // 3. Headlight & Underbody Tracking (Normalized Batmobile Width)
       leftHeadlight.position.set(carX - 0.65, 0.38, -0.2);
@@ -1536,25 +1385,23 @@ export default function F1GameCanvas({
       updateF1Engine(rpm, currentSpeed, isBoosting, isMutedRef.current, gear);
 
       if (onTelemetryUpdate) {
-                onTelemetryUpdate({
+                        onTelemetryUpdate({
           speed: Math.round(currentSpeed),
           gear,
           rpm,
           lapTime,
           isBoosting: boostActive,
-          isDrifting: Math.abs(carSteerVelocity) > 3.6,
+          isDrifting: Math.abs(carSteerVelocity) > 3.2 || fishtailTimer > 0,
           isFlying: false,
           isLightsOut: isLightsOutRef.current,
           onKerb,
           currentSector: sectorCycle,
           sectorsCrossed: Math.floor(lapTime / 30),
-          cargoStack: [...cargoStack],
           score: gameScore,
           multiplier: comboMultiplier,
-          lastMergeVal: lastMergeValue,
-          isOverloaded,
-          isHyperCharged,
-          targetMatch: cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null,
+          turboBoost: turboCharge,
+          isMachTurbo: isMach,
+          nearMissCount,
         });
       }
 
