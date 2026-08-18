@@ -557,11 +557,9 @@ export default function F1GameCanvas({
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
 
-    // --- 10. 🦇 3D BATMOBILE TUMBLER (NOLAN MILITARY STEALTH OBSIDIAN FINISH) ---
+    // --- 10. 🦇 3D BATMOBILE TUMBLER (AUTHENTIC NOLAN STEALTH ARMOR) ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
-
-    const wheelMeshes: THREE.Object3D[] = [];
 
     const loader = new GLTFLoader();
     loader.load(
@@ -572,15 +570,16 @@ export default function F1GameCanvas({
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
 
+        // Center on X and Z, place bottom of tires flush with road surface (Y = 0)
         model.position.x = -center.x;
         model.position.y = -box.min.y;
         model.position.z = -center.z;
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const targetScale = 3.9 / maxDim;
+        const targetScale = 3.6 / maxDim;
         model.scale.set(targetScale, targetScale, targetScale);
 
-        // Apply Nolan Military Stealth PBR Lacquer & Hook Wheel Axles
+        // Apply Nolan Military Stealth Armor & Rubber Shaders
         model.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
@@ -591,7 +590,7 @@ export default function F1GameCanvas({
             const cCenter = cBox.getCenter(new THREE.Vector3());
             const cSize = cBox.getSize(new THREE.Vector3());
 
-            // Identify wheels by corner positions & cylindrical proportions in Tumbler coordinates
+            // Wheel detection by corner coordinates
             const isWheel =
               (Math.abs(cCenter.z) > 0.012 && Math.abs(cCenter.x) > 0.032 && cSize.x > 0.012) ||
               mesh.name.toLowerCase().includes("wheel") ||
@@ -599,24 +598,22 @@ export default function F1GameCanvas({
               mesh.name.toLowerCase().includes("tyre") ||
               mesh.name.toLowerCase().includes("rim");
 
-            if (isWheel) {
-              wheelMeshes.push(mesh);
-            }
-
             if (mesh.material) {
               const originalMat = mesh.material as THREE.MeshStandardMaterial;
 
+              // Christopher Nolan Tumbler Military Stealth Armor Spec:
+              // Non-reflective tactical carbon plates with crisp edge highlights from Studio HDRI
               mesh.material = new THREE.MeshPhysicalMaterial({
                 map: originalMat.map || null,
                 normalMap: originalMat.normalMap || null,
                 roughnessMap: originalMat.roughnessMap || null,
-                color: originalMat.map ? 0xffffff : isWheel ? 0x06070a : 0x090b10,
-                metalness: isWheel ? 0.35 : 0.86,
-                roughness: isWheel ? 0.72 : 0.20,
-                clearcoat: isWheel ? 0.05 : 0.85,
-                clearcoatRoughness: 0.10,
-                envMapIntensity: 2.8,
-                reflectivity: 0.95,
+                color: isWheel ? 0x111318 : 0x181a20,
+                metalness: isWheel ? 0.10 : 0.45,
+                roughness: isWheel ? 0.85 : 0.48,
+                clearcoat: isWheel ? 0.0 : 0.35,
+                clearcoatRoughness: 0.25,
+                envMapIntensity: 1.8,
+                reflectivity: 0.70,
               });
             }
           }
@@ -624,7 +621,7 @@ export default function F1GameCanvas({
 
         const carPivot = new THREE.Group();
         carPivot.add(model);
-        // Aligns front of Tumbler facing down the highway into the horizon
+        // Aligns the front of the Tumbler facing down the highway into the horizon
         carPivot.rotation.y = -Math.PI / 2;
 
         carGroup.add(carPivot);
@@ -774,14 +771,6 @@ export default function F1GameCanvas({
       const ackermann = -carSteerVelocity * 0.012;
       carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermann, 0.12);
       carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, 0, 0.18);
-
-      // 🔄 Real Wheel Spin on Batmobile Axles
-      if (wheelMeshes.length > 0) {
-        const wheelDelta = currentSpeed * 0.05 * delta;
-        wheelMeshes.forEach((w) => {
-          w.rotation.z += wheelDelta;
-        });
-      }
 
       // 3. Headlight & Underbody Tracking (Tumbler Wide Stance)
       leftHeadlight.position.set(carX - 0.85, 0.42, -0.2);
