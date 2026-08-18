@@ -299,102 +299,94 @@ export default function F1GameCanvas({
     batSignalSprite.scale.set(30, 30, 1);
     scene.add(batSignalSprite);
 
-    // --- 6. 🏙️ 3D ART DECO GOTHAM SKYSCRAPERS (TRUE 3D DEPTH & PARALLAX) ---
-    const gothamCityGroup = new THREE.Group();
-    scene.add(gothamCityGroup);
-
-    // Procedural Window Illumination Texture
-    const buildWindowTexture = () => {
+    // --- 6. 🌆 GOTHAM CITY SKYLINE (CLEAN ART DECO SILHOUETTES WITH BASE FOG MIST) ---
+    const buildSkylineTexture = () => {
       const c = document.createElement("canvas");
-      c.width = 256;
+      c.width = 1024;
       c.height = 512;
-      const ctx = c.getContext("2d")!;
-      ctx.fillStyle = "#04060c";
-      ctx.fillRect(0, 0, 256, 512);
+      const ctx = c.getContext("2d");
+      if (!ctx) return new THREE.CanvasTexture(c);
 
-      // Lit office window grid
-      for (let y = 16; y < 500; y += 22) {
-        for (let x = 12; x < 244; x += 16) {
-          if (Math.random() < 0.28) {
-            const isAmber = Math.random() < 0.70;
-            ctx.fillStyle = isAmber ? "rgba(235, 180, 80, 0.75)" : "rgba(80, 190, 245, 0.65)";
-            ctx.fillRect(x, y, 6, 12);
+      ctx.fillStyle = "rgba(0,0,0,0)";
+      ctx.fillRect(0, 0, 1024, 512);
+
+      // Dark Art Deco Monoliths
+      const buildings = [
+        { x: 0, w: 110, h: 360, spires: [30, 50] },
+        { x: 120, w: 140, h: 440, spires: [40, 90] },
+        { x: 270, w: 90, h: 280, spires: [20, 40] },
+        { x: 370, w: 160, h: 480, spires: [50, 110] },
+        { x: 540, w: 120, h: 340, spires: [30, 60] },
+        { x: 670, w: 150, h: 420, spires: [45, 80] },
+        { x: 830, w: 100, h: 310, spires: [25, 45] },
+        { x: 940, w: 84, h: 390, spires: [20, 70] },
+      ];
+
+      buildings.forEach((b) => {
+        // Main tower body (Deep Midnight Obsidian)
+        ctx.fillStyle = "rgba(3, 5, 10, 0.98)";
+        ctx.fillRect(b.x, 512 - b.h, b.w, b.h);
+
+        // Stepped Art Deco Setbacks
+        ctx.fillStyle = "rgba(5, 8, 16, 0.98)";
+        ctx.fillRect(b.x + 14, 512 - b.h - b.spires[0], b.w - 28, b.spires[0]);
+
+        // Needle Spire
+        ctx.fillStyle = "rgba(7, 12, 22, 1.0)";
+        ctx.fillRect(b.x + b.w / 2 - 3, 512 - b.h - b.spires[0] - b.spires[1], 6, b.spires[1]);
+
+        // Ambient Gotham Window Slits (Subtle warm amber & cyan pinpricks)
+        for (let wy = 512 - b.h + 24; wy < 400; wy += 32) {
+          for (let wx = b.x + 14; wx < b.x + b.w - 14; wx += 24) {
+            if (Math.random() < 0.24) {
+              const isAmber = Math.random() < 0.65;
+              ctx.fillStyle = isAmber ? "rgba(220, 175, 75, 0.40)" : "rgba(80, 185, 235, 0.30)";
+              ctx.fillRect(wx, wy, 3, 7);
+            }
           }
         }
-      }
+      });
+
+      // Bottom Soft-Fade Mist Gradient (dissolves the bottom of buildings smoothly into the asphalt fog)
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      const mistGrad = ctx.createLinearGradient(0, 360, 0, 512);
+      mistGrad.addColorStop(0.0, "rgba(0, 0, 0, 0.0)");
+      mistGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.45)");
+      mistGrad.addColorStop(1.0, "rgba(0, 0, 0, 1.0)");
+      ctx.fillStyle = mistGrad;
+      ctx.fillRect(0, 360, 1024, 152);
+      ctx.restore();
+
       const tex = new THREE.CanvasTexture(c);
       tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(2, 6);
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.repeat.set(3, 1);
       return tex;
     };
 
-    const windowTex = buildWindowTexture();
-    const towerMat = new THREE.MeshStandardMaterial({
-      color: 0x080c16,
-      roughness: 0.85,
-      metalness: 0.25,
-      map: windowTex,
-    });
-    const spireMat = new THREE.MeshStandardMaterial({
-      color: 0x05070f,
-      roughness: 0.6,
-      metalness: 0.6,
+    const skylineTex = buildSkylineTexture();
+    const skylineMat = new THREE.MeshBasicMaterial({
+      map: skylineTex,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      fog: true,
     });
 
-    // Generate 48 distinct Gotham Towers along highway flanks
-    const towerConfigs = [
-      { x: -32, z: -60, w: 14, d: 14, h: 48, spire: 18 },
-      { x: 34, z: -75, w: 16, d: 16, h: 56, spire: 22 },
-      { x: -44, z: -95, w: 18, d: 18, h: 64, spire: 26 },
-      { x: 42, z: -110, w: 15, d: 15, h: 52, spire: 20 },
-      { x: -36, z: -130, w: 20, d: 20, h: 72, spire: 30 },
-      { x: 48, z: -145, w: 22, d: 22, h: 68, spire: 28 },
-      { x: -50, z: -170, w: 24, d: 24, h: 80, spire: 35 },
-      { x: 45, z: -190, w: 20, d: 20, h: 75, spire: 32 },
-      { x: -38, z: -215, w: 18, d: 18, h: 65, spire: 25 },
-      { x: 52, z: -235, w: 26, d: 26, h: 85, spire: 38 },
-      { x: -48, z: -255, w: 22, d: 22, h: 70, spire: 28 },
-      { x: 38, z: -275, w: 16, d: 16, h: 58, spire: 22 },
-      // Background Depth Fillers
-      { x: -62, z: -80, w: 22, d: 22, h: 65, spire: 24 },
-      { x: 65, z: -100, w: 24, d: 24, h: 70, spire: 28 },
-      { x: -70, z: -150, w: 28, d: 28, h: 90, spire: 40 },
-      { x: 72, z: -180, w: 30, d: 30, h: 95, spire: 42 },
-      { x: -68, z: -220, w: 26, d: 26, h: 82, spire: 34 },
-      { x: 75, z: -260, w: 28, d: 28, h: 88, spire: 36 },
-    ];
+    // Left and Right Skyline Flanks (deeper placement with seamless horizon blending)
+    const skylineGeo = new THREE.PlaneGeometry(420, 52);
+    const leftSkyline = new THREE.Mesh(skylineGeo, skylineMat);
+    leftSkyline.position.set(-30, 16, -170);
+    leftSkyline.rotation.y = Math.PI / 16;
+    scene.add(leftSkyline);
 
-    towerConfigs.forEach((cfg) => {
-      const towerGroup = new THREE.Group();
+    const rightSkyline = new THREE.Mesh(skylineGeo, skylineMat);
+    rightSkyline.position.set(30, 16, -170);
+    rightSkyline.rotation.y = -Math.PI / 16;
+    scene.add(rightSkyline);
 
-      // 1. Base Main Body
-      const bodyGeo = new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d);
-      const bodyMesh = new THREE.Mesh(bodyGeo, towerMat);
-      bodyMesh.position.y = cfg.h / 2;
-      towerGroup.add(bodyMesh);
-
-      // 2. Stepped Art Deco Setback
-      const setbackH = cfg.h * 0.28;
-      const setbackW = cfg.w * 0.72;
-      const setbackD = cfg.d * 0.72;
-      const setbackGeo = new THREE.BoxGeometry(setbackW, setbackH, setbackD);
-      const setbackMesh = new THREE.Mesh(setbackGeo, towerMat);
-      setbackMesh.position.y = cfg.h + setbackH / 2;
-      towerGroup.add(setbackMesh);
-
-      // 3. Gothic Needle Spire
-      const spireGeo = new THREE.ConeGeometry(cfg.w * 0.12, cfg.spire, 4);
-      const spireMesh = new THREE.Mesh(spireGeo, spireMat);
-      spireMesh.position.y = cfg.h + setbackH + cfg.spire / 2;
-      spireMesh.rotation.y = Math.PI / 4;
-      towerGroup.add(spireMesh);
-
-      towerGroup.position.set(cfg.x, 0, cfg.z);
-      gothamCityGroup.add(towerGroup);
-    });
-
-    // --- 7. (RAIN PERMANENTLY REMOVED: PURE CLEAN DARK KNIGHT GOTHAM NIGHT) ---
+    // --- 7. (RAIN PERMANENTLY REMOVED: CRYSTAL-CLEAR DARK KNIGHT GOTHAM NIGHT) ---
 
     // --- 8. ENDLESS WET OBSIDIAN HIGHWAY SHADER ---
     const roadWidth = 10.4;
@@ -839,12 +831,10 @@ export default function F1GameCanvas({
 
       batUnderbody.position.set(carX, 0.08, 0.6);
 
-      // 4. 🏙️ Gotham 3D City Parallax (Responds smoothly to car steering)
-      gothamCityGroup.position.x = THREE.MathUtils.lerp(
-        gothamCityGroup.position.x,
-        -carX * 0.14,
-        0.08
-      );
+      // 4. 🌆 Parallax City Skyline Drift
+      if (skylineTex) {
+        skylineTex.offset.x = (trackDistance * 0.00045) % 1;
+      }
 
       // 5. Tire Mist Particles (Continuous Ambient Spray + Hard Turn Blast)
       const isSmokeActive = onKerb || Math.abs(carSteerVelocity) > 2.2 || isBoosting || Math.random() < 0.18;
@@ -1034,9 +1024,9 @@ export default function F1GameCanvas({
       roadGeometry.dispose();
       roadMaterial.dispose();
       coneGeo.dispose();
-      towerMat.dispose();
-      spireMat.dispose();
-      windowTex.dispose();
+      skylineGeo.dispose();
+      skylineMat.dispose();
+      skylineTex.dispose();
       smokeTex.dispose();
       smokeMat.dispose();
       shadowTex.dispose();
