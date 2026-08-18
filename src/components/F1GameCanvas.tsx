@@ -62,10 +62,11 @@ export default function F1GameCanvas({
     scene.background = new THREE.Color(0x020409);
     scene.fog = new THREE.FogExp2(0x020409, 0.0055);
 
+    // RESPONSIVE 3RD-PERSON CHASE CAMERA WITH ELEVATION & BREATHING ROOM
     const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    const initialFOV = isInitMobile ? 58 : 50;
-    const initialCamZ = isInitMobile ? 4.9 : 3.6;
-    const initialCamY = isInitMobile ? 1.15 : 0.95;
+    const initialFOV = isInitMobile ? 65 : 58;
+    const initialCamZ = isInitMobile ? 6.2 : 5.4;
+    const initialCamY = isInitMobile ? 2.4 : 2.1;
 
     const camera = new THREE.PerspectiveCamera(
       initialFOV,
@@ -575,8 +576,8 @@ export default function F1GameCanvas({
         model.position.y = -box.min.y;
         model.position.z = -center.z;
 
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const targetScale = 3.6 / maxDim;
+        // Strict Width-Based Scaling: Tumbler total track width normalized to 2.1 units
+        const targetScale = 2.1 / size.z;
         model.scale.set(targetScale, targetScale, targetScale);
 
         // Apply Nolan Military Stealth Armor & Rubber Shaders
@@ -602,18 +603,18 @@ export default function F1GameCanvas({
               const originalMat = mesh.material as THREE.MeshStandardMaterial;
 
               // Christopher Nolan Tumbler Military Stealth Armor Spec:
-              // Non-reflective tactical carbon plates with crisp edge highlights from Studio HDRI
+              // Faceted matte carbon armor with subtle specular edges from Studio HDRI
               mesh.material = new THREE.MeshPhysicalMaterial({
                 map: originalMat.map || null,
                 normalMap: originalMat.normalMap || null,
                 roughnessMap: originalMat.roughnessMap || null,
-                color: isWheel ? 0x111318 : 0x181a20,
-                metalness: isWheel ? 0.10 : 0.45,
-                roughness: isWheel ? 0.85 : 0.48,
-                clearcoat: isWheel ? 0.0 : 0.35,
-                clearcoatRoughness: 0.25,
-                envMapIntensity: 1.8,
-                reflectivity: 0.70,
+                color: isWheel ? 0x14161b : 0x1e2128,
+                metalness: isWheel ? 0.08 : 0.40,
+                roughness: isWheel ? 0.85 : 0.45,
+                clearcoat: isWheel ? 0.0 : 0.45,
+                clearcoatRoughness: 0.20,
+                envMapIntensity: 2.2,
+                reflectivity: 0.80,
               });
             }
           }
@@ -772,11 +773,11 @@ export default function F1GameCanvas({
       carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermann, 0.12);
       carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, 0, 0.18);
 
-      // 3. Headlight & Underbody Tracking (Tumbler Wide Stance)
-      leftHeadlight.position.set(carX - 0.85, 0.42, -0.2);
-      rightHeadlight.position.set(carX + 0.85, 0.42, -0.2);
-      leftVolCone.position.set(carX - 0.85, 0.42, -0.2);
-      rightVolCone.position.set(carX + 0.85, 0.42, -0.2);
+      // 3. Headlight & Underbody Tracking (Normalized Batmobile Width)
+      leftHeadlight.position.set(carX - 0.65, 0.38, -0.2);
+      rightHeadlight.position.set(carX + 0.65, 0.38, -0.2);
+      leftVolCone.position.set(carX - 0.65, 0.38, -0.2);
+      rightVolCone.position.set(carX + 0.65, 0.38, -0.2);
       headlightTarget.position.set(carX + steerInput * 3.5, 0.1, -40);
 
       batUnderbody.position.set(carX, 0.08, 0.6);
@@ -845,13 +846,13 @@ export default function F1GameCanvas({
         }
       }
 
-      // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS
+      // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS (ELEVATED CHASE VIEW)
       const isMobile = window.innerWidth < 768;
-      const baseCamZ = isMobile ? 4.9 : 3.6;
-      const baseCamY = isMobile ? 1.15 : 0.95;
+      const baseCamZ = isMobile ? 6.2 : 5.4;
+      const baseCamY = isMobile ? 2.4 : 2.1;
 
-      const targetCamX = carX * 0.35;
-      const targetCamZ = baseCamZ + (isBoosting ? 0.42 : 0);
+      const targetCamX = carX * 0.32;
+      const targetCamZ = baseCamZ + (isBoosting ? 0.45 : 0);
 
       // Spring-damper force integration on X
       const springK = 18.0;
@@ -866,7 +867,7 @@ export default function F1GameCanvas({
       camPosZ += camVelZ * delta;
 
       camera.position.x = camPosX;
-      camera.position.y = baseCamY + (isBoosting ? -0.06 : 0);
+      camera.position.y = baseCamY + (isBoosting ? -0.08 : 0);
       camera.position.z = camPosZ;
 
       // Dutch Tilt (Camera banks subtly on hard turns)
@@ -875,13 +876,13 @@ export default function F1GameCanvas({
       camera.rotation.z = camRoll;
 
       // Dynamic Speed Perspective FOV Warp
-      const baseFOV = isMobile ? 58 : 50;
-      const targetFOV = isBoosting ? baseFOV + 14 : baseFOV;
+      const baseFOV = isMobile ? 65 : 58;
+      const targetFOV = isBoosting ? baseFOV + 12 : baseFOV;
       camera.fov += (targetFOV - camera.fov) * 0.08;
       camera.updateProjectionMatrix();
 
-      // Look-Ahead (Anticipates road curves ahead of car)
-      camera.lookAt(carX * 0.35 + steerInput * 1.5, 0.40, -16);
+      // Look-Ahead (Aimed downward past the hood along the road horizon)
+      camera.lookAt(carX * 0.30 + steerInput * 1.2, 0.65, -14);
 
       // 7. Telemetry & Audio Engine Update
       const gear =
