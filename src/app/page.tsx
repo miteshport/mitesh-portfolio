@@ -29,9 +29,10 @@ export default function Home() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasDeployed, setHasDeployed] = useState(false);
+  const [gameResetKey, setGameResetKey] = useState(0);
 
   const [telemetry, setTelemetry] = useState<TelemetryData>({
-    speed: 200,
+    speed: 115,
     gear: 5,
     rpm: 10500,
     lapTime: 0,
@@ -44,8 +45,9 @@ export default function Home() {
     sectorsCrossed: 0,
     score: 0,
     multiplier: 1,
-    turboBoost: 0,
-    isMachTurbo: false,
+    energy: 100,
+    distanceRemaining: 1000,
+    gameState: "BRIEFING",
     nearMissCount: 0,
   });
 
@@ -102,12 +104,9 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [telemetry.isBoosting, telemetry.isFlying, telemetry.speed]);
 
-  const sectorName =
-    telemetry.currentSector === 1
-      ? "GOTHAM SECTOR 1 // TURBINE CRUISE"
-      : telemetry.currentSector === 2
-      ? "GOTHAM SECTOR 2 // STEALTH PURSUIT"
-      : "GOTHAM SECTOR 3 // AFTERBURNER ENGAGED";
+  const restartPatrol = () => {
+    setGameResetKey((k) => k + 1);
+  };
 
   return (
     <main
@@ -125,10 +124,11 @@ export default function Home() {
     >
       <CustomCursor />
 
-      {/* 10/10 Gold-Standard 3D WebGL F1 Racing Canvas */}
+      {/* Grounded 3-Lane Road Fighter Canvas */}
       <F1GameCanvas
         isLightsOut={isLightsOut}
         isMuted={isMuted}
+        gameResetKey={gameResetKey}
         onTelemetryUpdate={setTelemetry}
         onLoadProgress={(p) => {
           setLoadProgress(p);
@@ -204,13 +204,13 @@ export default function Home() {
                 textTransform: "uppercase",
               }}
             >
-              GOTHAM CITY · 365 KM/H · TURBINE AFTERBURNER
+              GOTHAM CITY · 1000M PATROL · ROAD FIGHTER
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-            {/* --- 🦇 WAYNETECH 5-LIGHT TACTICAL LAUNCH GANTRY (YUTA ABE SPATIAL MINIMALISM) --- */}
+      {/* --- 🦇 WAYNETECH 5-LIGHT TACTICAL LAUNCH GANTRY (YUTA ABE SPATIAL MINIMALISM) --- */}
       <AnimatePresence>
         {!hasDeployed && (
           <motion.div
@@ -272,7 +272,7 @@ export default function Home() {
                 color: "rgba(255, 255, 255, 0.65)",
               }}
             >
-              GOTHAM HIGHWAY <span style={{ color: "#38bdf8" }}>· 2048</span>
+              GOTHAM PATROL <span style={{ color: "#38bdf8" }}>· 1000M MISSION</span>
             </div>
 
             {/* CENTER: 5 GIANT GLOWING RED LAUNCH LIGHTS (● ● ● ● ●) */}
@@ -307,7 +307,6 @@ export default function Home() {
                       position: "relative",
                     }}
                   >
-                    {/* Inner filament glint */}
                     {isLit && (
                       <div
                         style={{
@@ -344,7 +343,7 @@ export default function Home() {
               <div style={{ color: "rgba(255, 255, 255, 0.35)" }}>CLEAR · 0% RAIN</div>
             </div>
 
-            {/* Bottom Center: Interactive Lights Out Launch Prompt */}
+            {/* Bottom Center: Interactive Launch Prompt */}
             <div
               style={{
                 position: "absolute",
@@ -388,7 +387,7 @@ export default function Home() {
                   marginTop: "0.45rem",
                 }}
               >
-                STEER: MOUSE / TOUCH  ·  COLLECT: CYAN ENERGY  ·  DODGE: RED HAZARDS
+                STEER: A / D / ARROWS  ·  DODGE: RED TRAFFIC  ·  HUNT: CYAN FUEL CORES
               </div>
             </div>
 
@@ -407,8 +406,196 @@ export default function Home() {
               }}
             >
               <div>AFTERBURNER V8</div>
-              <div style={{ color: "#38bdf8" }}>365 KM/H PURSUIT</div>
+              <div style={{ color: "#38bdf8" }}>1000M PATROL</div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- 🏁 VICTORY MODAL (PATROL COMPLETE // GOTHAM SECURED) --- */}
+      <AnimatePresence>
+        {telemetry.gameState === "WON" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100dvh",
+              zIndex: 1300,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0, 0, 0, 0.88)",
+              backdropFilter: "blur(20px)",
+              fontFamily: "var(--font-mono, monospace)",
+              padding: "2rem",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.75rem",
+                letterSpacing: "0.3em",
+                color: "#38bdf8",
+                textTransform: "uppercase",
+                marginBottom: "0.6rem",
+              }}
+            >
+              WAYNETECH MISSION REPORT
+            </div>
+            <h2
+              style={{
+                fontSize: "clamp(1.8rem, 4vw, 3rem)",
+                fontWeight: 900,
+                color: "#ffffff",
+                letterSpacing: "-0.02em",
+                textTransform: "uppercase",
+                margin: "0 0 1.5rem 0",
+              }}
+            >
+              PATROL COMPLETE · GOTHAM SECURED
+            </h2>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "1.5rem",
+                marginBottom: "2.5rem",
+                maxWidth: "600px",
+                width: "100%",
+              }}
+            >
+              <div style={{ border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", padding: "1rem" }}>
+                <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>FINAL SCORE</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ffffff", marginTop: "0.3rem" }}>{telemetry.score.toLocaleString()}</div>
+              </div>
+              <div style={{ border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", padding: "1rem" }}>
+                <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>NEAR-MISSES</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#38bdf8", marginTop: "0.3rem" }}>{telemetry.nearMissCount}</div>
+              </div>
+              <div style={{ border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", padding: "1rem" }}>
+                <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>BATTERY LEFT</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#10b981", marginTop: "0.3rem" }}>{telemetry.energy}%</div>
+              </div>
+            </div>
+
+            <button
+              onClick={restartPatrol}
+              style={{
+                padding: "0.9rem 2.2rem",
+                borderRadius: "999px",
+                background: "#38bdf8",
+                color: "#020408",
+                border: "none",
+                fontWeight: 800,
+                fontSize: "0.82rem",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                boxShadow: "0 0 25px rgba(56, 189, 248, 0.6)",
+                transition: "all 0.2s ease",
+              }}
+            >
+              PATROL AGAIN
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- ⚠️ DEFEAT MODAL (BATTERY DEPLETED) --- */}
+      <AnimatePresence>
+        {telemetry.gameState === "LOST" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100dvh",
+              zIndex: 1300,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0, 0, 0, 0.88)",
+              backdropFilter: "blur(20px)",
+              fontFamily: "var(--font-mono, monospace)",
+              padding: "2rem",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.75rem",
+                letterSpacing: "0.3em",
+                color: "#ef4444",
+                textTransform: "uppercase",
+                marginBottom: "0.6rem",
+              }}
+            >
+              WARNING // TURBINE STALL
+            </div>
+            <h2
+              style={{
+                fontSize: "clamp(1.8rem, 4vw, 3rem)",
+                fontWeight: 900,
+                color: "#ffffff",
+                letterSpacing: "-0.02em",
+                textTransform: "uppercase",
+                margin: "0 0 1.5rem 0",
+              }}
+            >
+              BATTERY DEPLETED · PATROL FAILED
+            </h2>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: "1.5rem",
+                marginBottom: "2.5rem",
+                maxWidth: "400px",
+                width: "100%",
+              }}
+            >
+              <div style={{ border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", padding: "1rem" }}>
+                <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>DISTANCE REACHED</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ef4444", marginTop: "0.3rem" }}>{1000 - telemetry.distanceRemaining}m / 1000m</div>
+              </div>
+              <div style={{ border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", padding: "1rem" }}>
+                <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>SCORE</div>
+                <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ffffff", marginTop: "0.3rem" }}>{telemetry.score.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <button
+              onClick={restartPatrol}
+              style={{
+                padding: "0.9rem 2.2rem",
+                borderRadius: "999px",
+                background: "#ef4444",
+                color: "#ffffff",
+                border: "none",
+                fontWeight: 800,
+                fontSize: "0.82rem",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                boxShadow: "0 0 25px rgba(239, 68, 68, 0.6)",
+                transition: "all 0.2s ease",
+              }}
+            >
+              RETRY PATROL
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -460,7 +647,7 @@ export default function Home() {
                   fontWeight: telemetry.isBoosting ? 700 : 500,
                 }}
               >
-                {telemetry.isBoosting ? "AFTERBURNER" : `GEAR ${telemetry.gear}`}
+                {telemetry.distanceRemaining}M TO BATCAVE
               </span>
             </div>
             <div
@@ -469,7 +656,7 @@ export default function Home() {
                 color: "rgba(255, 255, 255, 0.45)",
               }}
             >
-              {sectorName} · PATROL {formatLapTime(telemetry.lapTime)}
+              GOTHAM SECTOR 1 · PATROL {formatLapTime(telemetry.lapTime)}
             </div>
           </div>
         }
@@ -479,7 +666,7 @@ export default function Home() {
               fontFamily: "var(--font-mono, monospace)",
               display: "flex",
               alignItems: "baseline",
-              gap: "0.75rem",
+              gap: "0.85rem",
               fontSize: "clamp(0.68rem, 1.1vw, 0.78rem)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
@@ -488,27 +675,15 @@ export default function Home() {
             }}
           >
             <div>
+              <span style={{ color: telemetry.energy < 25 ? "#ef4444" : "rgba(255, 255, 255, 0.45)", fontSize: "0.62rem" }}>
+                BATTERY {telemetry.energy}% ·{" "}
+              </span>
               <span style={{ color: "rgba(255, 255, 255, 0.45)", fontSize: "0.62rem" }}>SCORE </span>
               <span style={{ fontSize: "1.3rem", fontWeight: 850, letterSpacing: "-0.02em", color: "#ffffff" }}>
                 {telemetry.score.toLocaleString()}
               </span>
             </div>
-            {telemetry.isMachTurbo ? (
-              <div
-                style={{
-                  padding: "0.18rem 0.6rem",
-                  borderRadius: "6px",
-                  background: "rgba(56, 189, 248, 0.25)",
-                  border: "1px solid rgba(56, 189, 248, 0.8)",
-                  color: "#38bdf8",
-                  fontWeight: 800,
-                  fontSize: "0.70rem",
-                  boxShadow: "0 0 16px rgba(56, 189, 248, 0.5)",
-                }}
-              >
-                ⚡ MACH AFTERBURNER
-              </div>
-            ) : telemetry.multiplier > 1 ? (
+            {telemetry.multiplier > 1 && (
               <div
                 style={{
                   padding: "0.15rem 0.5rem",
@@ -522,7 +697,7 @@ export default function Home() {
               >
                 x{telemetry.multiplier} STREAK
               </div>
-            ) : null}
+            )}
           </div>
         }
       />
