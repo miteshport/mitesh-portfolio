@@ -36,16 +36,6 @@ interface F1GameCanvasProps {
   onLoadComplete?: () => void;
 }
 
-interface SmokeParticle {
-  pos: THREE.Vector3;
-  vel: THREE.Vector3;
-  scale: number;
-  maxScale: number;
-  life: number;
-  maxLife: number;
-  opacity: number;
-}
-
 export default function F1GameCanvas({
   isLightsOut = false,
   isMuted = false,
@@ -79,16 +69,18 @@ export default function F1GameCanvas({
 
     // --- 1. THREE.JS SCENE SETUP ---
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x020408, 0.0055);
+    scene.background = new THREE.Color(0x020409);
+    scene.fog = new THREE.FogExp2(0x020409, 0.0055);
 
+    const isMobInit = window.innerWidth < 768;
     const camera = new THREE.PerspectiveCamera(
-      62,
+      isMobInit ? 68 : 64,
       window.innerWidth / window.innerHeight,
       0.1,
       600
     );
-    // Rigid, stable over-the-shoulder camera position (Zero vertical bouncing)
-    camera.position.set(0, 2.25, 5.85);
+    // Elevated 3/4 chase camera: stable, cinematic, zero spring wobble
+    camera.position.set(0, 2.85, 6.2);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -98,7 +90,7 @@ export default function F1GameCanvas({
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.10;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
@@ -106,7 +98,7 @@ export default function F1GameCanvas({
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
-      0.65,
+      0.70,
       0.40,
       0.82
     );
@@ -115,18 +107,18 @@ export default function F1GameCanvas({
     composer.addPass(bloomPass);
 
     // --- 3. STUDIO LIGHTING RIG ---
-    const ambientLight = new THREE.AmbientLight(0x182438, 1.6);
+    const ambientLight = new THREE.AmbientLight(0x182438, 1.8);
     scene.add(ambientLight);
 
-    const moonKeyLight = new THREE.DirectionalLight(0xa5c9eb, 2.2);
+    const moonKeyLight = new THREE.DirectionalLight(0xa5c9eb, 2.8);
     moonKeyLight.position.set(20, 45, 25);
     scene.add(moonKeyLight);
 
-    const gothamCyanRim = new THREE.DirectionalLight(0x0284c7, 3.2);
+    const gothamCyanRim = new THREE.DirectionalLight(0x0284c7, 3.5);
     gothamCyanRim.position.set(-30, 15, -40);
     scene.add(gothamCyanRim);
 
-    const batUnderbody = new THREE.PointLight(0x0284c7, 3.5, 7.0);
+    const batUnderbody = new THREE.PointLight(0x0284c7, 4.0, 8.0);
     batUnderbody.position.set(0, 0.08, 0.6);
     scene.add(batUnderbody);
 
@@ -139,7 +131,7 @@ export default function F1GameCanvas({
 
     // --- 4. 🦇 VOLUMETRIC HEADLIGHT CONES ---
     const createHeadlight = (xOffset: number) => {
-      const spot = new THREE.SpotLight(0xe0f2fe, 12.0, 75, Math.PI / 7, 0.35, 1.2);
+      const spot = new THREE.SpotLight(0xe0f2fe, 14.0, 80, Math.PI / 7, 0.35, 1.2);
       spot.position.set(xOffset, 0.38, -0.2);
       scene.add(spot);
       return spot;
@@ -297,7 +289,7 @@ export default function F1GameCanvas({
 
         vec3 asphaltColor = vec3(0.024, 0.026, 0.032) + grain;
 
-        // 🛣️ 2 DASHED WHITE LANE DIVIDERS (Splits road into 3 distinct lanes)
+        // 🛣️ 2 DASHED WHITE LANE DIVIDERS (Visually separates road into 3 equal lanes)
         float dashPattern = step(0.46, fract(movingDist * 0.08));
         float divider1 = abs(vUv.x - 0.355);
         float divider2 = abs(vUv.x - 0.645);
@@ -402,7 +394,7 @@ export default function F1GameCanvas({
       const isHazard = i % 4 !== 0; // 75% traffic hazards, 25% rare fuel cores!
 
       const mesh = new THREE.Mesh(isHazard ? hazardGeo : coreGeo, isHazard ? hazardMat.clone() : coreMat.clone());
-      mesh.position.y = isHazard ? 0.35 : 0.45; // Locked solid on ground, zero bouncing!
+      mesh.position.y = isHazard ? 0.35 : 0.45; // Locked solid on ground
       group.add(mesh);
 
       // Sky Laser Pillar
@@ -528,7 +520,7 @@ export default function F1GameCanvas({
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
 
-    // --- 9. 🦇 3D BATMOBILE TUMBLER MODEL & RIG ---
+    // --- 9. 🦇 3D BATMOBILE TUMBLER (AUTHENTIC RIGGED STUDIO MODEL) ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
@@ -568,7 +560,6 @@ export default function F1GameCanvas({
       hCtx.textAlign = "center";
       hCtx.textBaseline = "middle";
 
-      // Battery / Fuel Bar
       const filledBars = Math.floor(energy / 20);
       let barStr = "";
       for (let b = 0; b < 5; b++) {
@@ -624,6 +615,8 @@ export default function F1GameCanvas({
     let wheelRR: THREE.Object3D | null = null;
     const leftFlaps: THREE.Object3D[] = [];
     const rightFlaps: THREE.Object3D[] = [];
+    const suspensionSprings: THREE.Object3D[] = [];
+    const jetNozzlePetals: THREE.Object3D[] = [];
 
     const loadingManager = new THREE.LoadingManager();
     loadingManager.onProgress = (_url, itemsLoaded, itemsTotal) => {
@@ -664,6 +657,16 @@ export default function F1GameCanvas({
             rightFlaps.push(child);
           }
 
+          // Front Suspension Springs
+          if (child.name.includes("front_upper_spring")) {
+            suspensionSprings.push(child);
+          }
+
+          // Jet Turbine Nozzle Iris Petals
+          if (child.name.startsWith("bone_rear_jet_")) {
+            jetNozzlePetals.push(child);
+          }
+
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             mesh.castShadow = true;
@@ -673,22 +676,48 @@ export default function F1GameCanvas({
               const mat = mesh.material as THREE.MeshStandardMaterial;
               mat.envMapIntensity = 1.6;
               mat.needsUpdate = true;
+
+              if (
+                mesh.name.toLowerCase().includes("glass") ||
+                (mat.name && mat.name.toLowerCase().includes("glass"))
+              ) {
+                mat.transparent = true;
+                mat.opacity = 0.55;
+                mat.roughness = 0.12;
+                mat.metalness = 0.85;
+              }
             }
           }
         });
 
-        // Perfect scaling and centering
-        model.scale.set(0.85, 0.85, 0.85);
-        model.position.set(0, 0, 0);
-        carGroup.add(model);
+        // 🎯 EXACT BATMOBILE GROUNDING & FORWARD ORIENTATION RIG
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        // Center on X and Z, place bottom of tires flush with road surface (Y = 0)
+        model.position.x = -center.x;
+        model.position.y = -box.min.y;
+        model.position.z = -center.z;
+
+        // Cinematic Scaling: Tumbler width scaled to 2.60 units
+        const targetScale = 2.60 / size.z;
+        model.scale.set(targetScale, targetScale, targetScale);
+
+        const carPivot = new THREE.Group();
+        carPivot.add(model);
+        // Aligns front (+X in model space) facing down the highway into the horizon (-Z)
+        carPivot.rotation.y = Math.PI / 2;
+
+        carGroup.add(carPivot);
       }
     );
 
     // --- 10. GAME STATE & ECONOMY (1000m ROAD FIGHTER MISSION) ---
     let gameScore = 0;
     let comboMultiplier = 1;
-    let energyLevel = 100.0; // Starts at 100%, drains at 2%/sec
-    let distanceRemaining = 1000; // 1000m to Batcave
+    let energyLevel = 100.0;
+    let distanceRemaining = 1000;
     let currentGameState: "BRIEFING" | "PLAYING" | "WON" | "LOST" = "PLAYING";
     let nearMissCount = 0;
     let skidTimer = 0;
@@ -784,7 +813,7 @@ export default function F1GameCanvas({
       const h = window.innerHeight;
       const isMob = w < 768;
       camera.aspect = w / h;
-      camera.fov = isMob ? 66 : 62;
+      camera.fov = isMob ? 68 : 64;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -802,8 +831,8 @@ export default function F1GameCanvas({
       const time = clock.getElapsedTime();
 
       if (currentGameState === "PLAYING") {
-        // 1. Fuel / Battery Drain (2.0% per sec)
-        energyLevel = Math.max(0, energyLevel - delta * 2.0);
+        // 1. Fuel / Battery Drain (1.8% per sec)
+        energyLevel = Math.max(0, energyLevel - delta * 1.8);
 
         // 2. Distance Count-down (1000m to 0m)
         distanceRemaining = Math.max(0, 1000 - Math.floor(trackDistance * 1.8));
@@ -831,7 +860,7 @@ export default function F1GameCanvas({
         (shockwaveMesh.material as THREE.MeshBasicMaterial).opacity = 0;
       }
 
-      // 3. CALM, HUMAN PACING (Cruising speed: 110-140 km/h)
+      // 3. CALM, HUMAN PACING (Cruising speed: 115 km/h)
       const isDriving = currentGameState === "PLAYING";
       const targetSpeed = !isDriving ? 0 : skidTimer > 0 ? 55 : isBoosting ? 145 : 115;
       const currentSpeed = targetSpeed;
@@ -925,7 +954,7 @@ export default function F1GameCanvas({
 
       const skidWobble = skidTimer > 0 ? Math.sin(time * 40) * 0.14 * skidTimer : 0;
 
-      // Tumbler locked flat on asphalt (Y = 0.02)
+      // Tumbler locked flat on asphalt
       carGroup.position.x = carX + skidWobble;
       carGroup.position.y = 0.02;
       carGroup.position.z = 0;
@@ -941,7 +970,7 @@ export default function F1GameCanvas({
       // Subtle realistic steering yaw
       carGroup.rotation.z = -carSteerVelocity * 0.015;
       carGroup.rotation.y = -carSteerVelocity * 0.012;
-      carGroup.rotation.x = 0; // Locked 100% flat on pitch
+      carGroup.rotation.x = 0;
 
       // In-World Roof HUD Update
       updateRoofHologram(Math.round(energyLevel), distanceRemaining, comboMultiplier);
@@ -977,21 +1006,30 @@ export default function F1GameCanvas({
         wheelFL.rotation.z = THREE.MathUtils.lerp(wheelFL.rotation.z, -steerInput * 0.45, 0.25);
       }
       if (wheelFR) {
-        wheelFR.rotation.y += angularDelta;
+        wheelFR.rotation.y -= angularDelta;
         wheelFR.rotation.z = THREE.MathUtils.lerp(wheelFR.rotation.z, -steerInput * 0.45, 0.25);
       }
       if (wheelRL) wheelRL.rotation.y += angularDelta;
-      if (wheelRR) wheelRR.rotation.y += angularDelta;
+      if (wheelRR) wheelRR.rotation.y -= angularDelta;
 
       // Active Aero Air-Brake Flaps
-      const leftFlapTarget = steerInput < -0.15 ? 0.42 : isBraking ? 0.50 : 0.0;
-      const rightFlapTarget = steerInput > 0.15 ? 0.42 : isBraking ? 0.50 : 0.0;
-      leftFlaps.forEach((f) => (f.rotation.x = THREE.MathUtils.lerp(f.rotation.x, leftFlapTarget, 0.2)));
-      rightFlaps.forEach((f) => (f.rotation.x = THREE.MathUtils.lerp(f.rotation.x, rightFlapTarget, 0.2)));
+      const leftCornerForce = Math.max(0, -carSteerVelocity * 0.12);
+      const rightCornerForce = Math.max(0, carSteerVelocity * 0.12);
+      const baseAeroBrake = isBraking ? 0.50 : 0.0;
 
-      // 6. ROCK-SOLID CAMERA POSITIONING (Zero Bouncing, Zero Spring Wobble)
-      camera.position.set(carX * 0.32, 2.25, 5.85);
-      camera.lookAt(carX * 0.32, 0.70, -22.0);
+      const targetLeftFlap = Math.min(0.55, baseAeroBrake + leftCornerForce * 0.35);
+      const targetRightFlap = Math.min(0.55, baseAeroBrake + rightCornerForce * 0.35);
+
+      leftFlaps.forEach((f) => {
+        f.rotation.z = THREE.MathUtils.lerp(f.rotation.z, targetLeftFlap, 0.15);
+      });
+      rightFlaps.forEach((f) => {
+        f.rotation.z = THREE.MathUtils.lerp(f.rotation.z, -targetRightFlap, 0.15);
+      });
+
+      // 6. ROCK-SOLID ELEVATED CHASE CAMERA (Zero Bouncing, Zero Spring Wobble)
+      camera.position.set(carX * 0.28, 2.85, 6.2);
+      camera.lookAt(carX * 0.28, 0.45, -20.0);
 
       // Audio Engine
       const rpm = Math.floor(10500 + (currentSpeed % 40) * 80 + (isBoosting ? 2000 : 0));

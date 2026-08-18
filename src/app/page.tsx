@@ -47,14 +47,14 @@ export default function Home() {
     multiplier: 1,
     energy: 100,
     distanceRemaining: 1000,
-    gameState: "BRIEFING",
+    gameState: "PLAYING",
     nearMissCount: 0,
   });
 
   const { isMuted } = useSoundroom();
 
-  // Initialize Procedural Web Audio Engine on first gesture
-  const handleUserGesture = useCallback(() => {
+  // Initialize Web Audio Engine
+  const triggerAudioInit = useCallback(() => {
     if (!hasInteracted) {
       setHasInteracted(true);
       initF1Engine();
@@ -62,14 +62,25 @@ export default function Home() {
   }, [hasInteracted]);
 
   useEffect(() => {
-    window.addEventListener("pointerdown", handleUserGesture, { once: true });
-    window.addEventListener("keydown", handleUserGesture, { once: true });
+    window.addEventListener("pointerdown", triggerAudioInit, { once: true });
+    window.addEventListener("keydown", triggerAudioInit, { once: true });
     return () => {
-      window.removeEventListener("pointerdown", handleUserGesture);
-      window.removeEventListener("keydown", handleUserGesture);
+      window.removeEventListener("pointerdown", triggerAudioInit);
+      window.removeEventListener("keydown", triggerAudioInit);
       stopF1Engine();
     };
-  }, [handleUserGesture]);
+  }, [triggerAudioInit]);
+
+  // 🍏 APPLE-GRADE AUTOMATIC LAUNCH (ZERO CLICKS REQUIRED)
+  useEffect(() => {
+    if (isLoaded || loadProgress >= 100) {
+      const autoLaunchTimer = setTimeout(() => {
+        setHasDeployed(true);
+        triggerAudioInit();
+      }, 500);
+      return () => clearTimeout(autoLaunchTimer);
+    }
+  }, [isLoaded, loadProgress, triggerAudioInit]);
 
   // Update Procedural Engine Sound in real-time
   useEffect(() => {
@@ -89,20 +100,15 @@ export default function Home() {
     hasInteracted,
   ]);
 
-  // Auto-hide Cinematic Title after 4s or on interaction
+  // Auto-hide Cinematic Title after 3.5s
   useEffect(() => {
-    if (
-      telemetry.isBoosting ||
-      telemetry.isFlying ||
-      Math.abs(telemetry.speed - 190) > 10
-    ) {
-      setShowCinematicTitle(false);
+    if (hasDeployed) {
+      const timer = setTimeout(() => {
+        setShowCinematicTitle(false);
+      }, 3500);
+      return () => clearTimeout(timer);
     }
-    const timer = setTimeout(() => {
-      setShowCinematicTitle(false);
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [telemetry.isBoosting, telemetry.isFlying, telemetry.speed]);
+  }, [hasDeployed]);
 
   const restartPatrol = () => {
     setGameResetKey((k) => k + 1);
@@ -110,7 +116,7 @@ export default function Home() {
 
   return (
     <main
-      onClick={handleUserGesture}
+      onClick={triggerAudioInit}
       style={{
         width: "100vw",
         height: "100dvh",
@@ -124,7 +130,7 @@ export default function Home() {
     >
       <CustomCursor />
 
-      {/* Grounded 3-Lane Road Fighter Canvas */}
+      {/* 3D WebGL Batmobile Road Fighter Canvas */}
       <F1GameCanvas
         isLightsOut={isLightsOut}
         isMuted={isMuted}
@@ -140,9 +146,139 @@ export default function Home() {
         }}
       />
 
-      {/* HOLLYWOOD OPENING TITLE (Fades out gracefully) */}
+      {/* 🍏 APPLE-GRADE LUXURY AUTO-SPLASH (SEAMLESS DISSOLVE, ZERO CLICKS) */}
       <AnimatePresence>
-        {showCinematicTitle && (
+        {!hasDeployed && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{
+              opacity: 0,
+              scale: 1.05,
+              filter: "blur(8px)",
+              transition: { duration: 0.85, ease: [0.16, 1, 0.3, 1] },
+            }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100dvh",
+              zIndex: 1400,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#020408",
+              color: "#ffffff",
+              fontFamily: "var(--font-mono, monospace)",
+              userSelect: "none",
+              padding: "clamp(1.5rem, 4vw, 3rem)",
+              boxSizing: "border-box",
+            }}
+          >
+            {/* Top Identity */}
+            <div
+              style={{
+                position: "absolute",
+                top: "clamp(2rem, 4vw, 3rem)",
+                fontSize: "clamp(0.70rem, 1.2vw, 0.82rem)",
+                letterSpacing: "0.32em",
+                textTransform: "uppercase",
+                color: "#ffffff",
+                opacity: 0.9,
+              }}
+            >
+              PORTFOLIO <span style={{ color: "#38bdf8" }}>/ MITESH SHAH</span>
+            </div>
+
+            {/* Center: Glowing Gotham Bat-Signal Vector */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "1.8rem",
+              }}
+            >
+              <motion.div
+                animate={{
+                  scale: [0.96, 1.04, 0.96],
+                  opacity: [0.85, 1, 0.85],
+                }}
+                transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
+                style={{
+                  width: "90px",
+                  height: "90px",
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(56,189,248,0.18) 0%, rgba(2,4,8,0) 70%)",
+                  border: "1px solid rgba(56, 189, 248, 0.35)",
+                  boxShadow: "0 0 35px rgba(56, 189, 248, 0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="#38bdf8">
+                  <path d="M12 4C10.8 2.8 8.5 2.2 5.5 3.5C4.2 6 5.1 9.2 7 10C8.5 9 9.8 9.5 10.5 11.2C10.8 11.8 11.4 11.8 11.8 11.2C12.5 9.5 13.8 9 15.3 10C17.2 9.2 18.1 6 16.8 3.5C13.8 2.2 11.5 2.8 12 4Z" />
+                </svg>
+              </motion.div>
+
+              {/* Hairline Apple Loading Bar */}
+              <div
+                style={{
+                  width: "clamp(200px, 40vw, 320px)",
+                  height: "2px",
+                  background: "rgba(255, 255, 255, 0.10)",
+                  borderRadius: "999px",
+                  overflow: "hidden",
+                  position: "relative",
+                }}
+              >
+                <motion.div
+                  style={{
+                    height: "100%",
+                    background: "linear-gradient(90deg, #0284c7, #38bdf8, #ffffff)",
+                    boxShadow: "0 0 12px rgba(56, 189, 248, 0.8)",
+                    borderRadius: "999px",
+                  }}
+                  animate={{ width: `${loadProgress}%` }}
+                  transition={{ ease: "easeOut", duration: 0.2 }}
+                />
+              </div>
+
+              <div
+                style={{
+                  fontSize: "0.68rem",
+                  letterSpacing: "0.24em",
+                  color: "#38bdf8",
+                  textTransform: "uppercase",
+                }}
+              >
+                {loadProgress >= 100 ? "DEPLOYING TUMBLER..." : `INITIALIZING TURBINES: ${loadProgress}%`}
+              </div>
+            </div>
+
+            {/* Bottom Subtitle */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: "clamp(2rem, 4vw, 3rem)",
+                fontSize: "0.65rem",
+                letterSpacing: "0.20em",
+                color: "rgba(255, 255, 255, 0.45)",
+                textTransform: "uppercase",
+              }}
+            >
+              WAYNETECH 1000M PATROL · ROAD FIGHTER
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* HOLLYWOOD OPENING TITLE (Fades out after 3.5s) */}
+      <AnimatePresence>
+        {hasDeployed && showCinematicTitle && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -151,10 +287,10 @@ export default function Home() {
               y: -20,
               transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
             }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
+            transition={{ duration: 1.0, ease: "easeOut" }}
             style={{
               position: "fixed",
-              top: "24%",
+              top: "22%",
               left: 0,
               right: 0,
               display: "flex",
@@ -205,208 +341,6 @@ export default function Home() {
               }}
             >
               GOTHAM CITY · 1000M PATROL · ROAD FIGHTER
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* --- 🦇 WAYNETECH 5-LIGHT TACTICAL LAUNCH GANTRY (YUTA ABE SPATIAL MINIMALISM) --- */}
-      <AnimatePresence>
-        {!hasDeployed && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{
-              opacity: 0,
-              scale: 1.04,
-              transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-            }}
-            onClick={() => {
-              handleUserGesture();
-              setHasDeployed(true);
-            }}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100dvh",
-              zIndex: 1200,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "#000000",
-              color: "#ffffff",
-              fontFamily: "var(--font-mono, monospace)",
-              cursor: "pointer",
-              userSelect: "none",
-              padding: "clamp(1.5rem, 4vw, 3rem)",
-              boxSizing: "border-box",
-            }}
-          >
-            {/* Top Left: Portfolio Identity */}
-            <div
-              style={{
-                position: "absolute",
-                top: "clamp(1.5rem, 3vw, 2.5rem)",
-                left: "clamp(1.5rem, 3vw, 2.5rem)",
-                fontSize: "clamp(0.68rem, 1.1vw, 0.78rem)",
-                letterSpacing: "0.24em",
-                textTransform: "uppercase",
-                color: "#ffffff",
-                opacity: 0.85,
-              }}
-            >
-              PORTFOLIO <span style={{ color: "#38bdf8", opacity: 0.9 }}>/ MITESH SHAH</span>
-            </div>
-
-            {/* Top Right: Track / Mode */}
-            <div
-              style={{
-                position: "absolute",
-                top: "clamp(1.5rem, 3vw, 2.5rem)",
-                right: "clamp(1.5rem, 3vw, 2.5rem)",
-                fontSize: "clamp(0.68rem, 1.1vw, 0.78rem)",
-                letterSpacing: "0.24em",
-                textTransform: "uppercase",
-                color: "rgba(255, 255, 255, 0.65)",
-              }}
-            >
-              GOTHAM PATROL <span style={{ color: "#38bdf8" }}>· 1000M MISSION</span>
-            </div>
-
-            {/* CENTER: 5 GIANT GLOWING RED LAUNCH LIGHTS (● ● ● ● ●) */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "clamp(1.2rem, 3.5vw, 3.2rem)",
-                margin: "auto 0",
-              }}
-            >
-              {[1, 2, 3, 4, 5].map((lightNum) => {
-                const isLit = loadProgress >= lightNum * 18 || isLoaded;
-                return (
-                  <div
-                    key={lightNum}
-                    style={{
-                      width: "clamp(54px, 11vw, 110px)",
-                      height: "clamp(54px, 11vw, 110px)",
-                      borderRadius: "50%",
-                      background: isLit
-                        ? "radial-gradient(circle at 35% 35%, #ff6b6b 0%, #ef4444 50%, #b91c1c 100%)"
-                        : "radial-gradient(circle at 50% 50%, #1c1917 0%, #0c0a09 100%)",
-                      border: isLit
-                        ? "2px solid rgba(255, 120, 120, 0.85)"
-                        : "2px solid rgba(255, 255, 255, 0.08)",
-                      boxShadow: isLit
-                        ? "0 0 45px rgba(239, 68, 68, 0.95), 0 0 90px rgba(239, 68, 68, 0.55), inset 0 0 15px rgba(255, 255, 255, 0.6)"
-                        : "inset 0 2px 8px rgba(0, 0, 0, 0.8)",
-                      transition: "all 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
-                      position: "relative",
-                    }}
-                  >
-                    {isLit && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "18%",
-                          left: "22%",
-                          width: "28%",
-                          height: "28%",
-                          borderRadius: "50%",
-                          background: "rgba(255, 255, 255, 0.65)",
-                          filter: "blur(2px)",
-                        }}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom Left: Gotham Live Telemetry */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "clamp(1.5rem, 3vw, 2.5rem)",
-                left: "clamp(1.5rem, 3vw, 2.5rem)",
-                fontSize: "clamp(0.65rem, 1.0vw, 0.72rem)",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "rgba(255, 255, 255, 0.55)",
-                lineHeight: 1.6,
-              }}
-            >
-              <div>9:15 PM GOTHAM</div>
-              <div style={{ color: "rgba(255, 255, 255, 0.35)" }}>CLEAR · 0% RAIN</div>
-            </div>
-
-            {/* Bottom Center: Interactive Launch Prompt */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "clamp(1.8rem, 4vw, 3.2rem)",
-                left: 0,
-                right: 0,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <motion.div
-                animate={{
-                  opacity: [0.75, 1, 0.75],
-                  y: [0, -2, 0],
-                }}
-                transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-                style={{
-                  fontSize: "clamp(0.78rem, 1.3vw, 0.95rem)",
-                  fontWeight: 800,
-                  letterSpacing: "0.22em",
-                  textTransform: "uppercase",
-                  color: isLoaded || loadProgress >= 90 ? "#38bdf8" : "#ffffff",
-                  textShadow: isLoaded || loadProgress >= 90 ? "0 0 20px rgba(56, 189, 248, 0.8)" : "none",
-                }}
-              >
-                {isLoaded || loadProgress >= 90
-                  ? "LIGHTS OUT, CLICK OR PRESS SPACE TO LAUNCH!"
-                  : `CALIBRATING TUMBLER TURBINES: ${loadProgress}%`}
-              </motion.div>
-
-              <div
-                style={{
-                  fontSize: "0.62rem",
-                  letterSpacing: "0.15em",
-                  color: "rgba(255, 255, 255, 0.4)",
-                  textTransform: "uppercase",
-                  marginTop: "0.45rem",
-                }}
-              >
-                STEER: A / D / ARROWS  ·  DODGE: RED TRAFFIC  ·  HUNT: CYAN FUEL CORES
-              </div>
-            </div>
-
-            {/* Bottom Right: Engine Spec */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "clamp(1.5rem, 3vw, 2.5rem)",
-                right: "clamp(1.5rem, 3vw, 2.5rem)",
-                fontSize: "clamp(0.65rem, 1.0vw, 0.72rem)",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "rgba(255, 255, 255, 0.55)",
-                textAlign: "right",
-                lineHeight: 1.6,
-              }}
-            >
-              <div>AFTERBURNER V8</div>
-              <div style={{ color: "#38bdf8" }}>1000M PATROL</div>
             </div>
           </motion.div>
         )}
