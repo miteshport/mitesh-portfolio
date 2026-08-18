@@ -425,10 +425,6 @@ export default function F1GameCanvas({
         pos.x += curve;
         vWorldX = pos.x;
 
-        // 🌐 CURVED WORLD VERTEX SHADER (Bends road into Gotham horizon)
-        float horizonDist = max(0.0, zDist - 12.0);
-        pos.z -= horizonDist * horizonDist * 0.0013;
-
         vec4 modelViewPosition = modelViewMatrix * vec4(pos, 1.0);
         vDepth = -modelViewPosition.z;
         gl_Position = projectionMatrix * modelViewPosition;
@@ -519,19 +515,7 @@ export default function F1GameCanvas({
       2048: { color: 0xffd700, hex: "#ffd700" },// Hyper-Core Gold
     };
 
-    // Curved World Shader Injector for Three.js Materials
-    const applyCurvedWorldShader = (material: THREE.Material) => {
-      material.onBeforeCompile = (shader) => {
-        shader.vertexShader = shader.vertexShader.replace(
-          "#include <begin_vertex>",
-          `#include <begin_vertex>
-           vec4 worldPos = modelMatrix * vec4(transformed, 1.0);
-           float distZ = max(0.0, -worldPos.z - 8.0);
-           transformed.y -= (distZ * distZ) * 0.0013;
-          `
-        );
-      };
-    };
+    
 
         // Static Pre-rendered Canvas Texture Pool (Zero allocations during gameplay)
     const STATIC_NUMBER_TEXTURES = new Map<number, THREE.CanvasTexture>();
@@ -598,8 +582,7 @@ export default function F1GameCanvas({
         emissive: 0x38bdf8,
         emissiveIntensity: 0.45,
       });
-      applyCurvedWorldShader(boxMat);
-
+      
       const boxMesh = new THREE.Mesh(blockBoxGeo, boxMat);
       boxMesh.position.y = 0.35;
       group.add(boxMesh);
@@ -612,8 +595,7 @@ export default function F1GameCanvas({
         transparent: true,
         side: THREE.DoubleSide,
       });
-      applyCurvedWorldShader(decalMat);
-
+      
       const frontDecal = new THREE.Mesh(decalGeo, decalMat);
       frontDecal.position.set(0, 0.35, 0.58);
       group.add(frontDecal);
@@ -1042,7 +1024,7 @@ export default function F1GameCanvas({
         item.z += forwardDelta;
         item.group.position.z = item.z;
         item.group.position.x = lanePositions[item.laneIndex];
-        item.group.position.y = 0.42 + Math.sin(time * 3.6 + i * 1.2) * 0.12;
+        item.group.position.y = 0.45 + Math.sin(time * 3.6 + i * 1.2) * 0.08;
         item.group.rotation.y += 0.022;
 
         // Collision Check with Batmobile Tumbler
