@@ -194,10 +194,10 @@ export default function F1GameCanvas({
       // 1. High-Contrast Cinematic Teal/White Spotlight
       const spotGrad = bCtx.createRadialGradient(512, 500, 10, 512, 500, 480);
       spotGrad.addColorStop(0.00, "rgba(255, 255, 255, 1.00)");
-      spotGrad.addColorStop(0.22, "rgba(210, 250, 255, 0.98)");
-      spotGrad.addColorStop(0.46, "rgba(95, 215, 240, 0.88)");
-      spotGrad.addColorStop(0.72, "rgba(30, 130, 195, 0.45)");
-      spotGrad.addColorStop(0.92, "rgba(10, 50, 110, 0.12)");
+      spotGrad.addColorStop(0.20, "rgba(215, 250, 255, 0.98)");
+      spotGrad.addColorStop(0.44, "rgba(90, 210, 240, 0.88)");
+      spotGrad.addColorStop(0.70, "rgba(25, 125, 190, 0.45)");
+      spotGrad.addColorStop(0.90, "rgba(8, 45, 100, 0.12)");
       spotGrad.addColorStop(1.00, "rgba(0, 0, 0, 0)");
       bCtx.fillStyle = spotGrad;
       bCtx.beginPath();
@@ -211,17 +211,17 @@ export default function F1GameCanvas({
       bCtx.arc(512, 512, 468, 0, Math.PI * 2);
       bCtx.stroke();
 
-      // 3. Bat Cutout (Destination-Out = Pure Crisp Void Hole)
+      // 3. Bat Cutout (Scale 2.25 = perfectly framed inside the 480px spotlight circle with clean margins)
       bCtx.save();
-      bCtx.translate(512, 530);
-      bCtx.scale(3.7, 3.7);
+      bCtx.translate(512, 515);
+      bCtx.scale(2.25, 2.25);
       bCtx.globalCompositeOperation = "destination-out";
       bCtx.fillStyle = "rgba(0, 0, 0, 1)";
 
       bCtx.beginPath();
       bCtx.moveTo(0, 30);
 
-      // RIGHT WING
+      // RIGHT WING (Scalloped DC / BvS Profile)
       bCtx.bezierCurveTo(22, 30, 42, 22, 56, 10);
       bCtx.bezierCurveTo(66, 2, 76, 10, 86, 18);
       bCtx.bezierCurveTo(94, 24, 102, 8, 110, -2);
@@ -269,7 +269,7 @@ export default function F1GameCanvas({
     batSignalSprite.scale.set(30, 30, 1);
     scene.add(batSignalSprite);
 
-    // --- 6. 🌆 GOTHAM CITY SKYLINE (BATMAN: THE ANIMATED SERIES ART DECO SILHOUETTES) ---
+    // --- 6. 🌆 GOTHAM CITY SKYLINE (BATMAN: TAS ART DECO SILHOUETTES WITH BASE FOG MIST) ---
     const buildSkylineTexture = () => {
       const c = document.createElement("canvas");
       c.width = 1024;
@@ -293,29 +293,40 @@ export default function F1GameCanvas({
       ];
 
       buildings.forEach((b) => {
-        // Main tower body (Midnight Obsidian)
-        ctx.fillStyle = "rgba(4, 7, 14, 0.96)";
+        // Main tower body (Deep Midnight Obsidian)
+        ctx.fillStyle = "rgba(3, 5, 10, 0.98)";
         ctx.fillRect(b.x, 512 - b.h, b.w, b.h);
 
         // Stepped Art Deco Setbacks
-        ctx.fillStyle = "rgba(6, 10, 20, 0.98)";
-        ctx.fillRect(b.x + 15, 512 - b.h - b.spires[0], b.w - 30, b.spires[0]);
+        ctx.fillStyle = "rgba(5, 8, 16, 0.98)";
+        ctx.fillRect(b.x + 14, 512 - b.h - b.spires[0], b.w - 28, b.spires[0]);
 
         // Needle Spire
-        ctx.fillStyle = "rgba(8, 14, 26, 1.0)";
+        ctx.fillStyle = "rgba(7, 12, 22, 1.0)";
         ctx.fillRect(b.x + b.w / 2 - 3, 512 - b.h - b.spires[0] - b.spires[1], 6, b.spires[1]);
 
-        // Ambient Gotham Window Slits (Sparse Cyan/Amber Pinpricks)
-        for (let wy = 512 - b.h + 20; wy < 480; wy += 28) {
-          for (let wx = b.x + 12; wx < b.x + b.w - 12; wx += 22) {
-            if (Math.random() < 0.28) {
-              const isAmber = Math.random() < 0.6;
-              ctx.fillStyle = isAmber ? "rgba(230, 190, 90, 0.55)" : "rgba(100, 210, 255, 0.45)";
-              ctx.fillRect(wx, wy, 4, 9);
+        // Ambient Gotham Window Slits (Subtle warm amber & cyan pinpricks)
+        for (let wy = 512 - b.h + 24; wy < 400; wy += 32) {
+          for (let wx = b.x + 14; wx < b.x + b.w - 14; wx += 24) {
+            if (Math.random() < 0.24) {
+              const isAmber = Math.random() < 0.65;
+              ctx.fillStyle = isAmber ? "rgba(220, 175, 75, 0.40)" : "rgba(80, 185, 235, 0.30)";
+              ctx.fillRect(wx, wy, 3, 7);
             }
           }
         }
       });
+
+      // Bottom Soft-Fade Mist Gradient (dissolves the bottom of buildings smoothly into the asphalt fog)
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      const mistGrad = ctx.createLinearGradient(0, 360, 0, 512);
+      mistGrad.addColorStop(0.0, "rgba(0, 0, 0, 0.0)");
+      mistGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.45)");
+      mistGrad.addColorStop(1.0, "rgba(0, 0, 0, 1.0)");
+      ctx.fillStyle = mistGrad;
+      ctx.fillRect(0, 360, 1024, 152);
+      ctx.restore();
 
       const tex = new THREE.CanvasTexture(c);
       tex.wrapS = THREE.RepeatWrapping;
@@ -328,21 +339,21 @@ export default function F1GameCanvas({
     const skylineMat = new THREE.MeshBasicMaterial({
       map: skylineTex,
       transparent: true,
-      opacity: 0.88,
+      opacity: 0.85,
       side: THREE.DoubleSide,
       fog: true,
     });
 
-    // Left and Right Skyline Flanks framing the highway
-    const skylineGeo = new THREE.PlaneGeometry(360, 48);
+    // Left and Right Skyline Flanks (deeper placement with seamless horizon blending)
+    const skylineGeo = new THREE.PlaneGeometry(420, 52);
     const leftSkyline = new THREE.Mesh(skylineGeo, skylineMat);
-    leftSkyline.position.set(-24, 20, -160);
-    leftSkyline.rotation.y = Math.PI / 14;
+    leftSkyline.position.set(-30, 16, -170);
+    leftSkyline.rotation.y = Math.PI / 16;
     scene.add(leftSkyline);
 
     const rightSkyline = new THREE.Mesh(skylineGeo, skylineMat);
-    rightSkyline.position.set(24, 20, -160);
-    rightSkyline.rotation.y = -Math.PI / 14;
+    rightSkyline.position.set(30, 16, -170);
+    rightSkyline.rotation.y = -Math.PI / 16;
     scene.add(rightSkyline);
 
     // --- 7. 🌧️ HIGH-SPEED RAIN STREAKS ---
