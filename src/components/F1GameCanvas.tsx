@@ -517,31 +517,41 @@ export default function F1GameCanvas({
 
     
 
-        // Static Pre-rendered Canvas Texture Pool (Zero allocations during gameplay)
+            // Static Pre-rendered Canvas Texture Pool (512x512 High-Visibility Billboards)
     const STATIC_NUMBER_TEXTURES = new Map<number, THREE.CanvasTexture>();
     [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048].forEach((val) => {
       const info = BLOCK_COLORS[val] || BLOCK_COLORS[2];
       const canvas = document.createElement("canvas");
-      canvas.width = 256;
-      canvas.height = 256;
+      canvas.width = 512;
+      canvas.height = 512;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.fillStyle = "rgba(6, 9, 16, 0.95)";
+        ctx.fillStyle = "rgba(4, 7, 14, 0.96)";
         ctx.beginPath();
-        ctx.roundRect(8, 8, 240, 240, 36);
+        ctx.roundRect(20, 20, 472, 472, 80);
         ctx.fill();
 
+        // Thick glowing neon border
         ctx.strokeStyle = info.hex;
-        ctx.lineWidth = 14;
+        ctx.lineWidth = 28;
         ctx.shadowColor = info.hex;
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 36;
         ctx.stroke();
 
+        // Inner secondary hairline ring
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.lineWidth = 6;
+        ctx.shadowBlur = 0;
+        ctx.stroke();
+
+        // High-contrast bold number
         ctx.fillStyle = "#ffffff";
-        ctx.font = `900 ${val >= 1000 ? "68px" : val >= 100 ? "82px" : "106px"} system-ui, sans-serif`;
+        ctx.shadowColor = info.hex;
+        ctx.shadowBlur = 24;
+        ctx.font = `900 ${val >= 1000 ? "160px" : val >= 100 ? "195px" : "240px"} system-ui, -apple-system, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(String(val), 128, 128);
+        ctx.fillText(String(val), 256, 256);
       }
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
@@ -552,12 +562,12 @@ export default function F1GameCanvas({
       return STATIC_NUMBER_TEXTURES.get(val) || STATIC_NUMBER_TEXTURES.get(2)!;
     };
 
-    interface PowerBlockItem {
+        interface PowerBlockItem {
       group: THREE.Group;
       boxMesh: THREE.Mesh;
-      frontDecal: THREE.Mesh;
-      backDecal: THREE.Mesh;
-      topDecal: THREE.Mesh;
+      billboardSprite: THREE.Sprite;
+      skyBeam: THREE.Mesh;
+      targetReticle: THREE.Mesh;
       light: THREE.PointLight;
       value: number;
       laneIndex: number;
@@ -569,49 +579,66 @@ export default function F1GameCanvas({
     const powerBlockPool: PowerBlockItem[] = [];
     const blockCount = 8;
 
-    const blockBoxGeo = new THREE.BoxGeometry(1.15, 0.65, 1.15);
-    const decalGeo = new THREE.PlaneGeometry(0.85, 0.85);
+    const blockBoxGeo = new THREE.BoxGeometry(1.2, 0.70, 1.2);
+    const skyBeamGeo = new THREE.CylinderGeometry(0.04, 0.18, 16, 8);
+    const reticleGeo = new THREE.RingGeometry(0.9, 1.15, 32);
 
     for (let i = 0; i < blockCount; i++) {
       const group = new THREE.Group();
 
+      // 3D Core Block
       const boxMat = new THREE.MeshStandardMaterial({
         color: 0x0c1220,
         metalness: 0.85,
         roughness: 0.20,
         emissive: 0x38bdf8,
-        emissiveIntensity: 0.45,
+        emissiveIntensity: 0.55,
       });
-      
       const boxMesh = new THREE.Mesh(blockBoxGeo, boxMat);
       boxMesh.position.y = 0.35;
       group.add(boxMesh);
 
-      // Decal Material
+      // 🎯 1. CAMERA-FACING HOLOGRAPHIC BILLBOARD BADGE (Always upright & 100% visible)
       const initInfo = BLOCK_COLORS[2];
       const decalTex = getNumberTexture(2, initInfo.hex);
-      const decalMat = new THREE.MeshBasicMaterial({
+      const spriteMat = new THREE.SpriteMaterial({
         map: decalTex,
         transparent: true,
+        depthWrite: false,
+      });
+      const billboardSprite = new THREE.Sprite(spriteMat);
+      billboardSprite.position.set(0, 1.45, 0);
+      billboardSprite.scale.set(1.55, 1.55, 1.0);
+      group.add(billboardSprite);
+
+      // 🗼 2. VERTICAL SKY LASER BEAM (Visible from 200m away in the Gotham skyline)
+      const beamMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
         side: THREE.DoubleSide,
       });
-      
-      const frontDecal = new THREE.Mesh(decalGeo, decalMat);
-      frontDecal.position.set(0, 0.35, 0.58);
-      group.add(frontDecal);
+      const skyBeam = new THREE.Mesh(skyBeamGeo, beamMat);
+      skyBeam.position.set(0, 8.5, 0);
+      group.add(skyBeam);
 
-      const backDecal = new THREE.Mesh(decalGeo, decalMat.clone());
-      backDecal.position.set(0, 0.35, -0.58);
-      backDecal.rotation.y = Math.PI;
-      group.add(backDecal);
+      // 🎯 3. SMART TARGET RETICLE (Pulsing ring when block matches player's needed number)
+      const reticleMat = new THREE.MeshBasicMaterial({
+        color: 0xffd700,
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+      });
+      const targetReticle = new THREE.Mesh(reticleGeo, reticleMat);
+      targetReticle.rotation.x = -Math.PI / 2;
+      targetReticle.position.set(0, 0.08, 0);
+      group.add(targetReticle);
 
-      const topDecal = new THREE.Mesh(decalGeo, decalMat.clone());
-      topDecal.position.set(0, 0.68, 0);
-      topDecal.rotation.x = -Math.PI / 2;
-      group.add(topDecal);
-
-      const pLight = new THREE.PointLight(0x38bdf8, 1.5, 6.0);
-      pLight.position.set(0, 0.8, 0);
+      // Point Light
+      const pLight = new THREE.PointLight(0x38bdf8, 2.2, 7.0);
+      pLight.position.set(0, 0.9, 0);
       group.add(pLight);
 
       const initZ = -45 - i * 28;
@@ -623,9 +650,9 @@ export default function F1GameCanvas({
       powerBlockPool.push({
         group,
         boxMesh,
-        frontDecal,
-        backDecal,
-        topDecal,
+        billboardSprite,
+        skyBeam,
+        targetReticle,
         light: pLight,
         value: 2,
         laneIndex: initLane,
@@ -634,7 +661,7 @@ export default function F1GameCanvas({
       });
     }
 
-    const updateBlockVisuals = (item: PowerBlockItem, val: number) => {
+    const updateBlockVisuals = (item: PowerBlockItem, val: number, isTarget = false) => {
       item.value = val;
       const info = BLOCK_COLORS[val] || BLOCK_COLORS[2];
       const tex = getNumberTexture(val, info.hex);
@@ -642,10 +669,22 @@ export default function F1GameCanvas({
       const bMat = item.boxMesh.material as THREE.MeshStandardMaterial;
       bMat.emissive.setHex(info.color);
 
-      (item.frontDecal.material as THREE.MeshBasicMaterial).map = tex;
-      (item.backDecal.material as THREE.MeshBasicMaterial).map = tex;
-      (item.topDecal.material as THREE.MeshBasicMaterial).map = tex;
+      (item.billboardSprite.material as THREE.SpriteMaterial).map = tex;
+      (item.skyBeam.material as THREE.MeshBasicMaterial).color.setHex(info.color);
       item.light.color.setHex(info.color);
+
+      // Target Highlight
+      const retMat = item.targetReticle.material as THREE.MeshBasicMaterial;
+      if (isTarget) {
+        retMat.opacity = 0.85;
+        retMat.color.setHex(info.color);
+        item.billboardSprite.scale.set(1.85, 1.85, 1.0);
+        (item.skyBeam.material as THREE.MeshBasicMaterial).opacity = 0.65;
+      } else {
+        retMat.opacity = 0.0;
+        item.billboardSprite.scale.set(1.45, 1.45, 1.0);
+        (item.skyBeam.material as THREE.MeshBasicMaterial).opacity = 0.28;
+      }
     };
 
     // Merge Shockwave Ring Particle Effect
@@ -1018,14 +1057,26 @@ export default function F1GameCanvas({
       // Bat-Signal Aura Pulse
       batSignalSprite.material.opacity = 0.90 + Math.sin(time * 1.5) * 0.06;
 
-      // 1B. ⚡ POWER BLOCKS TICK & LIFO CASCADE COLLISIONS
+            // 1B. ⚡ ROAD FIGHTER CHOREOGRAPHED BLOCKS & TARGET RETICLES
+      const targetMatchVal = cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null;
+
       for (let i = 0; i < powerBlockPool.length; i++) {
         const item = powerBlockPool[i];
         item.z += forwardDelta;
         item.group.position.z = item.z;
         item.group.position.x = lanePositions[item.laneIndex];
         item.group.position.y = 0.45 + Math.sin(time * 3.6 + i * 1.2) * 0.08;
-        item.group.rotation.y += 0.022;
+        item.boxMesh.rotation.y += 0.022;
+
+        // Target Reticle Spin & Pulse
+        const isTarget = targetMatchVal !== null && item.value === targetMatchVal;
+        const retMat = item.targetReticle.material as THREE.MeshBasicMaterial;
+        if (isTarget) {
+          retMat.opacity = 0.65 + Math.sin(time * 8.0) * 0.25;
+          item.targetReticle.rotation.z += 0.04;
+        } else {
+          retMat.opacity = 0;
+        }
 
         // Collision Check with Batmobile Tumbler
         if (
@@ -1090,19 +1141,21 @@ export default function F1GameCanvas({
           }
         }
 
-        // Reset Block Ahead when passed
+        // 🛣️ ROAD FIGHTER WAVE SPAWNING CHOREOGRAPHY
         if (item.z > 8.0) {
           const minZ = Math.min(...powerBlockPool.map((b) => b.z));
           item.z = minZ - 26 - Math.random() * 8;
-          item.laneIndex = Math.floor(Math.random() * 3);
 
-          // Intelligent Spawn Weighting (35% chance to spawn needed stack top match)
+          // Wave formation: Slalom rhythm (0 -> 1 -> 2 -> 1)
+          item.laneIndex = (i + Math.floor(trackDistance / 80)) % 3;
+
+          // Intelligent Road Fighter Target Match Spawning (45% chance to spawn needed target)
           let spawnVal = 2;
-          const topVal = cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null;
+          const currentTop = cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null;
           const rand = Math.random();
 
-          if (topVal && rand < 0.35 && topVal <= 512) {
-            spawnVal = topVal;
+          if (currentTop && rand < 0.45 && currentTop <= 512) {
+            spawnVal = currentTop;
           } else if (rand < 0.60) {
             spawnVal = 2;
           } else if (rand < 0.85) {
@@ -1113,7 +1166,8 @@ export default function F1GameCanvas({
             spawnVal = 16;
           }
 
-          updateBlockVisuals(item, spawnVal);
+          const willBeTarget = currentTop !== null && spawnVal === currentTop;
+          updateBlockVisuals(item, spawnVal, willBeTarget);
           item.active = true;
           item.group.visible = true;
           item.group.position.x = lanePositions[item.laneIndex];

@@ -212,182 +212,204 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* --- 🦇 ROCKSTAR-TIER GOTHAM 2048 BRIEFING MODAL --- */}
+            {/* --- 🦇 WAYNETECH 5-LIGHT TACTICAL LAUNCH GANTRY (YUTA ABE SPATIAL MINIMALISM) --- */}
       <AnimatePresence>
         {!hasDeployed && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 1 }}
+            exit={{
+              opacity: 0,
+              scale: 1.04,
+              transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+            }}
+            onClick={() => {
+              handleUserGesture();
+              setHasDeployed(true);
+            }}
             style={{
               position: "fixed",
               top: 0,
               left: 0,
               width: "100vw",
-              height: "100vh",
+              height: "100dvh",
               zIndex: 1200,
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(2, 4, 10, 0.88)",
-              backdropFilter: "blur(32px) saturate(180%)",
-              WebkitBackdropFilter: "blur(32px) saturate(180%)",
-              padding: "1.2rem",
+              background: "#000000",
+              color: "#ffffff",
+              fontFamily: "var(--font-mono, monospace)",
+              cursor: "pointer",
+              userSelect: "none",
+              padding: "clamp(1.5rem, 4vw, 3rem)",
               boxSizing: "border-box",
-              pointerEvents: "auto",
             }}
           >
+            {/* Top Left: Portfolio Identity */}
             <div
               style={{
-                width: "100%",
-                maxWidth: "620px",
-                background: "linear-gradient(135deg, rgba(14, 20, 32, 0.95) 0%, rgba(6, 10, 18, 0.98) 100%)",
-                border: "1px solid rgba(255, 255, 255, 0.18)",
-                borderTop: "1px solid rgba(56, 189, 248, 0.45)",
-                borderRadius: "24px",
-                padding: "clamp(1.5rem, 4vw, 2.2rem)",
-                boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.3)",
+                position: "absolute",
+                top: "clamp(1.5rem, 3vw, 2.5rem)",
+                left: "clamp(1.5rem, 3vw, 2.5rem)",
+                fontSize: "clamp(0.68rem, 1.1vw, 0.78rem)",
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
                 color: "#ffffff",
-                fontFamily: "var(--font-mono, monospace)",
-                boxSizing: "border-box",
+                opacity: 0.85,
               }}
             >
-              {/* Header: Clean & Catchy */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.4rem" }}>
-                <div>
-                  <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.22em", color: "#38bdf8", textTransform: "uppercase" }}>
-                    WAYNE ENTERPRISES
-                  </div>
-                  <div style={{ fontSize: "clamp(1.5rem, 3.5vw, 2.0rem)", fontWeight: 850, letterSpacing: "-0.03em", textTransform: "uppercase", marginTop: "0.15rem" }}>
-                    GOTHAM 2048
-                  </div>
-                </div>
-                <div style={{ padding: "0.3rem 0.75rem", borderRadius: "9999px", background: "rgba(56, 189, 248, 0.12)", border: "1px solid rgba(56, 189, 248, 0.3)", fontSize: "0.68rem", fontWeight: 700, color: "#38bdf8", letterSpacing: "0.12em" }}>
-                  HIGHWAY PURSUIT
-                </div>
-              </div>
+              PORTFOLIO <span style={{ color: "#38bdf8", opacity: 0.9 }}>/ MITESH SHAH</span>
+            </div>
 
-              {/* 3 Precision Rockstar Columns */}
+            {/* Top Right: Track / Mode */}
+            <div
+              style={{
+                position: "absolute",
+                top: "clamp(1.5rem, 3vw, 2.5rem)",
+                right: "clamp(1.5rem, 3vw, 2.5rem)",
+                fontSize: "clamp(0.68rem, 1.1vw, 0.78rem)",
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+                color: "rgba(255, 255, 255, 0.65)",
+              }}
+            >
+              GOTHAM HIGHWAY <span style={{ color: "#38bdf8" }}>· 2048</span>
+            </div>
+
+            {/* CENTER: 5 GIANT GLOWING RED LAUNCH LIGHTS (● ● ● ● ●) */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "clamp(1.2rem, 3.5vw, 3.2rem)",
+                margin: "auto 0",
+              }}
+            >
+              {[1, 2, 3, 4, 5].map((lightNum) => {
+                const isLit = loadProgress >= lightNum * 18 || isLoaded;
+                return (
+                  <div
+                    key={lightNum}
+                    style={{
+                      width: "clamp(54px, 11vw, 110px)",
+                      height: "clamp(54px, 11vw, 110px)",
+                      borderRadius: "50%",
+                      background: isLit
+                        ? "radial-gradient(circle at 35% 35%, #ff6b6b 0%, #ef4444 50%, #b91c1c 100%)"
+                        : "radial-gradient(circle at 50% 50%, #1c1917 0%, #0c0a09 100%)",
+                      border: isLit
+                        ? "2px solid rgba(255, 120, 120, 0.85)"
+                        : "2px solid rgba(255, 255, 255, 0.08)",
+                      boxShadow: isLit
+                        ? "0 0 45px rgba(239, 68, 68, 0.95), 0 0 90px rgba(239, 68, 68, 0.55), inset 0 0 15px rgba(255, 255, 255, 0.6)"
+                        : "inset 0 2px 8px rgba(0, 0, 0, 0.8)",
+                      transition: "all 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+                      position: "relative",
+                    }}
+                  >
+                    {/* Inner filament glint */}
+                    {isLit && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "18%",
+                          left: "22%",
+                          width: "28%",
+                          height: "28%",
+                          borderRadius: "50%",
+                          background: "rgba(255, 255, 255, 0.65)",
+                          filter: "blur(2px)",
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Left: Gotham Live Telemetry */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: "clamp(1.5rem, 3vw, 2.5rem)",
+                left: "clamp(1.5rem, 3vw, 2.5rem)",
+                fontSize: "clamp(0.65rem, 1.0vw, 0.72rem)",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "rgba(255, 255, 255, 0.55)",
+                lineHeight: 1.6,
+              }}
+            >
+              <div>9:15 PM GOTHAM</div>
+              <div style={{ color: "rgba(255, 255, 255, 0.35)" }}>CLEAR · 0% RAIN</div>
+            </div>
+
+            {/* Bottom Center: Interactive Lights Out Launch Prompt */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: "clamp(1.8rem, 4vw, 3.2rem)",
+                left: 0,
+                right: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                pointerEvents: "none",
+              }}
+            >
+              <motion.div
+                animate={{
+                  opacity: [0.75, 1, 0.75],
+                  y: [0, -2, 0],
+                }}
+                transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                style={{
+                  fontSize: "clamp(0.78rem, 1.3vw, 0.95rem)",
+                  fontWeight: 800,
+                  letterSpacing: "0.22em",
+                  textTransform: "uppercase",
+                  color: isLoaded || loadProgress >= 90 ? "#38bdf8" : "#ffffff",
+                  textShadow: isLoaded || loadProgress >= 90 ? "0 0 20px rgba(56, 189, 248, 0.8)" : "none",
+                }}
+              >
+                {isLoaded || loadProgress >= 90
+                  ? "LIGHTS OUT, CLICK OR PRESS SPACE TO LAUNCH!"
+                  : `CALIBRATING TUMBLER TURBINES: ${loadProgress}%`}
+              </motion.div>
+
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                  gap: "0.9rem",
-                  marginBottom: "1.6rem",
-                }}
-              >
-                {/* 01: STEER */}
-                <div
-                  style={{
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.10)",
-                    borderRadius: "14px",
-                    padding: "0.95rem 0.9rem",
-                  }}
-                >
-                  <div style={{ fontSize: "0.66rem", fontWeight: 750, color: "#38bdf8", letterSpacing: "0.12em" }}>
-                    [ 01 // STEER ]
-                  </div>
-                  <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#ffffff", marginTop: "0.35rem" }}>
-                    Lane Navigation
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "rgba(255, 255, 255, 0.65)", marginTop: "0.35rem", lineHeight: 1.45 }}>
-                    Slide cursor or swipe touch to glide between highway lanes.
-                  </div>
-                </div>
-
-                {/* 02: MERGE */}
-                <div
-                  style={{
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.10)",
-                    borderRadius: "14px",
-                    padding: "0.95rem 0.9rem",
-                  }}
-                >
-                  <div style={{ fontSize: "0.66rem", fontWeight: 750, color: "#38bdf8", letterSpacing: "0.12em" }}>
-                    [ 02 // MERGE ]
-                  </div>
-                  <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#ffffff", marginTop: "0.35rem" }}>
-                    Number Cascade
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "rgba(255, 255, 255, 0.65)", marginTop: "0.35rem", lineHeight: 1.45 }}>
-                    Ram matching blocks to double values (2 + 2 ➔ 4).
-                  </div>
-                </div>
-
-                {/* 03: CAUTION */}
-                <div
-                  style={{
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.10)",
-                    borderRadius: "14px",
-                    padding: "0.95rem 0.9rem",
-                  }}
-                >
-                  <div style={{ fontSize: "0.66rem", fontWeight: 750, color: "#ef4444", letterSpacing: "0.12em" }}>
-                    [ 03 // CAUTION ]
-                  </div>
-                  <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#ffffff", marginTop: "0.35rem" }}>
-                    Stack Overload
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "rgba(255, 255, 255, 0.65)", marginTop: "0.35rem", lineHeight: 1.45 }}>
-                    Holding 4+ unmatched blocks causes heavy steering drag.
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Bar & Deployment */}
-              <div style={{ marginBottom: "1.2rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.65rem", color: "rgba(255, 255, 255, 0.55)", marginBottom: "0.45rem", letterSpacing: "0.10em" }}>
-                  <span>SYSTEM STATUS: {isLoaded ? "HARDWARE READY" : "CALIBRATING CORE"}</span>
-                  <span style={{ color: isLoaded ? "#38bdf8" : "#ffffff", fontWeight: 750 }}>
-                    {isLoaded ? "100% READY" : `${loadProgress}%`}
-                  </span>
-                </div>
-                <div style={{ width: "100%", height: "4px", background: "rgba(255, 255, 255, 0.10)", borderRadius: "9999px", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${loadProgress}%`,
-                      background: "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
-                      borderRadius: "9999px",
-                      boxShadow: "0 0 12px rgba(56, 189, 248, 0.8)",
-                      transition: "width 0.25s ease",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* High-End Tactile Action Button */}
-              <button
-                onClick={() => {
-                  handleUserGesture();
-                  setHasDeployed(true);
-                }}
-                disabled={!isLoaded && loadProgress < 90}
-                style={{
-                  width: "100%",
-                  padding: "0.85rem",
-                  borderRadius: "14px",
-                  background: isLoaded || loadProgress >= 90
-                    ? "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)"
-                    : "rgba(255, 255, 255, 0.08)",
-                  border: "none",
-                  color: isLoaded || loadProgress >= 90 ? "#000000" : "rgba(255, 255, 255, 0.4)",
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
+                  fontSize: "0.62rem",
+                  letterSpacing: "0.15em",
+                  color: "rgba(255, 255, 255, 0.4)",
                   textTransform: "uppercase",
-                  cursor: isLoaded || loadProgress >= 90 ? "pointer" : "default",
-                  boxShadow: isLoaded || loadProgress >= 90 ? "0 8px 24px rgba(56, 189, 248, 0.45)" : "none",
-                  transition: "all 0.2s ease",
-                  fontFamily: "var(--font-mono, monospace)",
+                  marginTop: "0.45rem",
                 }}
               >
-                {isLoaded || loadProgress >= 90 ? "DEPLOY TUMBLER  ➔" : "CALIBRATING..."}
-              </button>
+                STEER: MOUSE / TOUCH · MERGE: MATCH NUMBERS · GOAL: 2048 BOOST
+              </div>
+            </div>
+
+            {/* Bottom Right: Engine Spec */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: "clamp(1.5rem, 3vw, 2.5rem)",
+                right: "clamp(1.5rem, 3vw, 2.5rem)",
+                fontSize: "clamp(0.65rem, 1.0vw, 0.72rem)",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "rgba(255, 255, 255, 0.55)",
+                textAlign: "right",
+                lineHeight: 1.6,
+              }}
+            >
+              <div>AFTERBURNER V8</div>
+              <div style={{ color: "#38bdf8" }}>365 KM/H PURSUIT</div>
             </div>
           </motion.div>
         )}
