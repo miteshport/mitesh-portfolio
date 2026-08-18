@@ -85,7 +85,6 @@ export default function SoundroomPage() {
   const [activeView, setActiveView] = useState<"player" | "tracklist">("player");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
-  const [isShuffle, setIsShuffle] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customUrl, setCustomUrl] = useState("");
   const [customTitle, setCustomTitle] = useState("");
@@ -101,6 +100,7 @@ export default function SoundroomPage() {
     volume,
     isMuted,
     is432Hz,
+    isShuffle,
     channels,
     togglePlay,
     playTrack,
@@ -111,6 +111,7 @@ export default function SoundroomPage() {
     setVolume,
     toggleMute,
     toggle432Hz,
+    toggleShuffle,
   } = useSoundroom();
 
   // Register PWA Service Worker for Offline Commute Playback
@@ -657,14 +658,17 @@ export default function SoundroomPage() {
               >
                 {/* Shuffle */}
                 <button
-                  onClick={() => setIsShuffle((prev) => !prev)}
-                  title="Shuffle"
+                  onClick={toggleShuffle}
+                  title={isShuffle ? "Shuffle is ON" : "Shuffle is OFF"}
                   style={{
-                    background: "none",
-                    border: "none",
+                    background: isShuffle ? "rgba(56, 189, 248, 0.2)" : "none",
+                    border: isShuffle ? "1px solid #38bdf8" : "1px solid transparent",
+                    borderRadius: "8px",
+                    padding: "0.2rem 0.4rem",
                     color: isShuffle ? "#38bdf8" : "rgba(255, 255, 255, 0.4)",
                     fontSize: "1.05rem",
                     cursor: "pointer",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   🔀

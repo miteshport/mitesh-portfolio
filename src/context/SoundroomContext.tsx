@@ -41,6 +41,7 @@ interface SoundroomContextType {
   volume: number;
   isMuted: boolean;
   is432Hz: boolean;
+  isShuffle: boolean;
   channels: SoundChannel[];
   togglePlay: () => void;
   playTrack: (track: SoundTrack) => void;
@@ -52,6 +53,7 @@ interface SoundroomContextType {
   setVolume: (vol: number) => void;
   toggleMute: () => void;
   toggle432Hz: () => void;
+  toggleShuffle: () => void;
   getFrequencyData: () => Uint8Array;
 }
 
@@ -74,6 +76,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const [volume, setVolumeState] = useState(0.85);
   const [isMuted, setIsMuted] = useState(false);
   const [is432Hz, setIs432Hz] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ytPlayerRef = useRef<any>(null);
@@ -104,8 +107,18 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const handleNextTrack = useCallback(() => {
     uiAudio.playClick();
     if (customTrack) setCustomTrack(null);
-    setCurrentTrackIndex((prev) => (prev + 1) % currentChannel.tracks.length);
-  }, [currentChannel, customTrack]);
+    if (isShuffle && currentChannel.tracks.length > 1) {
+      setCurrentTrackIndex((prev) => {
+        let nextIdx = Math.floor(Math.random() * currentChannel.tracks.length);
+        if (nextIdx === prev && currentChannel.tracks.length > 1) {
+          nextIdx = (nextIdx + 1) % currentChannel.tracks.length;
+        }
+        return nextIdx;
+      });
+    } else {
+      setCurrentTrackIndex((prev) => (prev + 1) % currentChannel.tracks.length);
+    }
+  }, [currentChannel, customTrack, isShuffle]);
 
   const handlePrevTrack = useCallback(() => {
     uiAudio.playClick();
@@ -523,6 +536,11 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     setIs432Hz((prev) => !prev);
   };
 
+  const toggleShuffle = () => {
+    uiAudio.playClick();
+    setIsShuffle((prev) => !prev);
+  };
+
   const getFrequencyData = (): Uint8Array => {
     const arr = freqDataRef.current;
     const now = Date.now() * 0.008;
@@ -550,6 +568,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         volume,
         isMuted,
         is432Hz,
+        isShuffle,
         channels: SOUNDROOM_CHANNELS,
         togglePlay,
         playTrack,
@@ -561,6 +580,7 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         setVolume,
         toggleMute,
         toggle432Hz,
+        toggleShuffle,
         getFrequencyData,
       }}
     >
