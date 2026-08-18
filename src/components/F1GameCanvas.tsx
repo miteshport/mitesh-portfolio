@@ -145,7 +145,7 @@ export default function F1GameCanvas({
     leftHeadlight.target = headlightTarget;
     rightHeadlight.target = headlightTarget;
 
-    const coneGeo = new THREE.CylinderGeometry(0.06, 2.8, 28, 16, 1, true);
+    const coneGeo = new THREE.CylinderGeometry(0.06, 2.8, 28, 36, 1, true);
     coneGeo.rotateX(-Math.PI / 2);
     coneGeo.translate(0, 0, -14);
     const coneMat = new THREE.MeshBasicMaterial({
@@ -179,14 +179,22 @@ export default function F1GameCanvas({
 
       bCtx.fillStyle = "#020408";
       bCtx.beginPath();
-      bCtx.moveTo(128, 92);
-      bCtx.bezierCurveTo(116, 78, 96, 74, 68, 88);
-      bCtx.bezierCurveTo(56, 110, 64, 135, 84, 142);
-      bCtx.bezierCurveTo(98, 132, 112, 136, 120, 154);
-      bCtx.bezierCurveTo(124, 160, 132, 160, 136, 154);
-      bCtx.bezierCurveTo(144, 136, 158, 132, 172, 142);
-      bCtx.bezierCurveTo(192, 135, 200, 110, 188, 88);
-      bCtx.bezierCurveTo(160, 74, 140, 78, 128, 92);
+      bCtx.moveTo(128, 98);
+      bCtx.lineTo(133, 86);
+      bCtx.lineTo(137, 95);
+      bCtx.bezierCurveTo(160, 82, 188, 86, 218, 116);
+      bCtx.bezierCurveTo(200, 126, 174, 122, 162, 140);
+      bCtx.bezierCurveTo(170, 154, 190, 162, 222, 168);
+      bCtx.bezierCurveTo(190, 180, 152, 174, 130, 154);
+      bCtx.bezierCurveTo(126, 168, 122, 180, 128, 194);
+      bCtx.bezierCurveTo(124, 180, 120, 168, 116, 154);
+      bCtx.bezierCurveTo(94, 174, 56, 180, 24, 168);
+      bCtx.bezierCurveTo(56, 162, 76, 154, 84, 140);
+      bCtx.bezierCurveTo(72, 122, 46, 126, 28, 116);
+      bCtx.bezierCurveTo(58, 86, 86, 82, 109, 95);
+      bCtx.lineTo(113, 86);
+      bCtx.lineTo(118, 98);
+      bCtx.closePath();
       bCtx.fill();
     }
     const batTex = new THREE.CanvasTexture(batCanvas);

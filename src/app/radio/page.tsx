@@ -294,9 +294,7 @@ export default function SoundroomPage() {
         data-lenis-prevent="true"
         style={{
           width: "100%",
-          maxWidth: "450px",
-          height: "min(86vh, 670px)",
-          minHeight: "550px",
+          maxWidth: "430px", height: "min(84dvh, 640px)", minHeight: "480px",
           position: "relative",
           zIndex: 10,
           marginTop: "2.5rem",
@@ -321,7 +319,7 @@ export default function SoundroomPage() {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "1.3rem 1.5rem",
+                padding: "clamp(0.85rem, 2.5vw, 1.35rem)",
                 boxSizing: "border-box",
                 overflow: "hidden",
                 position: "relative",
@@ -505,8 +503,7 @@ export default function SoundroomPage() {
                 style={{
                   position: "relative",
                   zIndex: 1,
-                  width: "min(23vh, 165px)",
-                  height: "min(23vh, 165px)",
+                  width: "clamp(120px, 22vh, 175px)", height: "clamp(120px, 22vh, 175px)",
                   borderRadius: "20px",
                   overflow: "hidden",
                   boxShadow: "0 20px 45px -8px rgba(0, 0, 0, 0.85)",
@@ -649,7 +646,7 @@ export default function SoundroomPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "1.1rem",
+                  gap: "clamp(0.35rem, 2vw, 0.95rem)",
                   position: "relative",
                   zIndex: 1,
                 }}

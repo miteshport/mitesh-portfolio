@@ -20,7 +20,7 @@ export default function SpatialHUD({
   bottomRightExtra,
 }: SpatialHUDProps) {
   const pathname = usePathname();
-  const { isMuted, toggleMute, isPlaying } = useSoundroom();
+  const { isMuted, toggleMute } = useSoundroom();
   const [timeStr, setTimeStr] = useState("");
 
   const isHome = pathname === "/" || pathname === "/game";
@@ -50,12 +50,12 @@ export default function SpatialHUD({
           top: 0;
           left: 0;
           width: 100vw;
-          height: 64px;
+          height: 60px;
           z-index: 1000;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 clamp(1.2rem, 3.5vw, 2.8rem);
+          padding: 0 clamp(0.75rem, 3vw, 2.5rem);
           background: linear-gradient(
             180deg,
             rgba(2, 2, 4, 0.95) 0%,
@@ -73,17 +73,18 @@ export default function SpatialHUD({
           position: relative;
           color: rgba(255, 255, 255, 0.75);
           font-family: var(--font-mono, monospace);
-          font-size: clamp(0.68rem, 1.2vw, 0.78rem);
-          font-weight: 550;
-          letter-spacing: 0.14em;
+          font-size: clamp(0.64rem, 1.1vw, 0.76rem);
+          font-weight: 600;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           text-decoration: none;
           transition: color 0.25s ease, opacity 0.25s ease;
           padding: 0.35rem 0;
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
+          gap: 0.3rem;
           pointer-events: auto;
+          white-space: nowrap;
         }
 
         .spatial-hud-link:hover {
@@ -116,12 +117,26 @@ export default function SpatialHUD({
           transform: scaleX(1) !important;
           background: #ffffff !important;
         }
+
+        /* Responsive Audio Pill on Narrow Fold 4 Screens */
+        .spatial-time-text {
+          display: inline;
+        }
+        @media (max-width: 480px) {
+          .spatial-time-text {
+            display: none;
+          }
+          .spatial-hud-link {
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+          }
+        }
       `}</style>
 
-      {/* 1. TOP UNIFIED GLASS SHIELD (ZERO OVERLAP WITH SCROLLING CONTENT) */}
+      {/* 1. TOP UNIFIED GLASS SHIELD */}
       <header className="spatial-top-shield">
         {/* Left Link */}
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem", pointerEvents: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", pointerEvents: "auto", flexShrink: 0 }}>
           {isHome ? (
             <Link href="/about" className="spatial-hud-link">
               <span>PORTFOLIO</span>
@@ -136,7 +151,7 @@ export default function SpatialHUD({
           {isHome && (
             <span
               style={{
-                fontSize: "0.65rem",
+                fontSize: "0.62rem",
                 fontFamily: "var(--font-mono)",
                 color: "rgba(255, 255, 255, 0.35)",
                 letterSpacing: "0.1em",
@@ -147,15 +162,14 @@ export default function SpatialHUD({
           )}
         </div>
 
-        {/* Center: Audio Status & Time (Mathematically 100% Dead-Center) */}
+        {/* Center: Audio Status Pill (Responsive Flex Spacing) */}
         <div
           style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
             pointerEvents: "auto",
             display: "flex",
             justifyContent: "center",
+            flexShrink: 0,
+            margin: "0 0.4rem",
           }}
         >
           <button
@@ -176,32 +190,34 @@ export default function SpatialHUD({
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
-              gap: "0.55rem",
+              gap: "0.45rem",
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: "clamp(0.65rem, 1vw, 0.74rem)",
-              letterSpacing: "0.14em",
+              fontSize: "clamp(0.60rem, 0.95vw, 0.72rem)",
+              letterSpacing: "0.12em",
               color: isMuted ? "rgba(255, 255, 255, 0.65)" : "#ffffff",
               textTransform: "uppercase",
-              padding: "0.38rem 0.95rem",
+              padding: "0.32rem 0.75rem",
               boxShadow: isMuted
                 ? "0 4px 16px rgba(0, 0, 0, 0.4)"
-                : "0 0 20px rgba(48, 209, 88, 0.35), 0 4px 16px rgba(0, 0, 0, 0.4)",
+                : "0 0 16px rgba(48, 209, 88, 0.35), 0 4px 16px rgba(0, 0, 0, 0.4)",
               transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+              whiteSpace: "nowrap",
             }}
           >
             <span
               style={{
-                width: "7px",
-                height: "7px",
+                width: "6px",
+                height: "6px",
                 borderRadius: "50%",
                 backgroundColor: isMuted ? "rgba(255,255,255,0.3)" : "#30d158",
-                boxShadow: isMuted ? "none" : "0 0 10px #30d158",
+                boxShadow: isMuted ? "none" : "0 0 8px #30d158",
                 display: "inline-block",
                 transition: "all 0.2s ease",
               }}
             />
             <span style={{ fontWeight: 650 }}>
-              {isMuted ? "AUDIO: OFF" : `AUDIO: ON · ${timeStr}`}
+              {isMuted ? "AUDIO: OFF" : "AUDIO: ON"}
+              <span className="spatial-time-text"> · {timeStr}</span>
             </span>
           </button>
         </div>
@@ -211,8 +227,9 @@ export default function SpatialHUD({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "clamp(1rem, 2.5vw, 2rem)",
+            gap: "clamp(0.6rem, 2vw, 1.6rem)",
             pointerEvents: "auto",
+            flexShrink: 0,
           }}
         >
           {!isPortfolio && (
@@ -229,18 +246,7 @@ export default function SpatialHUD({
               href="/radio"
               className={`spatial-hud-link ${isSoundroom ? "spatial-hud-active" : ""}`}
             >
-              <span>SOUNDROOM</span>
-              {isPlaying && (
-                <span
-                  style={{
-                    width: "5px",
-                    height: "5px",
-                    borderRadius: "50%",
-                    backgroundColor: "#38bdf8",
-                    boxShadow: "0 0 6px #38bdf8",
-                  }}
-                />
-              )}
+              SOUNDROOM
             </Link>
           )}
 
@@ -255,82 +261,27 @@ export default function SpatialHUD({
         </div>
       </header>
 
-      {/* 2. BOTTOM-LEFT CORNER: TELEMETRY (HOMEPAGE ONLY) */}
-      {bottomLeftExtra && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "clamp(1.2rem, 3vh, 2rem)",
-            left: "clamp(1.2rem, 3.5vw, 2.5rem)",
-            zIndex: 90,
-            pointerEvents: "none",
-          }}
-        >
-          {bottomLeftExtra}
-        </div>
-      )}
-
-      {/* 3. BOTTOM-RIGHT CORNER: LIGHTS OUT TOGGLE */}
+      {/* 2. BOTTOM CORNER TELEMETRY OVERLAYS */}
       <div
         style={{
           position: "fixed",
-          bottom: "clamp(1.2rem, 3vh, 2rem)",
-          right: "clamp(1.2rem, 3.5vw, 2.5rem)",
-          zIndex: 90,
-          pointerEvents: "auto",
+          bottom: 0,
+          left: 0,
+          width: "100vw",
+          padding: "clamp(0.75rem, 2.5vw, 1.8rem)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          zIndex: 40,
+          pointerEvents: "none",
+          boxSizing: "border-box",
         }}
       >
-        {bottomRightExtra ? (
-          bottomRightExtra
-        ) : onToggleLightsOut ? (
-          <button
-            onClick={() => {
-              audio.playClick();
-              onToggleLightsOut();
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.6rem",
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "clamp(0.62rem, 1vw, 0.72rem)",
-              letterSpacing: "0.16em",
-              color: isLightsOut ? "#38bdf8" : "rgba(255, 255, 255, 0.7)",
-              textTransform: "uppercase",
-              padding: "0.3rem 0",
-            }}
-          >
-            <span
-              style={{
-                width: "24px",
-                height: "12px",
-                borderRadius: "999px",
-                border: isLightsOut ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.4)",
-                position: "relative",
-                display: "inline-block",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  top: "2px",
-                  left: isLightsOut ? "13px" : "2px",
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  backgroundColor: isLightsOut ? "#38bdf8" : "rgba(255, 255, 255, 0.8)",
-                  boxShadow: isLightsOut ? "0 0 6px #38bdf8" : "none",
-                  transition: "left 0.2s ease, background-color 0.2s ease",
-                }}
-              />
-            </span>
-            <span>LIGHTS OUT</span>
-          </button>
-        ) : null}
+        {/* Bottom-Left Component */}
+        <div style={{ pointerEvents: "auto" }}>{bottomLeftExtra}</div>
+
+        {/* Bottom-Right Component */}
+        <div style={{ pointerEvents: "auto" }}>{bottomRightExtra}</div>
       </div>
     </>
   );
