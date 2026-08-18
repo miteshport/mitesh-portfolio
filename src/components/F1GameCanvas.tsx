@@ -583,8 +583,10 @@ export default function F1GameCanvas({
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
-    const dynamicWheels: THREE.Object3D[] = [];
-    const frontSteerNodes: THREE.Object3D[] = [];
+    let wheelFL: THREE.Object3D | null = null;
+    let wheelFR: THREE.Object3D | null = null;
+    let wheelRL: THREE.Object3D | null = null;
+    let wheelRR: THREE.Object3D | null = null;
 
     const loader = new GLTFLoader();
     loader.load(
@@ -592,47 +594,18 @@ export default function F1GameCanvas({
       (gltf) => {
         const model = gltf.scene;
 
-        // SNIPER FILTER: Auto-detect and isolate exactly the 4 primary wheel nodes
-        const wheelExclusions = [
-          "sus",
-          "brake",
-          "disc",
-          "hub",
-          "arm",
-          "ik",
-          "dummy",
-          "collider",
-          "end",
-          "spline",
-          "piston",
-          "expose",
-          "ctrl",
-        ];
-
         model.traverse((child) => {
-          const name = child.name.toLowerCase();
-          const isWheelCandidate = name.includes("wheel") || name.includes("tyre") || name.includes("tire");
-          const isExcluded = wheelExclusions.some((k) => name.includes(k));
-
-          if (isWheelCandidate && !isExcluded) {
-            // Isolate primary wheel rotation joints / top groups
-            if (
-              child.name.startsWith("Wheel_") ||
-              child.name.includes("rot_01") ||
-              child.name === "bone_rear_left_wheel_013" ||
-              child.name === "bone_rear_right_wheel_012"
-            ) {
-              if (!dynamicWheels.includes(child)) {
-                dynamicWheels.push(child);
-              }
-            }
+          if (child.name === "Wheel_Front_Left_0117" || child.name === "bone_left_front_wheel_rot_01_064") {
+            wheelFL = child;
           }
-
-          // Isolate front steering pivot bones
-          if (child.name.includes("dir_root_a_01")) {
-            if (!frontSteerNodes.includes(child)) {
-              frontSteerNodes.push(child);
-            }
+          if (child.name === "Wheel_Front_Right_0116" || child.name === "bone_right_front_wheel_rot_01_085") {
+            wheelFR = child;
+          }
+          if (child.name === "Wheel_Rear_Left_0118" || child.name === "bone_rear_left_wheel_013") {
+            wheelRL = child;
+          }
+          if (child.name === "Wheel_Rear_Right_0119" || child.name === "bone_rear_right_wheel_012") {
+            wheelRR = child;
           }
 
           if ((child as THREE.Mesh).isMesh) {
@@ -659,8 +632,7 @@ export default function F1GameCanvas({
           }
         });
 
-        console.log("🎯 CONFIRMED AXLES BOUND:", dynamicWheels.map((w) => w.name));
-        console.log("🎯 CONFIRMED STEER PIVOTS:", frontSteerNodes.map((w) => w.name));
+        console.log("🎯 CONFIRMED AXLES BOUND:", { wheelFL: wheelFL?.name, wheelFR: wheelFR?.name, wheelRL: wheelRL?.name, wheelRR: wheelRR?.name });
 
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
@@ -793,15 +765,16 @@ export default function F1GameCanvas({
       }
 
       // 2. 🎮 ROCKSTAR AAA VEHICLE WEIGHT & DRIVING DYNAMICS
-      const trackHalfW = roadWidth / 2 - 0.8;
+      // Strict Lane Envelope: Keeps wide 2.2m Tumbler track locked 100% inside asphalt shoulder
+      const maxSafeAsphaltOffset = 3.2;
       targetCarX = THREE.MathUtils.clamp(
-        steerInput * (trackHalfW - 0.5),
-        -trackHalfW + 0.2,
-        trackHalfW - 0.2
+        steerInput * maxSafeAsphaltOffset,
+        -maxSafeAsphaltOffset,
+        maxSafeAsphaltOffset
       );
 
       // Heavy vehicle inertia with slip response
-      const steerSpeed = 6.5;
+      const steerSpeed = 7.0;
       const prevX = carX;
       carX += (targetCarX - carX) * (steerSpeed * delta);
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
@@ -817,7 +790,7 @@ export default function F1GameCanvas({
       groundShadow.position.x = carX;
       groundShadow.position.z = 0;
 
-      const onKerb = Math.abs(carX) > trackHalfW - 1.0;
+      const onKerb = Math.abs(carX) > maxSafeAsphaltOffset - 0.5;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
@@ -908,24 +881,25 @@ export default function F1GameCanvas({
         }
       }
 
-      // 5B. 🔄 SNIPER AUTO-BOUND 3D WHEEL ROTATION & STEERING
+      // 5B. 🔄 1:1 PHYSICAL 4-WHEEL AXLE ROTATION & STEERING SYNC
       const tireRadius = 0.38;
-      const roadSpeed = currentSpeed * 0.055;
-      const angularDelta = (roadSpeed * delta) / tireRadius;
+      const angularDelta = forwardDelta / tireRadius;
 
-      dynamicWheels.forEach((wheel) => {
-        wheel.rotation.y += angularDelta;
-      });
-
-      // Front Steering Angle Pivot
-      const targetSteerAngle = -steerInput * 0.42;
-      frontSteerNodes.forEach((steerNode) => {
-        steerNode.rotation.z = THREE.MathUtils.lerp(
-          steerNode.rotation.z,
-          targetSteerAngle,
-          0.20
-        );
-      });
+      // Left vs Right directional axle spin (avoids reverse spinning)
+      if (wheelFL) {
+        wheelFL.rotation.y += angularDelta;
+        wheelFL.rotation.z = THREE.MathUtils.lerp(wheelFL.rotation.z, -steerInput * 0.45, 0.25);
+      }
+      if (wheelFR) {
+        wheelFR.rotation.y -= angularDelta;
+        wheelFR.rotation.z = THREE.MathUtils.lerp(wheelFR.rotation.z, -steerInput * 0.45, 0.25);
+      }
+      if (wheelRL) {
+        wheelRL.rotation.y += angularDelta;
+      }
+      if (wheelRR) {
+        wheelRR.rotation.y -= angularDelta;
+      }
 
       // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS (ELEVATED 3/4 CHASE VIEW)
       const isMobile = window.innerWidth < 768;
