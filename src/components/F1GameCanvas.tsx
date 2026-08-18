@@ -557,7 +557,7 @@ export default function F1GameCanvas({
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
 
-    // --- 10. 🏎️ 3D CAR MODEL WITH LIQUID CLEARCOAT & WHEEL HOOKS ---
+    // --- 10. 🦇 3D BATMOBILE TUMBLER (NOLAN MILITARY STEALTH OBSIDIAN FINISH) ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
@@ -565,7 +565,7 @@ export default function F1GameCanvas({
 
     const loader = new GLTFLoader();
     loader.load(
-      "/models/f1_car.glb",
+      "/models/batmobile.glb",
       (gltf) => {
         const model = gltf.scene;
         const box = new THREE.Box3().setFromObject(model);
@@ -577,26 +577,31 @@ export default function F1GameCanvas({
         model.position.z = -center.z;
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const targetScale = 3.8 / maxDim;
+        const targetScale = 3.9 / maxDim;
         model.scale.set(targetScale, targetScale, targetScale);
 
-        // Apply MeshPhysicalMaterial Automotive Clearcoat & Discover Wheels
+        // Apply Nolan Military Stealth PBR Lacquer & Hook Wheel Axles
         model.traverse((child) => {
-          const nodeName = child.name.toLowerCase();
-          const isWheel =
-            nodeName.includes("wheel") ||
-            nodeName.includes("tire") ||
-            nodeName.includes("tyre") ||
-            nodeName.includes("rim");
-
-          if (isWheel && child.type.includes("Mesh")) {
-            wheelMeshes.push(child);
-          }
-
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             mesh.castShadow = true;
             mesh.receiveShadow = true;
+
+            const cBox = new THREE.Box3().setFromObject(mesh);
+            const cCenter = cBox.getCenter(new THREE.Vector3());
+            const cSize = cBox.getSize(new THREE.Vector3());
+
+            // Identify wheels by corner positions & cylindrical proportions in Tumbler coordinates
+            const isWheel =
+              (Math.abs(cCenter.z) > 0.012 && Math.abs(cCenter.x) > 0.032 && cSize.x > 0.012) ||
+              mesh.name.toLowerCase().includes("wheel") ||
+              mesh.name.toLowerCase().includes("tire") ||
+              mesh.name.toLowerCase().includes("tyre") ||
+              mesh.name.toLowerCase().includes("rim");
+
+            if (isWheel) {
+              wheelMeshes.push(mesh);
+            }
 
             if (mesh.material) {
               const originalMat = mesh.material as THREE.MeshStandardMaterial;
@@ -605,11 +610,11 @@ export default function F1GameCanvas({
                 map: originalMat.map || null,
                 normalMap: originalMat.normalMap || null,
                 roughnessMap: originalMat.roughnessMap || null,
-                color: originalMat.map ? 0xffffff : isWheel ? 0x08080a : 0x0d1017,
-                metalness: isWheel ? 0.40 : 0.88,
-                roughness: isWheel ? 0.60 : 0.12,
-                clearcoat: isWheel ? 0.1 : 1.0,
-                clearcoatRoughness: 0.08,
+                color: originalMat.map ? 0xffffff : isWheel ? 0x06070a : 0x090b10,
+                metalness: isWheel ? 0.35 : 0.86,
+                roughness: isWheel ? 0.72 : 0.20,
+                clearcoat: isWheel ? 0.05 : 0.85,
+                clearcoatRoughness: 0.10,
                 envMapIntensity: 2.8,
                 reflectivity: 0.95,
               });
@@ -619,12 +624,15 @@ export default function F1GameCanvas({
 
         const carPivot = new THREE.Group();
         carPivot.add(model);
+        // Aligns front of Tumbler facing down the highway into the horizon
         carPivot.rotation.y = -Math.PI / 2;
 
         carGroup.add(carPivot);
       },
       undefined,
-      (err) => console.error("Error loading car GLB:", err)
+      (err) => {
+        console.error("Error loading Batmobile GLB:", err);
+      }
     );
 
     // --- 11. CONTROLS & SPRING PHYSICS STATE ---
@@ -767,22 +775,22 @@ export default function F1GameCanvas({
       carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermann, 0.12);
       carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, 0, 0.18);
 
-      // 🔄 Real Wheel Spin
+      // 🔄 Real Wheel Spin on Batmobile Axles
       if (wheelMeshes.length > 0) {
         const wheelDelta = currentSpeed * 0.05 * delta;
         wheelMeshes.forEach((w) => {
-          w.rotation.x += wheelDelta;
+          w.rotation.z += wheelDelta;
         });
       }
 
-      // 3. Headlight & Underbody Tracking
-      leftHeadlight.position.set(carX - 0.7, 0.45, -0.2);
-      rightHeadlight.position.set(carX + 0.7, 0.45, -0.2);
-      leftVolCone.position.set(carX - 0.7, 0.45, -0.2);
-      rightVolCone.position.set(carX + 0.7, 0.45, -0.2);
+      // 3. Headlight & Underbody Tracking (Tumbler Wide Stance)
+      leftHeadlight.position.set(carX - 0.85, 0.42, -0.2);
+      rightHeadlight.position.set(carX + 0.85, 0.42, -0.2);
+      leftVolCone.position.set(carX - 0.85, 0.42, -0.2);
+      rightVolCone.position.set(carX + 0.85, 0.42, -0.2);
       headlightTarget.position.set(carX + steerInput * 3.5, 0.1, -40);
 
-      batUnderbody.position.set(carX, 0.08, 0.8);
+      batUnderbody.position.set(carX, 0.08, 0.6);
 
       // 4. High-Speed Rain Streaks Animation
       const posAttr = rainGeo.attributes.position as THREE.BufferAttribute;
