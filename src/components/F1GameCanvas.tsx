@@ -579,15 +579,56 @@ export default function F1GameCanvas({
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
 
-    // --- 10. 🦇 3D BATMOBILE TUMBLER (AUTHENTIC NOLAN STEALTH ARMOR) ---
+    // --- 10. 🦇 3D BATMOBILE TUMBLER (AUTHENTIC RIGGED STUDIO MODEL) ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
+
+    let leftFrontWheelBone: THREE.Object3D | null = null;
+    let rightFrontWheelBone: THREE.Object3D | null = null;
+    let leftRearWheelBone: THREE.Object3D | null = null;
+    let rightRearWheelBone: THREE.Object3D | null = null;
+    let leftFrontSteerBone: THREE.Object3D | null = null;
+    let rightFrontSteerBone: THREE.Object3D | null = null;
 
     const loader = new GLTFLoader();
     loader.load(
       "/models/batmobile.glb",
       (gltf) => {
         const model = gltf.scene;
+
+        // Isolate wheel rotation bones and front steering pivots
+        model.traverse((child) => {
+          if (child.name === "bone_left_front_wheel_rot_01_064") leftFrontWheelBone = child;
+          if (child.name === "bone_right_front_wheel_rot_01_085") rightFrontWheelBone = child;
+          if (child.name === "bone_rear_left_wheel_013") leftRearWheelBone = child;
+          if (child.name === "bone_rear_right_wheel_012") rightRearWheelBone = child;
+          if (child.name === "bone_left_front_wheel_dir_root_a_01_068") leftFrontSteerBone = child;
+          if (child.name === "bone_right_front_wheel_dir_root_a_01_086") rightFrontSteerBone = child;
+
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            if (mesh.material) {
+              const mat = mesh.material as THREE.MeshStandardMaterial;
+              mat.envMapIntensity = 1.6;
+              mat.needsUpdate = true;
+
+              // Translucent tinted glass for cockpit
+              if (
+                mesh.name.toLowerCase().includes("glass") ||
+                (mat.name && mat.name.toLowerCase().includes("glass"))
+              ) {
+                mat.transparent = true;
+                mat.opacity = 0.55;
+                mat.roughness = 0.12;
+                mat.metalness = 0.85;
+              }
+            }
+          }
+        });
+
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
@@ -597,54 +638,14 @@ export default function F1GameCanvas({
         model.position.y = -box.min.y;
         model.position.z = -center.z;
 
-        // Strict Width-Based Scaling: Tumbler total track width normalized to 2.1 units
-        const targetScale = 2.1 / size.z;
+        // Strict Width-Based Scaling: Tumbler total track width normalized to 2.2 units
+        const targetScale = 2.2 / size.z;
         model.scale.set(targetScale, targetScale, targetScale);
-
-        // Apply Nolan Military Stealth Armor & Rubber Shaders
-        model.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-
-            const cBox = new THREE.Box3().setFromObject(mesh);
-            const cCenter = cBox.getCenter(new THREE.Vector3());
-            const cSize = cBox.getSize(new THREE.Vector3());
-
-            // Wheel detection by corner coordinates
-            const isWheel =
-              (Math.abs(cCenter.z) > 0.012 && Math.abs(cCenter.x) > 0.032 && cSize.x > 0.012) ||
-              mesh.name.toLowerCase().includes("wheel") ||
-              mesh.name.toLowerCase().includes("tire") ||
-              mesh.name.toLowerCase().includes("tyre") ||
-              mesh.name.toLowerCase().includes("rim");
-
-            if (mesh.material) {
-              const originalMat = mesh.material as THREE.MeshStandardMaterial;
-
-              // Christopher Nolan Tumbler Military Stealth Armor Spec:
-              // Non-reflective tactical carbon armor + directional rolling tire tread map on wheels
-              mesh.material = new THREE.MeshPhysicalMaterial({
-                map: isWheel ? tireTreadTex : originalMat.map || null,
-                normalMap: isWheel ? null : originalMat.normalMap || null,
-                roughnessMap: originalMat.roughnessMap || null,
-                color: isWheel ? 0xffffff : 0x1e2128,
-                metalness: isWheel ? 0.08 : 0.40,
-                roughness: isWheel ? 0.88 : 0.45,
-                clearcoat: isWheel ? 0.0 : 0.45,
-                clearcoatRoughness: 0.20,
-                envMapIntensity: isWheel ? 1.4 : 2.2,
-                reflectivity: 0.80,
-              });
-            }
-          }
-        });
 
         const carPivot = new THREE.Group();
         carPivot.add(model);
-        // Aligns the front of the Tumbler facing down the highway into the horizon
-        carPivot.rotation.y = -Math.PI / 2;
+        // Aligns front (+X in model space) facing down the highway into the horizon (-Z)
+        carPivot.rotation.y = Math.PI / 2;
 
         carGroup.add(carPivot);
       },
@@ -874,8 +875,28 @@ export default function F1GameCanvas({
         }
       }
 
-      // 5B. 🔄 PROCEDURAL TIRE TREAD ROLL (Simulates visible spinning wheels at speed)
-      tireTreadTex.offset.y = (trackDistance * 0.16) % 1;
+      // 5B. 🔄 REAL 3D WHEEL ROTATION & FRONT STEERING PIVOTS
+      const wheelDelta = currentSpeed * 0.08 * delta;
+      if (leftFrontWheelBone) leftFrontWheelBone.rotation.y += wheelDelta;
+      if (rightFrontWheelBone) rightFrontWheelBone.rotation.y += wheelDelta;
+      if (leftRearWheelBone) leftRearWheelBone.rotation.y += wheelDelta;
+      if (rightRearWheelBone) rightRearWheelBone.rotation.y += wheelDelta;
+
+      const targetSteerAngle = -steerInput * 0.42;
+      if (leftFrontSteerBone) {
+        leftFrontSteerBone.rotation.z = THREE.MathUtils.lerp(
+          leftFrontSteerBone.rotation.z,
+          targetSteerAngle,
+          0.20
+        );
+      }
+      if (rightFrontSteerBone) {
+        rightFrontSteerBone.rotation.z = THREE.MathUtils.lerp(
+          rightFrontSteerBone.rotation.z,
+          targetSteerAngle,
+          0.20
+        );
+      }
 
       // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS (ELEVATED 3/4 CHASE VIEW)
       const isMobile = window.innerWidth < 768;
