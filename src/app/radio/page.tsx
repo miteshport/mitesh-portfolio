@@ -33,7 +33,7 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const data = getFrequencyData();
-      const numBars = 30;
+      const numBars = 32;
       const width = canvas.width;
       const height = canvas.height;
       const barWidth = (width / numBars) * 0.65;
@@ -68,12 +68,12 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
   return (
     <canvas
       ref={canvasRef}
-      width={220}
-      height={20}
+      width={240}
+      height={22}
       style={{
         width: "100%",
-        maxWidth: "220px",
-        height: "20px",
+        maxWidth: "240px",
+        height: "22px",
         display: "block",
         margin: "0 auto",
       }}
@@ -84,8 +84,13 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
 export default function SoundroomPage() {
   const [activeView, setActiveView] = useState<"player" | "tracklist">("player");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFolder, setSelectedFolder] = useState<string>("user-vault");
+  const [selectedFolder, setSelectedFolder] = useState<string>("hindi-romance");
   const [isShuffle, setIsShuffle] = useState(false);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customUrl, setCustomUrl] = useState("");
+  const [customTitle, setCustomTitle] = useState("");
+  const [cacheStatus, setCacheStatus] = useState<string>("");
+  const [isCaching, setIsCaching] = useState(false);
 
   const {
     currentTrack,
@@ -99,6 +104,7 @@ export default function SoundroomPage() {
     channels,
     togglePlay,
     playTrack,
+    playCustomUrl,
     nextTrack,
     prevTrack,
     seek,
@@ -107,7 +113,21 @@ export default function SoundroomPage() {
     toggle432Hz,
   } = useSoundroom();
 
-  // All 112 Tracks
+  // Register PWA Service Worker for Offline Commute Playback
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => {
+          console.log("[PWA] Soundroom Offline Cache Service Worker Registered.");
+        })
+        .catch((err) => {
+          console.warn("[PWA] Service Worker registration failed:", err);
+        });
+    }
+  }, []);
+
+  // All tracks across all channels
   const allTracks = useMemo(() => {
     return channels.flatMap((c) => c.tracks);
   }, [channels]);
@@ -117,8 +137,10 @@ export default function SoundroomPage() {
     if (selectedFolder === "all") {
       return {
         id: "all",
-        title: "All Songs (Full Vault)",
-        subtitle: "Complete 112 Master Soundtracks",
+        title: "All Songs (Master Archive)",
+        subtitle: "Complete Commute Collection",
+        description: "All Hindi, Punjabi, Lo-Fi, and Cyberpunk mastertracks.",
+        maestros: ["A.R. Rahman", "Sonu Nigam", "Diljit", "Lucky Ali", "Hans Zimmer"],
         themeColor: "#38bdf8",
         tracks: allTracks,
       };
@@ -139,17 +161,18 @@ export default function SoundroomPage() {
     );
   }, [activePlaylist, searchQuery]);
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const isLive = currentTrack?.isLiveStream;
+  const progressPercent = duration > 0 && !isLive ? (currentTime / duration) * 100 : 0;
 
   // Fast forward / Rewind 10s
   const handleFastForward = () => {
     uiAudio.playClick();
-    seek(Math.min(duration, currentTime + 10));
+    if (!isLive) seek(Math.min(duration, currentTime + 10));
   };
 
   const handleRewind = () => {
     uiAudio.playClick();
-    seek(Math.max(0, currentTime - 10));
+    if (!isLive) seek(Math.max(0, currentTime - 10));
   };
 
   // Flip Toggle
@@ -158,7 +181,55 @@ export default function SoundroomPage() {
     setActiveView((prev) => (prev === "player" ? "tracklist" : "player"));
   };
 
-  // Apple Liquid Glass 10/10 Style
+  // One-Tap Cache Playlist for Commute Dead-Zones (Hwy 10 / Arthur)
+  const handleCachePlaylist = async () => {
+    if (isCaching) return;
+    uiAudio.playClick();
+    setIsCaching(true);
+    setCacheStatus("Caching for Commute...");
+
+    try {
+      if ("caches" in window) {
+        const cache = await caches.open("soundroom-audio-v1");
+        const tracksToCache = activePlaylist.tracks.filter((t) => !t.isLiveStream);
+        let count = 0;
+
+        for (const track of tracksToCache) {
+          const url = `/audio/${track.id}.m4a`;
+          try {
+            const res = await fetch(url);
+            if (res.status === 200) {
+              await cache.put(url, res);
+              count++;
+              setCacheStatus(`Cached ${count}/${tracksToCache.length}`);
+            }
+          } catch (e) {
+            console.warn("Track cache skip:", track.title, e);
+          }
+        }
+        setCacheStatus("✅ Offline Ready for Commute");
+      } else {
+        setCacheStatus("⚠️ Cache not supported");
+      }
+    } catch {
+      setCacheStatus("⚠️ Caching error");
+    } finally {
+      setIsCaching(false);
+      setTimeout(() => setCacheStatus(""), 4000);
+    }
+  };
+
+  // Custom URL Stream Ingestion Handler
+  const handlePlayCustomStream = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customUrl.trim()) return;
+    playCustomUrl(customUrl.trim(), customTitle.trim() || "Live Custom Stream", "Direct Stream URL");
+    setCustomUrl("");
+    setCustomTitle("");
+    setShowCustomInput(false);
+  };
+
+  // Apple Liquid Glass Style
   const glassCardStyle: React.CSSProperties = {
     borderRadius: "28px",
     background:
@@ -195,7 +266,7 @@ export default function SoundroomPage() {
       <GalaxyStarfield />
       <SpatialHUD />
 
-      {/* INJECT SLEEK GLASS SCROLLBAR CSS */}
+      {/* SLEEK GLASS SCROLLBAR CSS */}
       <style jsx global>{`
         .custom-apple-scrollbar {
           scrollbar-width: thin;
@@ -222,12 +293,12 @@ export default function SoundroomPage() {
         data-lenis-prevent="true"
         style={{
           width: "100%",
-          maxWidth: "440px",
-          height: "min(84vh, 640px)",
-          minHeight: "540px",
+          maxWidth: "450px",
+          height: "min(86vh, 670px)",
+          minHeight: "550px",
           position: "relative",
           zIndex: 10,
-          marginTop: "2.8rem",
+          marginTop: "2.5rem",
         }}
       >
         <AnimatePresence mode="wait">
@@ -249,7 +320,7 @@ export default function SoundroomPage() {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "1.4rem 1.5rem",
+                padding: "1.3rem 1.5rem",
                 boxSizing: "border-box",
                 overflow: "hidden",
                 position: "relative",
@@ -274,7 +345,7 @@ export default function SoundroomPage() {
                 }}
               />
 
-              {/* Top Bar on Card: Mode tag & Flip Button */}
+              {/* Top Bar on Card: Commute Mood & Action Buttons */}
               <div
                 style={{
                   width: "100%",
@@ -289,48 +360,157 @@ export default function SoundroomPage() {
                   style={{
                     fontSize: "0.68rem",
                     fontFamily: "var(--font-mono, monospace)",
-                    letterSpacing: "0.14em",
-                    color: "rgba(255, 255, 255, 0.6)",
+                    letterSpacing: "0.12em",
+                    color: "rgba(255, 255, 255, 0.65)",
                     textTransform: "uppercase",
-                  }}
-                >
-                  SOUNDROOM // NOW PLAYING
-                </div>
-                <button
-                  onClick={handleFlipCard}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.14)",
-                    border: "1px solid rgba(255, 255, 255, 0.25)",
-                    borderRadius: "9999px",
-                    padding: "0.28rem 0.75rem",
-                    fontSize: "0.70rem",
-                    fontWeight: 600,
-                    color: "#ffffff",
-                    cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.35rem",
-                    backdropFilter: "blur(12px)",
+                    gap: "0.4rem",
                   }}
                 >
-                  <span>🗂️</span>
-                  <span>Tracklist</span>
-                </button>
+                  {isLive ? (
+                    <span style={{ color: "#ef4444", fontWeight: 700 }}>● LIVE STREAM</span>
+                  ) : (
+                    <span>SOUNDROOM // COMMUTE</span>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  {/* Custom Stream Ingest Button */}
+                  <button
+                    onClick={() => setShowCustomInput((prev) => !prev)}
+                    title="Play Custom Stream / URL"
+                    style={{
+                      background: showCustomInput ? "rgba(56, 189, 248, 0.3)" : "rgba(255, 255, 255, 0.12)",
+                      border: "1px solid rgba(255, 255, 255, 0.22)",
+                      borderRadius: "9999px",
+                      padding: "0.26rem 0.6rem",
+                      fontSize: "0.68rem",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.3rem",
+                    }}
+                  >
+                    <span>🔗</span>
+                    <span>Link</span>
+                  </button>
+
+                  {/* Tracklist Flip Button */}
+                  <button
+                    onClick={handleFlipCard}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.14)",
+                      border: "1px solid rgba(255, 255, 255, 0.25)",
+                      borderRadius: "9999px",
+                      padding: "0.26rem 0.7rem",
+                      fontSize: "0.68rem",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                    }}
+                  >
+                    <span>🗂️</span>
+                    <span>Moods</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Custom Stream Input Modal Popover */}
+              {showCustomInput && (
+                <form
+                  onSubmit={handlePlayCustomStream}
+                  style={{
+                    width: "100%",
+                    background: "rgba(10, 10, 18, 0.92)",
+                    border: "1px solid rgba(255, 255, 255, 0.25)",
+                    borderRadius: "16px",
+                    padding: "0.75rem",
+                    boxSizing: "border-box",
+                    position: "relative",
+                    zIndex: 10,
+                    margin: "0.2rem 0",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.45rem",
+                  }}
+                >
+                  <div style={{ fontSize: "0.70rem", color: "#38bdf8", fontWeight: 600 }}>
+                    Stream Custom Audio URL / Icecast / Live Feed:
+                  </div>
+                  <input
+                    type="url"
+                    placeholder="https://... (Direct audio / stream link)"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "0.35rem 0.6rem",
+                      borderRadius: "8px",
+                      background: "rgba(255, 255, 255, 0.1)",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                      color: "#ffffff",
+                      fontSize: "0.72rem",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: "0.4rem" }}>
+                    <input
+                      type="text"
+                      placeholder="Title (Optional)"
+                      value={customTitle}
+                      onChange={(e) => setCustomTitle(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: "0.3rem 0.6rem",
+                        borderRadius: "8px",
+                        background: "rgba(255, 255, 255, 0.1)",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        color: "#ffffff",
+                        fontSize: "0.70rem",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      style={{
+                        padding: "0.3rem 0.8rem",
+                        borderRadius: "8px",
+                        background: "#38bdf8",
+                        color: "#000000",
+                        fontWeight: 700,
+                        border: "none",
+                        fontSize: "0.70rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Stream Now
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {/* Large Album Artwork */}
               <div
                 style={{
                   position: "relative",
                   zIndex: 1,
-                  width: "min(24vh, 175px)",
-                  height: "min(24vh, 175px)",
+                  width: "min(23vh, 165px)",
+                  height: "min(23vh, 165px)",
                   borderRadius: "20px",
                   overflow: "hidden",
                   boxShadow: "0 20px 45px -8px rgba(0, 0, 0, 0.85)",
                   border: "1px solid rgba(255, 255, 255, 0.25)",
                   flexShrink: 0,
-                  margin: "0.4rem 0",
+                  margin: "0.3rem 0",
                 }}
               >
                 <img
@@ -356,7 +536,7 @@ export default function SoundroomPage() {
               >
                 <div
                   style={{
-                    fontSize: "1.18rem",
+                    fontSize: "1.16rem",
                     fontWeight: 750,
                     color: "#ffffff",
                     letterSpacing: "-0.02em",
@@ -391,47 +571,74 @@ export default function SoundroomPage() {
                 </div>
               </div>
 
-              {/* Timeline Scrubber Bar */}
+              {/* Timeline Scrubber Bar or Live Stream Pulse */}
               <div style={{ width: "100%", position: "relative", zIndex: 1 }}>
-                <div
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const percent = clickX / rect.width;
-                    seek(percent * duration);
-                  }}
-                  style={{
-                    width: "100%",
-                    height: "6px",
-                    borderRadius: "9999px",
-                    backgroundColor: "rgba(255, 255, 255, 0.20)",
-                    cursor: "pointer",
-                    position: "relative",
-                  }}
-                >
+                {isLive ? (
                   <div
                     style={{
-                      height: "100%",
-                      width: `${progressPercent}%`,
-                      borderRadius: "9999px",
-                      backgroundColor: "#ffffff",
-                      boxShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
+                      width: "100%",
+                      padding: "0.4rem",
+                      borderRadius: "10px",
+                      background: "rgba(239, 68, 68, 0.15)",
+                      border: "1px solid rgba(239, 68, 68, 0.35)",
+                      textAlign: "center",
+                      fontSize: "0.68rem",
+                      fontFamily: "var(--font-mono, monospace)",
+                      color: "#ef4444",
+                      fontWeight: 700,
+                      letterSpacing: "0.08em",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.4rem",
                     }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "0.68rem",
-                    fontFamily: "var(--font-mono, monospace)",
-                    color: "rgba(255, 255, 255, 0.50)",
-                    marginTop: "0.35rem",
-                  }}
-                >
-                  <span>{formatTime(currentTime)}</span>
-                  <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
-                </div>
+                  >
+                    <span style={{ fontSize: "0.6rem" }}>🔴</span>
+                    <span>24/7 LIVE STREAM // UNINTERRUPTED COMMUTE</span>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const clickX = e.clientX - rect.left;
+                        const percent = clickX / rect.width;
+                        seek(percent * duration);
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "6px",
+                        borderRadius: "9999px",
+                        backgroundColor: "rgba(255, 255, 255, 0.20)",
+                        cursor: "pointer",
+                        position: "relative",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${progressPercent}%`,
+                          borderRadius: "9999px",
+                          backgroundColor: "#ffffff",
+                          boxShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "0.68rem",
+                        fontFamily: "var(--font-mono, monospace)",
+                        color: "rgba(255, 255, 255, 0.50)",
+                        marginTop: "0.35rem",
+                      }}
+                    >
+                      <span>{formatTime(currentTime)}</span>
+                      <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Transport Controls Row */}
@@ -463,13 +670,14 @@ export default function SoundroomPage() {
                 {/* Rewind 10s */}
                 <button
                   onClick={handleRewind}
+                  disabled={isLive}
                   title="Rewind 10s"
                   style={{
                     background: "none",
                     border: "none",
-                    color: "rgba(255, 255, 255, 0.75)",
+                    color: isLive ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.75)",
                     fontSize: "1.05rem",
-                    cursor: "pointer",
+                    cursor: isLive ? "default" : "pointer",
                   }}
                 >
                   ↺ 10s
@@ -530,19 +738,20 @@ export default function SoundroomPage() {
                 {/* Fast Forward 10s */}
                 <button
                   onClick={handleFastForward}
+                  disabled={isLive}
                   title="Fast Forward 10s"
                   style={{
                     background: "none",
                     border: "none",
-                    color: "rgba(255, 255, 255, 0.75)",
+                    color: isLive ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.75)",
                     fontSize: "1.05rem",
-                    cursor: "pointer",
+                    cursor: isLive ? "default" : "pointer",
                   }}
                 >
                   10s ↻
                 </button>
 
-                {/* 432Hz */}
+                {/* 432Hz Tuning */}
                 <button
                   onClick={toggle432Hz}
                   title="432Hz Harmonic Tuning"
@@ -619,7 +828,7 @@ export default function SoundroomPage() {
                 }}
               >
                 <span>🗂️</span>
-                <span>View Tracklist & Folders ({activePlaylist.tracks.length} Songs)</span>
+                <span>Select Commute Mood / 24/7 Radio ({activePlaylist.tracks.length} Tracks)</span>
                 <span style={{ opacity: 0.5, fontSize: "0.7rem" }}>➔</span>
               </button>
             </motion.div>
@@ -652,7 +861,7 @@ export default function SoundroomPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  paddingBottom: "0.65rem",
+                  paddingBottom: "0.60rem",
                   borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
                   flexShrink: 0,
                 }}
@@ -792,44 +1001,85 @@ export default function SoundroomPage() {
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <span>All Songs</span>
+                  <span>All Vault</span>
                   <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>({allTracks.length})</span>
                 </button>
               </div>
 
-              {/* Live Search Bar */}
-              <div style={{ position: "relative", width: "100%", margin: "0.4rem 0 0.5rem 0", flexShrink: 0 }}>
-                <input
-                  type="text"
-                  placeholder="Search tracks, artists..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.38rem 0.75rem",
-                    paddingLeft: "1.8rem",
-                    borderRadius: "9999px",
-                    background: "rgba(255, 255, 255, 0.10)",
-                    border: "1px solid rgba(255, 255, 255, 0.20)",
-                    color: "#ffffff",
-                    fontSize: "0.72rem",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    left: "0.6rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    fontSize: "0.68rem",
-                    opacity: 0.5,
-                    pointerEvents: "none",
-                  }}
-                >
-                  🔍
-                </span>
+              {/* Search & Offline Pre-Cache Row */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  margin: "0.3rem 0 0.45rem 0",
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ position: "relative", flex: 1 }}>
+                  <input
+                    type="text"
+                    placeholder="Search Hindi, Punjabi, Artists..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.35rem 0.7rem",
+                      paddingLeft: "1.7rem",
+                      borderRadius: "9999px",
+                      background: "rgba(255, 255, 255, 0.10)",
+                      border: "1px solid rgba(255, 255, 255, 0.20)",
+                      color: "#ffffff",
+                      fontSize: "0.72rem",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: "0.55rem",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: "0.68rem",
+                      opacity: 0.5,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    🔍
+                  </span>
+                </div>
+
+                {/* Pre-Cache Button for Dead-Zones */}
+                {selectedFolder !== "live-radio" && (
+                  <button
+                    onClick={handleCachePlaylist}
+                    disabled={isCaching}
+                    title="Pre-cache this playlist for rural dead-zones"
+                    style={{
+                      flexShrink: 0,
+                      padding: "0.35rem 0.65rem",
+                      borderRadius: "9999px",
+                      background: cacheStatus.includes("✅")
+                        ? "rgba(16, 185, 129, 0.35)"
+                        : "rgba(255, 255, 255, 0.12)",
+                      border: cacheStatus.includes("✅")
+                        ? "1px solid #10b981"
+                        : "1px solid rgba(255, 255, 255, 0.22)",
+                      color: cacheStatus.includes("✅") ? "#10b981" : "#ffffff",
+                      fontSize: "0.66rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.3rem",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <span>💾</span>
+                    <span>{cacheStatus || "Save Offline"}</span>
+                  </button>
+                )}
               </div>
 
               {/* Smooth Trackpad 2-Finger Scrollable Tracklist with data-lenis-prevent */}
@@ -870,7 +1120,7 @@ export default function SoundroomPage() {
                           display: "flex",
                           alignItems: "center",
                           gap: "0.75rem",
-                          padding: "0.5rem 0.65rem",
+                          padding: "0.48rem 0.65rem",
                           borderRadius: "12px",
                           background: isCurrent
                             ? "linear-gradient(90deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.08) 100%)"
@@ -937,16 +1187,17 @@ export default function SoundroomPage() {
                           </div>
                         </div>
 
-                        {/* Duration */}
+                        {/* Duration or Live Badge */}
                         <div
                           style={{
                             fontSize: "0.68rem",
                             fontFamily: "var(--font-mono, monospace)",
-                            color: isCurrent ? "#38bdf8" : "rgba(255, 255, 255, 0.45)",
+                            color: track.isLiveStream ? "#ef4444" : isCurrent ? "#38bdf8" : "rgba(255, 255, 255, 0.45)",
                             flexShrink: 0,
+                            fontWeight: track.isLiveStream ? 700 : 400,
                           }}
                         >
-                          {formatTime(track.duration)}
+                          {track.isLiveStream ? "LIVE" : formatTime(track.duration)}
                         </div>
                       </div>
                     );

@@ -1,17 +1,17 @@
 {
-  "name": "Mitesh Shah // Executive Architecture",
-  "short_name": "Mitesh Pass",
-  "description": "Enterprise IT Architecture, Major Incident Command, and Executive Digital Pass.",
-  "start_url": "/",
+  "name": "Wayne Soundroom // Dark Knight Commute",
+  "short_name": "Soundroom",
+  "description": "High-fidelity 24/7 audio player with Hindi moods, live global radio, and offline commute caching.",
+  "start_url": "/radio",
   "display": "standalone",
-  "background_color": "#020204",
-  "theme_color": "#020204",
+  "background_color": "#06040c",
+  "theme_color": "#000000",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "/card/opengraph-image.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
     }
   ]
 }

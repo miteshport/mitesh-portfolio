@@ -27,9 +27,10 @@ interface SoundroomContextType {
   channels: SoundChannel[];
   togglePlay: () => void;
   playTrack: (track: SoundTrack) => void;
+  playCustomUrl: (url: string, title?: string, artist?: string) => void;
   nextTrack: () => void;
   prevTrack: () => void;
-  selectChannel: (channelId: SoundChannel["id"]) => void;
+  selectChannel: (channelId: string) => void;
   seek: (time: number) => void;
   setVolume: (vol: number) => void;
   toggleMute: () => void;
@@ -40,9 +41,9 @@ interface SoundroomContextType {
 const SoundroomContext = createContext<SoundroomContextType | null>(null);
 
 export function SoundroomProvider({ children }: { children: React.ReactNode }) {
-  const [currentChannelId, setCurrentChannelId] =
-    useState<SoundChannel["id"]>("user-vault");
+  const [currentChannelId, setCurrentChannelId] = useState<string>("hindi-romance");
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [customTrack, setCustomTrack] = useState<SoundTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -57,23 +58,28 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   const currentChannel =
     SOUNDROOM_CHANNELS.find((c) => c.id === currentChannelId) ||
     SOUNDROOM_CHANNELS[0];
-  const currentTrack =
-    currentChannel.tracks[currentTrackIndex] || currentChannel.tracks[0];
+
+  const currentTrack: SoundTrack =
+    customTrack ||
+    currentChannel.tracks[currentTrackIndex] ||
+    currentChannel.tracks[0];
 
   const handleNextTrack = useCallback(() => {
     uiAudio.playClick();
+    if (customTrack) setCustomTrack(null);
     setCurrentTrackIndex((prev) => (prev + 1) % currentChannel.tracks.length);
-  }, [currentChannel]);
+  }, [currentChannel, customTrack]);
 
   const handlePrevTrack = useCallback(() => {
     uiAudio.playClick();
+    if (customTrack) setCustomTrack(null);
     setCurrentTrackIndex(
       (prev) =>
         (prev - 1 + currentChannel.tracks.length) % currentChannel.tracks.length
     );
-  }, [currentChannel]);
+  }, [currentChannel, customTrack]);
 
-  // 1. Initialize Native Audio Element (Apple & Android Lock Screen Standard)
+  // 1. Initialize Native Audio Element (W3C MediaSession + iOS/Android Lock Screen Standard)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -84,18 +90,39 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
 
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-      if (audio.duration && !isNaN(audio.duration)) {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
         setDuration(audio.duration);
+      }
+
+      // Sync Lock Screen Timeline Position
+      if (
+        typeof window !== "undefined" &&
+        "mediaSession" in navigator &&
+        "setPositionState" in navigator.mediaSession &&
+        audio.duration &&
+        isFinite(audio.duration) &&
+        !isNaN(audio.duration) &&
+        audio.duration > 0
+      ) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: audio.duration,
+            playbackRate: audio.playbackRate || 1,
+            position: Math.min(audio.currentTime, audio.duration),
+          });
+        } catch {
+          // Ignore transient position state errors
+        }
       }
     };
 
     const handleLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
         setDuration(audio.duration);
       }
     };
 
-    // Continuous Gapless Autoplay on Track Ended
+    // Continuous Autoplay on Track Ended (Not applicable for live streams)
     const handleEnded = () => {
       isPlayingRef.current = true;
       handleNextTrack();
@@ -110,7 +137,6 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handlePause = () => {
-      // Only set playing to false if not in the middle of track transition
       if (!audio.ended) {
         setIsPlaying(false);
         isPlayingRef.current = false;
@@ -142,18 +168,21 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
 
-    const nativeSrc = `/audio/${currentTrack.id}.m4a`;
-    audio.src = nativeSrc;
+    const targetSrc = currentTrack.streamUrl || `/audio/${currentTrack.id}.m4a`;
+    audio.src = targetSrc;
     audio.volume = isMuted ? 0 : volume;
 
     // Autoplay if session is active
     if (isPlayingRef.current || isPlaying) {
-      audio.play().then(() => {
-        setIsPlaying(true);
-        isPlayingRef.current = true;
-      }).catch((err) => {
-        console.warn("[Soundroom] Auto-playback transition:", err);
-      });
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          isPlayingRef.current = true;
+        })
+        .catch((err) => {
+          console.warn("[Soundroom] Audio transition:", err);
+        });
     }
 
     // W3C Media Session API for iOS Control Center & Android Lock Screen
@@ -187,6 +216,19 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         navigator.mediaSession.setActionHandler("previoustrack", handlePrevTrack);
         navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
 
+        // Fast-Forward & Rewind 10s from Lock Screen / Steering Wheel
+        navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+          const skip = details.seekOffset || 10;
+          audio.currentTime = Math.max(0, audio.currentTime - skip);
+          setCurrentTime(audio.currentTime);
+        });
+
+        navigator.mediaSession.setActionHandler("seekforward", (details) => {
+          const skip = details.seekOffset || 10;
+          audio.currentTime = Math.min(audio.duration || 9999, audio.currentTime + skip);
+          setCurrentTime(audio.currentTime);
+        });
+
         navigator.mediaSession.setActionHandler("seekto", (details) => {
           if (details.seekTime !== undefined && audio) {
             audio.currentTime = details.seekTime;
@@ -217,34 +259,79 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
       setIsPlaying(false);
     } else {
       isPlayingRef.current = true;
-      audio.play().then(() => setIsPlaying(true)).catch(() => {});
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.warn("[Soundroom] Play error:", err);
+        });
     }
   };
 
   const playTrack = (track: SoundTrack) => {
     uiAudio.playClick();
-    const ch = SOUNDROOM_CHANNELS.find((c) => c.id === track.channel);
-    if (ch) {
-      setCurrentChannelId(ch.id);
-      const idx = ch.tracks.findIndex((t) => t.id === track.id);
-      setCurrentTrackIndex(idx >= 0 ? idx : 0);
+    setCustomTrack(null);
+
+    // Find if track belongs to current channel or different channel
+    const chIndex = currentChannel.tracks.findIndex((t) => t.id === track.id);
+    if (chIndex !== -1) {
+      setCurrentTrackIndex(chIndex);
+    } else {
+      // Search in all channels
+      const targetChannel = SOUNDROOM_CHANNELS.find((c) =>
+        c.tracks.some((t) => t.id === track.id)
+      );
+      if (targetChannel) {
+        setCurrentChannelId(targetChannel.id);
+        const idx = targetChannel.tracks.findIndex((t) => t.id === track.id);
+        setCurrentTrackIndex(Math.max(0, idx));
+      }
     }
-    const audio = audioRef.current;
-    if (audio) {
-      isPlayingRef.current = true;
-      audio.src = `/audio/${track.id}.m4a`;
-      audio.play().then(() => setIsPlaying(true)).catch(() => {});
+
+    isPlayingRef.current = true;
+    if (audioRef.current) {
+      const src = track.streamUrl || `/audio/${track.id}.m4a`;
+      audioRef.current.src = src;
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
 
-  const selectChannel = (channelId: SoundChannel["id"]) => {
+  // Play any external stream or YouTube/audio URL on the fly
+  const playCustomUrl = (url: string, title = "Custom Stream / Audio", artist = "Live Link") => {
     uiAudio.playClick();
+    const custom: SoundTrack = {
+      id: `custom-${Date.now()}`,
+      title: title || "Custom Audio Stream",
+      artist: artist || "Direct Stream",
+      album: "User Stream / Live",
+      channel: "custom",
+      duration: 0,
+      streamUrl: url,
+      isLiveStream: true,
+      artwork: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&auto=format&fit=crop",
+    };
+    setCustomTrack(custom);
+    isPlayingRef.current = true;
+    if (audioRef.current) {
+      audioRef.current.src = url;
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  };
+
+  const nextTrack = () => handleNextTrack();
+  const prevTrack = () => handlePrevTrack();
+
+  const selectChannel = (channelId: string) => {
+    uiAudio.playClick();
+    setCustomTrack(null);
     setCurrentChannelId(channelId);
     setCurrentTrackIndex(0);
   };
 
   const seek = (time: number) => {
-    if (audioRef.current) {
+    if (audioRef.current && !currentTrack.isLiveStream) {
       audioRef.current.currentTime = time;
       setCurrentTime(time);
     }
@@ -300,8 +387,9 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
         channels: SOUNDROOM_CHANNELS,
         togglePlay,
         playTrack,
-        nextTrack: handleNextTrack,
-        prevTrack: handlePrevTrack,
+        playCustomUrl,
+        nextTrack,
+        prevTrack,
         selectChannel,
         seek,
         setVolume,
@@ -316,9 +404,9 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useSoundroom() {
-  const context = useContext(SoundroomContext);
-  if (!context) {
-    throw new Error("useSoundroom must be used within a SoundroomProvider");
+  const ctx = useContext(SoundroomContext);
+  if (!ctx) {
+    throw new Error("useSoundroom must be used within SoundroomProvider");
   }
-  return context;
+  return ctx;
 }
