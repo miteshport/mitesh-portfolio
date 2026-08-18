@@ -603,6 +603,10 @@ export default function F1GameCanvas({
     let wheelFR: THREE.Object3D | null = null;
     let wheelRL: THREE.Object3D | null = null;
     let wheelRR: THREE.Object3D | null = null;
+    const leftFlaps: THREE.Object3D[] = [];
+    const rightFlaps: THREE.Object3D[] = [];
+    const suspensionSprings: THREE.Object3D[] = [];
+    const jetNozzlePetals: THREE.Object3D[] = [];
 
     const loader = new GLTFLoader();
     loader.load(
@@ -622,6 +626,24 @@ export default function F1GameCanvas({
           }
           if (child.name === "Wheel_Rear_Right_0119" || child.name === "bone_rear_right_wheel_012") {
             wheelRR = child;
+          }
+
+          // Active Aero Air-Brake Flaps
+          if (child.name.startsWith("FLAP_bone_left")) {
+            leftFlaps.push(child);
+          }
+          if (child.name.startsWith("FLAP_bone_right")) {
+            rightFlaps.push(child);
+          }
+
+          // Front Suspension Springs
+          if (child.name.includes("front_upper_spring")) {
+            suspensionSprings.push(child);
+          }
+
+          // Jet Turbine Nozzle Iris Petals
+          if (child.name.startsWith("bone_rear_jet_")) {
+            jetNozzlePetals.push(child);
           }
 
           if ((child as THREE.Mesh).isMesh) {
@@ -695,6 +717,8 @@ export default function F1GameCanvas({
     let camVelZ = 0;
     let camRoll = 0;
 
+    let isBraking = false;
+
     const handlePointerMove = (e: PointerEvent) => {
       pointerX = (e.clientX / window.innerWidth - 0.5) * 2.0;
       targetSteerInput = THREE.MathUtils.clamp(pointerX, -1, 1);
@@ -715,6 +739,8 @@ export default function F1GameCanvas({
         targetSteerInput = Math.min(1.0, targetSteerInput + 0.4);
       } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = true;
+      } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+        isBraking = true;
       }
     };
 
@@ -725,6 +751,8 @@ export default function F1GameCanvas({
         targetSteerInput = 0;
       } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = false;
+      } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+        isBraking = false;
       }
     };
 
@@ -920,6 +948,33 @@ export default function F1GameCanvas({
       if (wheelRR) {
         wheelRR.rotation.y -= angularDelta;
       }
+
+      // 5D. 🦇 ACTIVE AERO AIR-BRAKE HYDRAULIC FLAPS (THE DARK KNIGHT DYNAMICS)
+      const leftCornerForce = Math.max(0, -carSteerVelocity * 0.12);
+      const rightCornerForce = Math.max(0, carSteerVelocity * 0.12);
+      const baseAeroBrake = isBraking ? 0.50 : (currentSpeed < 140 ? 0.20 : 0.0);
+
+      const targetLeftFlap = Math.min(0.55, baseAeroBrake + leftCornerForce * 0.35);
+      const targetRightFlap = Math.min(0.55, baseAeroBrake + rightCornerForce * 0.35);
+
+      leftFlaps.forEach((f) => {
+        f.rotation.z = THREE.MathUtils.lerp(f.rotation.z, targetLeftFlap, 0.15);
+      });
+      rightFlaps.forEach((f) => {
+        f.rotation.z = THREE.MathUtils.lerp(f.rotation.z, -targetRightFlap, 0.15);
+      });
+
+      // 5E. 🚀 ATTACK MODE & JET NOZZLE EXPANSION ON BOOST
+      const targetPetalSpread = isBoosting ? 1.25 : 1.0;
+      jetNozzlePetals.forEach((p) => {
+        p.scale.setScalar(THREE.MathUtils.lerp(p.scale.x, targetPetalSpread, 0.14));
+      });
+
+      // 5F. 🏎️ SUSPENSION SPRING COMPRESSION (ROAD ROUGHNESS & KERB CHATTER)
+      const kerbRoughness = (onKerb ? Math.sin(time * 75) * 0.016 : Math.sin(time * 28) * 0.003) * (currentSpeed / 200);
+      suspensionSprings.forEach((s) => {
+        s.position.y = THREE.MathUtils.lerp(s.position.y, kerbRoughness, 0.25);
+      });
 
       // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS (ELEVATED 3/4 CHASE VIEW)
       const isMobile = window.innerWidth < 768;
