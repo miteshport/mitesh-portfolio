@@ -84,7 +84,7 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
 export default function SoundroomPage() {
   const [activeView, setActiveView] = useState<"player" | "tracklist">("player");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFolder, setSelectedFolder] = useState<string>("hindi-romance");
+  const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [isShuffle, setIsShuffle] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customUrl, setCustomUrl] = useState("");
@@ -127,9 +127,11 @@ export default function SoundroomPage() {
     }
   }, []);
 
-  // All tracks across all channels
-  const allTracks = useMemo(() => {
-    return channels.flatMap((c) => c.tracks);
+  // All 112 Master Tracks (Excluding live radio streams from the main vault list)
+  const masterVaultTracks = useMemo(() => {
+    return channels
+      .filter((c) => c.id !== "live-radio")
+      .flatMap((c) => c.tracks);
   }, [channels]);
 
   // Current Active Playlist based on Selected Folder
@@ -137,17 +139,17 @@ export default function SoundroomPage() {
     if (selectedFolder === "all") {
       return {
         id: "all",
-        title: "All Songs (Master Archive)",
-        subtitle: "Complete Commute Collection",
-        description: "All Hindi, Punjabi, Lo-Fi, and Cyberpunk mastertracks.",
-        maestros: ["A.R. Rahman", "Sonu Nigam", "Diljit", "Lucky Ali", "Hans Zimmer"],
+        title: "All Songs (Master Vault)",
+        subtitle: "Complete 112 Master Soundtracks",
+        description: "All Hindi, Sufi, Punjabi, Symphony, and Hans Zimmer tracks.",
+        maestros: ["A.R. Rahman", "Sonu Nigam", "Lucky Ali", "Nusrat", "Hans Zimmer"],
         themeColor: "#38bdf8",
-        tracks: allTracks,
+        tracks: masterVaultTracks,
       };
     }
     const found = channels.find((c) => c.id === selectedFolder);
     return found || channels[0];
-  }, [selectedFolder, channels, allTracks]);
+  }, [selectedFolder, channels, masterVaultTracks]);
 
   // Filtered tracks by search query
   const displayedTracks = useMemo(() => {
@@ -186,7 +188,7 @@ export default function SoundroomPage() {
     if (isCaching) return;
     uiAudio.playClick();
     setIsCaching(true);
-    setCacheStatus("Caching for Commute...");
+    setCacheStatus("Caching 112 Songs...");
 
     try {
       if ("caches" in window) {
@@ -219,11 +221,11 @@ export default function SoundroomPage() {
     }
   };
 
-  // Custom URL Stream Ingestion Handler
+  // Custom YouTube / Stream Ingestion Handler
   const handlePlayCustomStream = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customUrl.trim()) return;
-    playCustomUrl(customUrl.trim(), customTitle.trim() || "Live Custom Stream", "Direct Stream URL");
+    playCustomUrl(customUrl.trim(), customTitle.trim() || "YouTube / Custom Audio", "Live Stream Link");
     setCustomUrl("");
     setCustomTitle("");
     setShowCustomInput(false);
@@ -345,7 +347,7 @@ export default function SoundroomPage() {
                 }}
               />
 
-              {/* Top Bar on Card: Commute Mood & Action Buttons */}
+              {/* Top Bar on Card: Commute Mode & Action Buttons */}
               <div
                 style={{
                   width: "100%",
@@ -369,22 +371,22 @@ export default function SoundroomPage() {
                   }}
                 >
                   {isLive ? (
-                    <span style={{ color: "#ef4444", fontWeight: 700 }}>● LIVE STREAM</span>
+                    <span style={{ color: "#ef4444", fontWeight: 700 }}>● 24/7 LIVE RADIO</span>
                   ) : (
-                    <span>SOUNDROOM // COMMUTE</span>
+                    <span>SOUNDROOM // COMMUTE VAULT</span>
                   )}
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  {/* Custom Stream Ingest Button */}
+                  {/* YouTube / Link Ingest Button */}
                   <button
                     onClick={() => setShowCustomInput((prev) => !prev)}
-                    title="Play Custom Stream / URL"
+                    title="Paste YouTube link or stream URL"
                     style={{
                       background: showCustomInput ? "rgba(56, 189, 248, 0.3)" : "rgba(255, 255, 255, 0.12)",
                       border: "1px solid rgba(255, 255, 255, 0.22)",
                       borderRadius: "9999px",
-                      padding: "0.26rem 0.6rem",
+                      padding: "0.26rem 0.65rem",
                       fontSize: "0.68rem",
                       fontWeight: 600,
                       color: "#ffffff",
@@ -394,8 +396,8 @@ export default function SoundroomPage() {
                       gap: "0.3rem",
                     }}
                   >
-                    <span>🔗</span>
-                    <span>Link</span>
+                    <span>📺</span>
+                    <span>YouTube / Link</span>
                   </button>
 
                   {/* Tracklist Flip Button */}
@@ -416,19 +418,19 @@ export default function SoundroomPage() {
                     }}
                   >
                     <span>🗂️</span>
-                    <span>Moods</span>
+                    <span>Folders</span>
                   </button>
                 </div>
               </div>
 
-              {/* Custom Stream Input Modal Popover */}
+              {/* YouTube / Custom Stream Input Modal Popover */}
               {showCustomInput && (
                 <form
                   onSubmit={handlePlayCustomStream}
                   style={{
                     width: "100%",
-                    background: "rgba(10, 10, 18, 0.92)",
-                    border: "1px solid rgba(255, 255, 255, 0.25)",
+                    background: "rgba(10, 10, 18, 0.94)",
+                    border: "1px solid rgba(56, 189, 248, 0.4)",
                     borderRadius: "16px",
                     padding: "0.75rem",
                     boxSizing: "border-box",
@@ -438,20 +440,21 @@ export default function SoundroomPage() {
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.45rem",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
                   }}
                 >
-                  <div style={{ fontSize: "0.70rem", color: "#38bdf8", fontWeight: 600 }}>
-                    Stream Custom Audio URL / Icecast / Live Feed:
+                  <div style={{ fontSize: "0.70rem", color: "#38bdf8", fontWeight: 700 }}>
+                    ▶ Paste any YouTube URL (e.g. Arijit DJ set, song) or Audio Stream:
                   </div>
                   <input
-                    type="url"
-                    placeholder="https://... (Direct audio / stream link)"
+                    type="text"
+                    placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
                     value={customUrl}
                     onChange={(e) => setCustomUrl(e.target.value)}
                     required
                     style={{
                       width: "100%",
-                      padding: "0.35rem 0.6rem",
+                      padding: "0.38rem 0.65rem",
                       borderRadius: "8px",
                       background: "rgba(255, 255, 255, 0.1)",
                       border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -482,13 +485,13 @@ export default function SoundroomPage() {
                     <button
                       type="submit"
                       style={{
-                        padding: "0.3rem 0.8rem",
+                        padding: "0.32rem 0.9rem",
                         borderRadius: "8px",
                         background: "#38bdf8",
                         color: "#000000",
-                        fontWeight: 700,
+                        fontWeight: 750,
                         border: "none",
-                        fontSize: "0.70rem",
+                        fontSize: "0.72rem",
                         cursor: "pointer",
                       }}
                     >
@@ -828,7 +831,7 @@ export default function SoundroomPage() {
                 }}
               >
                 <span>🗂️</span>
-                <span>Select Commute Mood / 24/7 Radio ({activePlaylist.tracks.length} Tracks)</span>
+                <span>Select Folder / 24/7 Live Radio ({activePlaylist.tracks.length} Tracks)</span>
                 <span style={{ opacity: 0.5, fontSize: "0.7rem" }}>➔</span>
               </button>
             </motion.div>
@@ -924,7 +927,7 @@ export default function SoundroomPage() {
                 </button>
               </div>
 
-              {/* Folder Selector Pills */}
+              {/* Folder Selector Pills (All 112 Songs Vault + 24/7 Live Radio + Subfolders) */}
               <div
                 style={{
                   display: "flex",
@@ -938,44 +941,7 @@ export default function SoundroomPage() {
                   flexShrink: 0,
                 }}
               >
-                {channels.map((ch) => {
-                  const isSelected = selectedFolder === ch.id;
-                  return (
-                    <button
-                      key={ch.id}
-                      onClick={() => {
-                        uiAudio.playClick();
-                        setSelectedFolder(ch.id);
-                      }}
-                      style={{
-                        flexShrink: 0,
-                        padding: "0.32rem 0.75rem",
-                        borderRadius: "9999px",
-                        fontSize: "0.7rem",
-                        fontWeight: 600,
-                        color: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.70)",
-                        background: isSelected
-                          ? "linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.16) 100%)"
-                          : "rgba(255, 255, 255, 0.08)",
-                        border: isSelected
-                          ? `1px solid ${ch.themeColor || "rgba(255, 255, 255, 0.5)"}`
-                          : "1px solid rgba(255, 255, 255, 0.15)",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.35rem",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <span style={{ color: isSelected ? ch.themeColor : "rgba(255,255,255,0.4)" }}>
-                        ●
-                      </span>
-                      <span>{ch.title}</span>
-                      <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>({ch.tracks.length})</span>
-                    </button>
-                  );
-                })}
-
+                {/* 1. All Songs Vault Pill (112 Tracks) */}
                 <button
                   onClick={() => {
                     uiAudio.playClick();
@@ -986,10 +952,10 @@ export default function SoundroomPage() {
                     padding: "0.32rem 0.75rem",
                     borderRadius: "9999px",
                     fontSize: "0.7rem",
-                    fontWeight: 600,
-                    color: selectedFolder === "all" ? "#ffffff" : "rgba(255, 255, 255, 0.70)",
+                    fontWeight: 700,
+                    color: selectedFolder === "all" ? "#ffffff" : "rgba(255, 255, 255, 0.75)",
                     background: selectedFolder === "all"
-                      ? "linear-gradient(135deg, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0.16) 100%)"
+                      ? "linear-gradient(135deg, rgba(56, 189, 248, 0.40) 0%, rgba(56, 189, 248, 0.18) 100%)"
                       : "rgba(255, 255, 255, 0.08)",
                     border: selectedFolder === "all"
                       ? "1px solid #38bdf8"
@@ -1001,9 +967,80 @@ export default function SoundroomPage() {
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <span>All Vault</span>
-                  <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>({allTracks.length})</span>
+                  <span>🎧 All Vault</span>
+                  <span style={{ fontSize: "0.62rem", opacity: 0.75 }}>({masterVaultTracks.length})</span>
                 </button>
+
+                {/* 2. 24/7 Live Radio Station Pill */}
+                <button
+                  onClick={() => {
+                    uiAudio.playClick();
+                    setSelectedFolder("live-radio");
+                  }}
+                  style={{
+                    flexShrink: 0,
+                    padding: "0.32rem 0.75rem",
+                    borderRadius: "9999px",
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                    color: selectedFolder === "live-radio" ? "#ffffff" : "#ef4444",
+                    background: selectedFolder === "live-radio"
+                      ? "linear-gradient(135deg, rgba(239, 68, 68, 0.45) 0%, rgba(239, 68, 68, 0.20) 100%)"
+                      : "rgba(239, 68, 68, 0.12)",
+                    border: selectedFolder === "live-radio"
+                      ? "1px solid #ef4444"
+                      : "1px solid rgba(239, 68, 68, 0.35)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.35rem",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span>🔴 24/7 Live Radio</span>
+                  <span style={{ fontSize: "0.62rem", opacity: 0.75 }}>({channels.find(c => c.id === 'live-radio')?.tracks.length || 5})</span>
+                </button>
+
+                {/* 3. Subfolder Category Pills */}
+                {channels
+                  .filter((c) => c.id !== "live-radio")
+                  .map((ch) => {
+                    const isSelected = selectedFolder === ch.id;
+                    return (
+                      <button
+                        key={ch.id}
+                        onClick={() => {
+                          uiAudio.playClick();
+                          setSelectedFolder(ch.id);
+                        }}
+                        style={{
+                          flexShrink: 0,
+                          padding: "0.32rem 0.75rem",
+                          borderRadius: "9999px",
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          color: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.70)",
+                          background: isSelected
+                            ? "linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.16) 100%)"
+                            : "rgba(255, 255, 255, 0.08)",
+                          border: isSelected
+                            ? `1px solid ${ch.themeColor || "rgba(255, 255, 255, 0.5)"}`
+                            : "1px solid rgba(255, 255, 255, 0.15)",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.35rem",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span style={{ color: isSelected ? ch.themeColor : "rgba(255,255,255,0.4)" }}>
+                          ●
+                        </span>
+                        <span>{ch.title}</span>
+                        <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>({ch.tracks.length})</span>
+                      </button>
+                    );
+                  })}
               </div>
 
               {/* Search & Offline Pre-Cache Row */}
@@ -1019,7 +1056,7 @@ export default function SoundroomPage() {
                 <div style={{ position: "relative", flex: 1 }}>
                   <input
                     type="text"
-                    placeholder="Search Hindi, Punjabi, Artists..."
+                    placeholder="Search all songs, artists..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -1055,7 +1092,7 @@ export default function SoundroomPage() {
                   <button
                     onClick={handleCachePlaylist}
                     disabled={isCaching}
-                    title="Pre-cache this playlist for rural dead-zones"
+                    title="Pre-cache playlist for rural dead-zones"
                     style={{
                       flexShrink: 0,
                       padding: "0.35rem 0.65rem",
