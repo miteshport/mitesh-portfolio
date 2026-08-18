@@ -455,12 +455,41 @@ export function SoundroomProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Play any YouTube link, custom MP3, or Icecast stream
-  const playCustomUrl = (url: string, title = "Custom Stream / Audio", artist = "Live Link") => {
+  const playCustomUrl = async (url: string, title = "Custom Stream / Audio", artist = "Live Link") => {
     uiAudio.playClick();
     const ytId = extractYouTubeId(url);
 
+    try {
+      const res = await fetch(`/api/audio/stream?url=${encodeURIComponent(url)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.streamUrl) {
+          // Native Audio Stream Resolved (Plays with screen locked / browser minimized!)
+          const custom: SoundTrack = {
+            id: `stream-${ytId || Date.now()}`,
+            title: data.title || title,
+            artist: data.artist || artist,
+            album: "Soundroom Live Stream",
+            channel: "custom",
+            streamUrl: data.streamUrl,
+            duration: data.duration || 0,
+            isLiveStream: false,
+            artwork: data.artwork || `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`,
+          };
+          setCustomTrack(custom);
+          isPlayingRef.current = true;
+          isYtModeRef.current = false;
+          if (audioRef.current) {
+            audioRef.current.src = data.streamUrl;
+            audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+          }
+          return;
+        }
+      }
+    } catch {}
+
     if (ytId) {
-      // YouTube Link Ingestion
+      // YouTube Link Ingestion Fallback
       const custom: SoundTrack = {
         id: `yt-${ytId}`,
         title: title !== "Custom Stream / Audio" ? title : "YouTube Commute Mix",
