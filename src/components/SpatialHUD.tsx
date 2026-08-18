@@ -55,7 +55,7 @@ export default function SpatialHUD({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 clamp(0.45rem, 2vw, 2.0rem);
+          padding: 0 clamp(0.75rem, 3vw, 2.5rem);
           background: linear-gradient(
             180deg,
             rgba(2, 2, 4, 0.95) 0%,
@@ -87,11 +87,7 @@ export default function SpatialHUD({
           white-space: nowrap;
         }
 
-        @media (max-width: 460px) {
-    .spatial-brand-sub { display: none !important; }
-    .spatial-hud-link { font-size: 0.60rem !important; gap: 0.15rem !important; }
-  }
-  .spatial-hud-link:hover {
+        .spatial-hud-link:hover {
           color: #ffffff;
         }
 
