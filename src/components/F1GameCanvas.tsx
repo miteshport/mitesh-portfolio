@@ -239,38 +239,46 @@ export default function F1GameCanvas({
       bCtx.arc(512, 512, 468, 0, Math.PI * 2);
       bCtx.stroke();
 
-      // 3. Iconic Bat Cutout (Classic Nolan / DC Geometric Proportions)
+      // 3. Iconic Bat Cutout (Exact Christopher Nolan The Dark Knight Geometric Vector)
       bCtx.save();
       bCtx.translate(512, 512);
-      bCtx.scale(2.6, 2.6);
+      bCtx.scale(2.7, 2.7);
       bCtx.globalCompositeOperation = "destination-out";
       bCtx.fillStyle = "rgba(0, 0, 0, 1)";
 
       bCtx.beginPath();
       // Center Head Notch
-      bCtx.moveTo(0, -32);
-      // Right Ear Peak
-      bCtx.lineTo(10, -52);
-      bCtx.lineTo(20, -34);
-      // Right Wing Top Sweeping Arc
-      bCtx.bezierCurveTo(45, -36, 85, -20, 120, 10);
-      // Outer Wingtip
-      bCtx.bezierCurveTo(115, 22, 100, 34, 88, 34);
-      // Right Outer Scallop Notch
-      bCtx.bezierCurveTo(74, 34, 62, 22, 55, 16);
-      // Right Inner Scallop Notch
-      bCtx.bezierCurveTo(46, 28, 30, 42, 0, 52); // Tail Tip
-
-      // Left Inner Scallop Notch (Mirror)
-      bCtx.bezierCurveTo(-30, 42, -46, 28, -55, 16);
-      // Left Outer Scallop Notch
-      bCtx.bezierCurveTo(-62, 22, -74, 34, -88, 34);
-      // Left Wingtip
-      bCtx.bezierCurveTo(-100, 34, -115, 22, -120, 10);
-      // Left Wing Top Sweeping Arc
-      bCtx.bezierCurveTo(-85, -20, -45, -36, -20, -34);
-      // Left Ear Peak
-      bCtx.lineTo(-10, -52);
+      bCtx.moveTo(0, -38);
+      // Right Ear
+      bCtx.lineTo(9, -56);
+      bCtx.lineTo(19, -38);
+      // Right Top Wing Angular Ridge
+      bCtx.lineTo(58, -38);
+      bCtx.lineTo(135, -20);
+      // Right Wing Tip
+      bCtx.lineTo(138, 5);
+      // Right Outer Wing Scallop (Angular Facet)
+      bCtx.lineTo(105, 12);
+      bCtx.lineTo(82, 34);
+      // Right Inner Wing Scallop (Angular Facet)
+      bCtx.lineTo(54, 20);
+      bCtx.lineTo(24, 48);
+      // Bottom Tail
+      bCtx.lineTo(0, 58);
+      // Left Inner Wing Scallop (Mirror)
+      bCtx.lineTo(-24, 48);
+      bCtx.lineTo(-54, 20);
+      // Left Outer Wing Scallop
+      bCtx.lineTo(-82, 34);
+      bCtx.lineTo(-105, 12);
+      // Left Wing Tip
+      bCtx.lineTo(-138, 5);
+      // Left Top Wing Angular Ridge
+      bCtx.lineTo(-135, -20);
+      bCtx.lineTo(-58, -38);
+      // Left Ear
+      bCtx.lineTo(-19, -38);
+      bCtx.lineTo(-9, -56);
       bCtx.closePath();
       bCtx.fill();
       bCtx.globalCompositeOperation = "source-over";
@@ -571,10 +579,10 @@ export default function F1GameCanvas({
     const shadowMat = new THREE.MeshBasicMaterial({
       map: shadowTex,
       transparent: true,
-      opacity: 0.90,
+      opacity: 0.92,
       depthWrite: false,
     });
-    const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 4.4), shadowMat);
+    const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 5.2), shadowMat);
     groundShadow.rotation.x = -Math.PI / 2;
     groundShadow.position.y = 0.025;
     scene.add(groundShadow);
@@ -582,6 +590,43 @@ export default function F1GameCanvas({
     // --- 10. 🦇 3D BATMOBILE TUMBLER (AUTHENTIC RIGGED STUDIO MODEL) ---
     const carGroup = new THREE.Group();
     scene.add(carGroup);
+
+    // 🔥 JET AFTERBURNER FLAME (CYAN-HOT CORE + AMBER EXHAUST PLUME)
+    const flameCanvas = document.createElement("canvas");
+    flameCanvas.width = 128;
+    flameCanvas.height = 256;
+    const fCtx = flameCanvas.getContext("2d");
+    if (fCtx) {
+      const fGrad = fCtx.createLinearGradient(64, 0, 64, 256);
+      fGrad.addColorStop(0.00, "rgba(255, 255, 255, 1.0)");
+      fGrad.addColorStop(0.12, "rgba(100, 240, 255, 0.98)");
+      fGrad.addColorStop(0.35, "rgba(0, 150, 255, 0.85)");
+      fGrad.addColorStop(0.65, "rgba(255, 110, 0, 0.70)");
+      fGrad.addColorStop(0.90, "rgba(255, 40, 0, 0.35)");
+      fGrad.addColorStop(1.00, "rgba(0, 0, 0, 0)");
+      fCtx.fillStyle = fGrad;
+      fCtx.beginPath();
+      fCtx.moveTo(64, 0);
+      fCtx.bezierCurveTo(90, 40, 110, 140, 64, 256);
+      fCtx.bezierCurveTo(18, 140, 38, 40, 64, 0);
+      fCtx.fill();
+    }
+    const flameTex = new THREE.CanvasTexture(flameCanvas);
+    const flameMat = new THREE.SpriteMaterial({
+      map: flameTex,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const afterburnerFlame = new THREE.Sprite(flameMat);
+    afterburnerFlame.position.set(0, 0.46, 1.75);
+    afterburnerFlame.scale.set(0.65, 1.8, 1);
+    carGroup.add(afterburnerFlame);
+
+    const afterburnerLight = new THREE.PointLight(0xff6600, 0, 9);
+    afterburnerLight.position.set(0, 0.46, 1.5);
+    carGroup.add(afterburnerLight);
 
     let wheelFL: THREE.Object3D | null = null;
     let wheelFR: THREE.Object3D | null = null;
@@ -643,8 +688,8 @@ export default function F1GameCanvas({
         model.position.y = -box.min.y;
         model.position.z = -center.z;
 
-        // Strict Width-Based Scaling: Tumbler total track width normalized to 2.2 units
-        const targetScale = 2.2 / size.z;
+        // Cinematic Scaling: Tumbler width scaled to 2.60 units (+18% larger for authentic heavy presence)
+        const targetScale = 2.60 / size.z;
         model.scale.set(targetScale, targetScale, targetScale);
 
         const carPivot = new THREE.Group();
@@ -884,7 +929,36 @@ export default function F1GameCanvas({
         }
       }
 
-      // 5B. 🔄 1:1 PHYSICAL 4-WHEEL AXLE ROTATION & STEERING SYNC
+      // 5B. 🔥 GLOWING JET AFTERBURNER FLAME ON BOOST
+      if (isBoosting) {
+        const flickerScaleY = 1.9 + Math.random() * 0.5;
+        const flickerScaleX = 0.70 + Math.random() * 0.18;
+        afterburnerFlame.scale.set(flickerScaleX, flickerScaleY, 1);
+        afterburnerFlame.material.opacity = THREE.MathUtils.lerp(
+          afterburnerFlame.material.opacity,
+          0.96,
+          0.4
+        );
+        afterburnerLight.intensity = THREE.MathUtils.lerp(
+          afterburnerLight.intensity,
+          4.2 + Math.random() * 1.5,
+          0.45
+        );
+      } else {
+        afterburnerFlame.scale.set(0.1, 0.1, 1);
+        afterburnerFlame.material.opacity = THREE.MathUtils.lerp(
+          afterburnerFlame.material.opacity,
+          0.0,
+          0.25
+        );
+        afterburnerLight.intensity = THREE.MathUtils.lerp(
+          afterburnerLight.intensity,
+          0.0,
+          0.25
+        );
+      }
+
+      // 5C. 🔄 1:1 PHYSICAL 4-WHEEL AXLE ROTATION & STEERING SYNC
       const tireRadius = 0.38;
       const angularDelta = forwardDelta / tireRadius;
 
@@ -1019,6 +1093,8 @@ export default function F1GameCanvas({
       shadowMat.dispose();
       batTex.dispose();
       batMat.dispose();
+      flameTex.dispose();
+      flameMat.dispose();
     };
   }, []);
 

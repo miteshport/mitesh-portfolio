@@ -96,10 +96,10 @@ export default function Home() {
 
   const sectorName =
     telemetry.currentSector === 1
-      ? "SECTOR 1 // DRS ACTIVE"
+      ? "GOTHAM SECTOR 1 // TURBINE CRUISE"
       : telemetry.currentSector === 2
-      ? "SECTOR 2 // APEX SPEED"
-      : "SECTOR 3 // VELOCITY HORIZON";
+      ? "GOTHAM SECTOR 2 // STEALTH PURSUIT"
+      : "GOTHAM SECTOR 3 // AFTERBURNER ENGAGED";
 
   return (
     <main
@@ -188,7 +188,7 @@ export default function Home() {
                 textTransform: "uppercase",
               }}
             >
-              TOKYO / GLOBAL · 365 KM/H · 15,000 RPM
+              GOTHAM CITY · 365 KM/H · TURBINE AFTERBURNER
             </div>
           </motion.div>
         )}
@@ -237,10 +237,11 @@ export default function Home() {
               <span
                 style={{
                   marginLeft: "0.4rem",
-                  color: "rgba(255,255,255,0.6)",
+                  color: telemetry.isBoosting ? "#38bdf8" : "rgba(255,255,255,0.6)",
+                  fontWeight: telemetry.isBoosting ? 700 : 500,
                 }}
               >
-                GEAR {telemetry.gear}
+                {telemetry.isBoosting ? "AFTERBURNER" : `GEAR ${telemetry.gear}`}
               </span>
             </div>
             <div
@@ -249,7 +250,7 @@ export default function Home() {
                 color: "rgba(255, 255, 255, 0.45)",
               }}
             >
-              {sectorName} · LAP {formatLapTime(telemetry.lapTime)}
+              {sectorName} · PATROL {formatLapTime(telemetry.lapTime)}
             </div>
           </div>
         }
