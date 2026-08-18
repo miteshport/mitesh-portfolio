@@ -427,7 +427,7 @@ export default function F1GameCanvas({
       }
     `;
 
-    const roadFragmentShader = `
+        const roadFragmentShader = `
       uniform float uDistance;
       uniform float uLightsOut;
       varying vec2 vUv;
@@ -441,27 +441,37 @@ export default function F1GameCanvas({
 
       void main() {
         float movingDist = vWorldZ + uDistance;
-        float grain = rand(vUv * 600.0) * 0.028;
+        float grain = rand(vUv * 600.0) * 0.024;
 
-        vec3 asphaltColor = vec3(0.022, 0.024, 0.030) + grain;
+        vec3 asphaltColor = vec3(0.024, 0.026, 0.032) + grain;
 
-        // Dashed Centerline
-        float centerDist = abs(vUv.x - 0.5);
-        float dashPattern = step(0.48, fract(movingDist * 0.08));
-        if (centerDist < 0.0035 && dashPattern > 0.5) {
-          asphaltColor = mix(asphaltColor, vec3(0.92, 0.78, 0.28), 0.75);
-        }
-
-        // Shoulder Lines
-        float leftEdge = abs(vUv.x - 0.035);
-        float rightEdge = abs(vUv.x - 0.965);
-        if (leftEdge < 0.0028 || rightEdge < 0.0028) {
+        // 🛣️ 2 DASHED WHITE LANE DIVIDERS (Visually separates road into 3 equal lanes)
+        float dashPattern = step(0.46, fract(movingDist * 0.08));
+        float divider1 = abs(vUv.x - 0.355);
+        float divider2 = abs(vUv.x - 0.645);
+        if ((divider1 < 0.0035 || divider2 < 0.0035) && dashPattern > 0.5) {
           asphaltColor = vec3(0.95, 0.95, 0.98);
         }
 
-        // Wet Specular Asphalt Reflections
-        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 3.5) * 0.32;
-        asphaltColor += vec3(spec * 0.25, spec * 0.50, spec * 0.90);
+        // 🏁 RED & WHITE RACING RUMBLE KERBS (Shoulders)
+        float leftKerb = step(vUv.x, 0.055);
+        float rightKerb = step(0.945, vUv.x);
+        if (leftKerb > 0.5 || rightKerb > 0.5) {
+          float kerbPattern = step(0.5, fract(movingDist * 0.14));
+          vec3 kerbColor = mix(vec3(0.90, 0.12, 0.12), vec3(0.96, 0.96, 0.96), kerbPattern);
+          asphaltColor = kerbColor;
+        }
+
+        // Solid White Shoulder Edge Lines
+        float leftEdge = abs(vUv.x - 0.055);
+        float rightEdge = abs(vUv.x - 0.945);
+        if (leftEdge < 0.0030 || rightEdge < 0.0030) {
+          asphaltColor = vec3(1.0, 1.0, 1.0);
+        }
+
+        // Wet Specular Asphalt Highway Sheen
+        float spec = pow(max(0.0, 1.0 - abs(vUv.x - 0.5) * 1.8), 3.5) * 0.30;
+        asphaltColor += vec3(spec * 0.25, spec * 0.50, spec * 0.88);
 
         // Headlight Projection Mask
         if (uLightsOut > 0.01) {
@@ -469,7 +479,7 @@ export default function F1GameCanvas({
           asphaltColor *= mix(0.10, 1.4, headlightMask);
         }
 
-        // Depth Fog Fade
+        // Depth Atmospheric Fog Fade
         float fogFactor = smoothstep(90.0, 320.0, vDepth);
         vec3 finalColor = mix(asphaltColor, vec3(0.02, 0.04, 0.09), fogFactor);
 
@@ -513,7 +523,11 @@ export default function F1GameCanvas({
 
     
 
-// --- 9. ⚡ ROAD FIGHTER GOTHAM ENTITIES (ENERGY CORES & HAZARDS) ---
+    // --- 9. ⚡ UNIFIED 3-LANE ROAD FIGHTER SYSTEM (3 LANES: LEFT, CENTER, RIGHT) ---
+    const lanePositions = [-2.6, 0.0, 2.6];
+    let currentLane = 1; // 0 = Left, 1 = Center, 2 = Right
+    let targetCarX = lanePositions[currentLane];
+
     interface RoadFighterEntity {
       group: THREE.Group;
       mesh: THREE.Mesh;
@@ -526,12 +540,11 @@ export default function F1GameCanvas({
       nearMissed: boolean;
     }
 
-    const lanePositions = [-2.5, 0.0, 2.5];
     const entityPool: RoadFighterEntity[] = [];
-    const poolSize = 10;
+    const poolSize = 12;
 
-    const coreGeo = new THREE.OctahedronGeometry(0.65, 2);
-    const hazardGeo = new THREE.BoxGeometry(1.4, 0.75, 1.4);
+    const coreGeo = new THREE.OctahedronGeometry(0.68, 2);
+    const hazardGeo = new THREE.BoxGeometry(1.45, 0.75, 1.45);
     const skyBeamGeo = new THREE.CylinderGeometry(0.04, 0.16, 16, 8);
 
     const coreMat = new THREE.MeshStandardMaterial({
@@ -575,7 +588,7 @@ export default function F1GameCanvas({
       pLight.position.set(0, 0.8, 0);
       group.add(pLight);
 
-      const initZ = -45 - i * 26;
+      const initZ = -45 - Math.floor(i / 3) * 28;
       const initLane = i % 3;
       group.position.set(lanePositions[initLane], 0, initZ);
 
@@ -594,7 +607,7 @@ export default function F1GameCanvas({
       });
     }
 
-    const resetEntity = (item: RoadFighterEntity, zPos: number, lane: number, isHazard: boolean) => {
+    const setEntityVisuals = (item: RoadFighterEntity, zPos: number, lane: number, isHazard: boolean) => {
       item.z = zPos;
       item.laneIndex = lane;
       item.isHazard = isHazard;
@@ -609,6 +622,41 @@ export default function F1GameCanvas({
       item.light.color.setHex(col);
 
       item.group.position.set(lanePositions[lane], 0, zPos);
+    };
+
+    // 🌊 CHOREOGRAPHED WAVE SPAWNER (Structured arcade formations)
+    let waveCounter = 0;
+    const spawnWaveFormation = (baseZ: number, entityIndices: number[]) => {
+      waveCounter++;
+      const waveType = waveCounter % 5;
+
+      if (waveType === 0) {
+        // FORMATION 1: THE GATEWAY (Thread the needle: Left Hazard + Right Hazard + Center Core)
+        setEntityVisuals(entityPool[entityIndices[0]], baseZ, 0, true);  // Left Hazard
+        setEntityVisuals(entityPool[entityIndices[1]], baseZ, 1, false); // Center Core
+        setEntityVisuals(entityPool[entityIndices[2]], baseZ, 2, true);  // Right Hazard
+      } else if (waveType === 1) {
+        // FORMATION 2: SLALOM LEFT (Center Hazard + Left Core)
+        setEntityVisuals(entityPool[entityIndices[0]], baseZ, 1, true);  // Center Hazard
+        setEntityVisuals(entityPool[entityIndices[1]], baseZ, 0, false); // Left Core
+        setEntityVisuals(entityPool[entityIndices[2]], baseZ - 12, 2, false); // Staggered Right Core
+      } else if (waveType === 2) {
+        // FORMATION 3: SLALOM RIGHT (Center Hazard + Right Core)
+        setEntityVisuals(entityPool[entityIndices[0]], baseZ, 1, true);  // Center Hazard
+        setEntityVisuals(entityPool[entityIndices[1]], baseZ, 2, false); // Right Core
+        setEntityVisuals(entityPool[entityIndices[2]], baseZ - 12, 0, false); // Staggered Left Core
+      } else if (waveType === 3) {
+        // FORMATION 4: BONUS RUNWAY (3 Cores in a row down a single lane)
+        const luckyLane = Math.floor(Math.random() * 3);
+        setEntityVisuals(entityPool[entityIndices[0]], baseZ, luckyLane, false);
+        setEntityVisuals(entityPool[entityIndices[1]], baseZ - 10, luckyLane, false);
+        setEntityVisuals(entityPool[entityIndices[2]], baseZ - 20, luckyLane, false);
+      } else {
+        // FORMATION 5: PINCER SPLIT (Hazard Left + Core Right)
+        setEntityVisuals(entityPool[entityIndices[0]], baseZ, 0, true);  // Left Hazard
+        setEntityVisuals(entityPool[entityIndices[1]], baseZ, 2, false); // Right Core
+        setEntityVisuals(entityPool[entityIndices[2]], baseZ - 14, 1, false); // Trailing Center Core
+      }
     };
 
         // Merge Shockwave Ring Particle Effect
@@ -944,12 +992,9 @@ export default function F1GameCanvas({
     let machTurboTimer = 0; // Duration of Mach 1 Afterburner
     let nearMissCount = 0;
     let fishtailTimer = 0;
-    // --- 11. CONTROLS & SPRING PHYSICS STATE ---
-    let pointerX = 0;
-    let targetSteerInput = 0;
-    let steerInput = 0;
-    let targetCarX = 0;
+    // --- 11. 🎮 UNIFIED 3-LANE ROAD FIGHTER CONTROLS (TRUE LANE LOCK) ---
     let carX = 0;
+    let steerInput = 0;
     let carSteerVelocity = 0;
     let isBoosting = false;
     let baseSpeed = 190;
@@ -962,12 +1007,18 @@ export default function F1GameCanvas({
     let camVelX = 0;
     let camVelZ = 0;
     let camRoll = 0;
-
     let isBraking = false;
 
     const handlePointerMove = (e: PointerEvent) => {
-      pointerX = (e.clientX / window.innerWidth - 0.5) * 2.0;
-      targetSteerInput = THREE.MathUtils.clamp(pointerX, -1, 1);
+      const normX = (e.clientX / window.innerWidth) * 2 - 1;
+      if (normX < -0.30) {
+        currentLane = 0; // Left Lane (-2.6)
+      } else if (normX > 0.30) {
+        currentLane = 2; // Right Lane (+2.6)
+      } else {
+        currentLane = 1; // Center Lane (0.0)
+      }
+      targetCarX = lanePositions[currentLane];
     };
 
     const handlePointerDown = () => {
@@ -980,9 +1031,11 @@ export default function F1GameCanvas({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        targetSteerInput = Math.max(-1.0, targetSteerInput - 0.4);
+        currentLane = Math.max(0, currentLane - 1);
+        targetCarX = lanePositions[currentLane];
       } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        targetSteerInput = Math.min(1.0, targetSteerInput + 0.4);
+        currentLane = Math.min(2, currentLane + 1);
+        targetCarX = lanePositions[currentLane];
       } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = true;
       } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
@@ -991,11 +1044,8 @@ export default function F1GameCanvas({
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        targetSteerInput = 0;
-      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        targetSteerInput = 0;
-      } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
+      // NOTE: Keyup NEVER resets currentLane or targetCarX! The car remains firmly locked in its lane!
+      if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = false;
       } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
         isBraking = false;
@@ -1050,7 +1100,7 @@ export default function F1GameCanvas({
       }
 
       // 1:1 Crisp Responsive Steering (Buttery-smooth, zero phantom drift)
-      steerInput = THREE.MathUtils.lerp(steerInput, targetSteerInput, 0.16);
+      steerInput = THREE.MathUtils.clamp((targetCarX - carX) * 0.8, -1, 1);
 
       // 1. Acceleration & Pacing
       const boostActive = isBoosting || isMach;
@@ -1072,7 +1122,9 @@ export default function F1GameCanvas({
       // Bat-Signal Aura Pulse
       batSignalSprite.material.opacity = 0.90 + Math.sin(time * 1.5) * 0.06;
 
-      // 1B. ⚡ ROAD FIGHTER ENTITY MOVEMENTS & COLLISIONS
+            // 1B. ⚡ ROAD FIGHTER ENTITY MOVEMENTS & COLLISIONS
+      const passedIndices: number[] = [];
+
       for (let i = 0; i < entityPool.length; i++) {
         const item = entityPool[i];
         item.z += forwardDelta;
@@ -1140,24 +1192,22 @@ export default function F1GameCanvas({
           nearMissCount++;
         }
 
-        // Reset Entity Ahead
+        // Collect entities that have passed behind the camera
         if (item.z > 8.0) {
-          const minZ = Math.min(...entityPool.map((e) => e.z));
-          const newZ = minZ - 26 - Math.random() * 8;
-          const newLane = (i + Math.floor(trackDistance / 60)) % 3;
-          const newIsHazard = (i + Math.floor(trackDistance / 40)) % 3 === 0;
-
-          resetEntity(item, newZ, newLane, newIsHazard);
+          passedIndices.push(i);
         }
       }
 
-      // 2. 🎮 ROAD FIGHTER 1:1 CRISP STEERING (Rock-Solid Centered Alignment)
-      const maxSafeOffset = 2.85;
-      const targetCarX = THREE.MathUtils.clamp(steerInput * maxSafeOffset, -maxSafeOffset, maxSafeOffset);
-      
-      // Fast, responsive, crisp steering glide (No sluggish lag)
+      // 🌊 CHOREOGRAPHED WAVE SPAWN (When 3 entities have passed behind)
+      if (passedIndices.length >= 3) {
+        const minZ = Math.min(...entityPool.map((e) => e.z));
+        const newWaveZ = minZ - 32;
+        spawnWaveFormation(newWaveZ, passedIndices.slice(0, 3));
+      }
+
+      // 2. 🎮 ROAD FIGHTER 1:1 CRISP 3-LANE GLIDE (Zero Sluggish Lag, Rock-Solid Centered)
       const prevX = carX;
-      carX = THREE.MathUtils.lerp(carX, targetCarX, 0.18);
+      carX = THREE.MathUtils.lerp(carX, targetCarX, 0.20);
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
 
       // Fishtail wobble on crash
@@ -1170,7 +1220,7 @@ export default function F1GameCanvas({
       groundShadow.position.x = carX + fishtailOffset;
       groundShadow.position.z = 0;
 
-      const onKerb = Math.abs(carX) > maxSafeOffset - 0.4;
+      const onKerb = Math.abs(carX) > 2.85;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
