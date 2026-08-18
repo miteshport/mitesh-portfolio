@@ -768,10 +768,7 @@ export default function F1GameCanvas({
     };
     resetTriggerRef.current = resetGameRound;
 
-    // --- 11. 🎮 UNIFIED 3-LANE CONTROLS (PRECISION MOUSE & TOUCH) ---
-    let touchStartX = 0;
-    let isTouching = false;
-
+    // --- 11. 🎮 UNIFIED 3-LANE CONTROLS (PRECISION MOUSE BOOST & TOUCH STEERING) ---
     const handlePointerMove = (e: PointerEvent) => {
       if (currentGameState !== "PLAYING") return;
       // Continuous smooth mouse glide across the 3 lanes
@@ -791,22 +788,29 @@ export default function F1GameCanvas({
 
     const handlePointerDown = (e: PointerEvent) => {
       if (currentGameState !== "PLAYING") return;
-      touchStartX = e.clientX;
-      isTouching = true;
-      const normX = (e.clientX / window.innerWidth) * 2 - 1;
-      // Direct tap to switch lanes
-      if (normX < -0.25) {
-        currentLane = Math.max(0, currentLane - 1);
-      } else if (normX > 0.25) {
-        currentLane = Math.min(2, currentLane + 1);
-      } else {
-        currentLane = 1;
+      // 🖱️ Mouse Left Click = Engage Roaring Afterburner Boost!
+      if (e.pointerType === "mouse" || e.button === 0) {
+        isBoosting = true;
       }
-      targetCarX = lanePositions[currentLane];
+
+      // 📱 Mobile Touch: Tap left/right third to switch lanes
+      if (e.pointerType === "touch") {
+        const normX = (e.clientX / window.innerWidth) * 2 - 1;
+        if (normX < -0.25) {
+          currentLane = Math.max(0, currentLane - 1);
+        } else if (normX > 0.25) {
+          currentLane = Math.min(2, currentLane + 1);
+        } else {
+          currentLane = 1;
+        }
+        targetCarX = lanePositions[currentLane];
+      }
     };
 
-    const handlePointerUp = () => {
-      isTouching = false;
+    const handlePointerUp = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" || e.button === 0) {
+        isBoosting = false;
+      }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -871,10 +875,10 @@ export default function F1GameCanvas({
         // Check Victory & Defeat Conditions
         if (distanceRemaining <= 0 && energyLevel > 0) {
           currentGameState = "WON";
-          audio.playVictoryChime();
+          if (!isMutedRef.current) audio.playVictoryChime();
         } else if (energyLevel <= 0) {
           currentGameState = "LOST";
-          audio.playOverloadAlarm();
+          if (!isMutedRef.current) audio.playOverloadAlarm();
         }
       }
 
@@ -931,7 +935,7 @@ export default function F1GameCanvas({
 
           if (!item.isHazard) {
             // ⚡ COLLECTED RARE FUEL CORE!
-            audio.playMergeChime(8, 1);
+            if (!isMutedRef.current) audio.playMergeChime(8, 1);
             gameScore += 500 * comboMultiplier;
             energyLevel = Math.min(100, energyLevel + 20.0);
 
@@ -942,7 +946,7 @@ export default function F1GameCanvas({
             shockwaveLife = 1.0;
           } else {
             // ⚠️ HIT A TRAFFIC HAZARD (Tire skid, -15% energy, reset combo)
-            audio.playOverloadAlarm();
+            if (!isMutedRef.current) audio.playOverloadAlarm();
             skidTimer = 0.45;
             comboMultiplier = 1;
             energyLevel = Math.max(0, energyLevel - 15.0);
@@ -958,7 +962,7 @@ export default function F1GameCanvas({
         // 🌟 "NEAR-MISS" SLIPSTREAM BONUS
         if (isDriving && item.active && item.isHazard && !item.nearMissed && distZ < 2.5 && distX >= 1.25 && distX < 2.2) {
           item.nearMissed = true;
-          audio.playClick();
+          if (!isMutedRef.current) audio.playClick();
           gameScore += 200 * comboMultiplier;
           comboMultiplier = Math.min(8, comboMultiplier + 1);
           nearMissCount++;
