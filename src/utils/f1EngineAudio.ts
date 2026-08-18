@@ -77,61 +77,61 @@ export function initF1Engine() {
       convolverNode = null;
     }
 
-    // Master Engine Lowpass Filter
+    // Master Engine Lowpass Filter (Warm acoustic dampening — cuts out high-frequency screech)
     filterNode = audioCtx.createBiquadFilter();
     filterNode.type = "lowpass";
-    filterNode.frequency.setValueAtTime(3200, audioCtx.currentTime);
-    filterNode.Q.setValueAtTime(1.8, audioCtx.currentTime);
+    filterNode.frequency.setValueAtTime(1100, audioCtx.currentTime);
+    filterNode.Q.setValueAtTime(1.2, audioCtx.currentTime);
     filterNode.connect(masterGain);
 
     if (convolverNode) {
       filterNode.connect(convolverNode);
     }
 
-    // 0. Tumbler Sub-Bass Rumble (Heavy 38Hz-65Hz low-end roar)
+    // 0. Tumbler Sub-Bass Body Rumble (Heavy 28Hz-52Hz low-end chassis pulse)
     oscSub = audioCtx.createOscillator();
     oscSub.type = "sine";
-    oscSub.frequency.setValueAtTime(40, audioCtx.currentTime);
+    oscSub.frequency.setValueAtTime(32, audioCtx.currentTime);
 
     subGain = audioCtx.createGain();
-    subGain.gain.setValueAtTime(0.30, audioCtx.currentTime);
+    subGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
     oscSub.connect(subGain);
     subGain.connect(masterGain);
 
-    // 1. Fundamental Tumbler 5.7L V8 Oscillator (Piston guttural roar)
+    // 1. Fundamental 5.7L Chevy V8 Combustion (Throaty low triangle pulse)
     oscFundamental = audioCtx.createOscillator();
-    oscFundamental.type = "sawtooth";
-    oscFundamental.frequency.setValueAtTime(48, audioCtx.currentTime);
+    oscFundamental.type = "triangle";
+    oscFundamental.frequency.setValueAtTime(36, audioCtx.currentTime);
 
-    // 2. 2nd Harmonic (Deep dual-exhaust resonance)
+    // 2. 2nd Harmonic (Dual-exhaust mechanical rumble)
     oscHarmonic2 = audioCtx.createOscillator();
     oscHarmonic2.type = "triangle";
-    oscHarmonic2.frequency.setValueAtTime(96, audioCtx.currentTime);
+    oscHarmonic2.frequency.setValueAtTime(72, audioCtx.currentTime);
 
-    // 3. 3rd Harmonic (Turbine rasp)
+    // 3. 3rd Harmonic (Low exhaust growl)
     oscHarmonic3 = audioCtx.createOscillator();
-    oscHarmonic3.type = "sawtooth";
-    oscHarmonic3.frequency.setValueAtTime(144, audioCtx.currentTime);
+    oscHarmonic3.type = "sine";
+    oscHarmonic3.frequency.setValueAtTime(108, audioCtx.currentTime);
 
     engineGain = audioCtx.createGain();
-    engineGain.gain.setValueAtTime(0.24, audioCtx.currentTime);
+    engineGain.gain.setValueAtTime(0.28, audioCtx.currentTime);
 
     oscFundamental.connect(engineGain);
     oscHarmonic2.connect(engineGain);
     oscHarmonic3.connect(engineGain);
     engineGain.connect(filterNode);
 
-    // 4. Jet Turbine Spool Whistle (Nolan Tumbler Afterburner Whine)
+    // 4. Jet Turbine Spool (Warm high-pressure air rush, not screech)
     oscTurbo = audioCtx.createOscillator();
     oscTurbo.type = "sine";
-    oscTurbo.frequency.setValueAtTime(1800, audioCtx.currentTime);
+    oscTurbo.frequency.setValueAtTime(680, audioCtx.currentTime);
 
     turboGain = audioCtx.createGain();
-    turboGain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+    turboGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
     oscTurbo.connect(turboGain);
     turboGain.connect(filterNode);
 
-    // 5. Jet Exhaust Roar & Wind Wash
+    // 5. Jet Exhaust Wash & Atmospheric Wind
     const noiseBuffer = createNoiseBuffer(audioCtx);
     noiseNode = audioCtx.createBufferSource();
     noiseNode.buffer = noiseBuffer;
@@ -139,11 +139,11 @@ export function initF1Engine() {
 
     const noiseFilter = audioCtx.createBiquadFilter();
     noiseFilter.type = "bandpass";
-    noiseFilter.frequency.setValueAtTime(520, audioCtx.currentTime);
-    noiseFilter.Q.setValueAtTime(1.5, audioCtx.currentTime);
+    noiseFilter.frequency.setValueAtTime(380, audioCtx.currentTime);
+    noiseFilter.Q.setValueAtTime(1.8, audioCtx.currentTime);
 
     noiseGain = audioCtx.createGain();
-    noiseGain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    noiseGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
 
     noiseNode.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
@@ -182,32 +182,34 @@ export function updateF1Engine(
     return;
   }
 
-  // Master Volume based on speed & boost
-  const targetMasterVol = isBoosting ? 0.32 : 0.22;
+  // Master Volume
+  const targetMasterVol = isBoosting ? 0.35 : 0.24;
   masterGain?.gain.setTargetAtTime(targetMasterVol, now, 0.08);
 
-  // Sub-Bass mapping (38Hz - 70Hz)
-  const subFreq = 38 + ((rpm - 10000) / 5000) * 28;
-  oscSub?.frequency.setTargetAtTime(subFreq, now, 0.04);
-  subGain?.gain.setTargetAtTime(isBoosting ? 0.38 : 0.26, now, 0.06);
+  // Speed progress from 0 (idle) to 1.0 (top speed ~365 km/h)
+  const speedNorm = Math.min(1.0, Math.max(0.0, speed / 365));
 
-  // Fundamental Tumbler V8 frequencies (46Hz - 98Hz)
-  const baseFreq = 46 + ((rpm - 10000) / 5000) * 52;
-  oscFundamental?.frequency.setTargetAtTime(baseFreq, now, 0.04);
-  oscHarmonic2?.frequency.setTargetAtTime(baseFreq * 2.0, now, 0.04);
-  oscHarmonic3?.frequency.setTargetAtTime(baseFreq * 3.0, now, 0.04);
+  // Authentic 5.7L V8 Low RPM Range: 30Hz (idle) to 58Hz (full speed)
+  const subFreq = 28 + speedNorm * 22;
+  oscSub?.frequency.setTargetAtTime(subFreq, now, 0.06);
+  subGain?.gain.setTargetAtTime(isBoosting ? 0.42 : 0.32, now, 0.08);
 
-  // Jet Turbine Whine Spool (1400Hz - 3200Hz)
-  const turboFreq = 1400 + ((rpm - 10000) / 5000) * 1800;
-  oscTurbo?.frequency.setTargetAtTime(turboFreq, now, 0.05);
-  const targetTurboVol = isBoosting ? 0.065 : 0.015;
-  turboGain?.gain.setTargetAtTime(targetTurboVol, now, 0.06);
+  const baseFreq = 34 + speedNorm * 24 + (isBoosting ? 6 : 0);
+  oscFundamental?.frequency.setTargetAtTime(baseFreq, now, 0.06);
+  oscHarmonic2?.frequency.setTargetAtTime(baseFreq * 2.0, now, 0.06);
+  oscHarmonic3?.frequency.setTargetAtTime(baseFreq * 3.0, now, 0.06);
 
-  // Filter sweep with speed (opens up exhaust on throttle)
-  const filterCutoff = 1400 + (speed / 365) * 3800;
-  filterNode?.frequency.setTargetAtTime(filterCutoff, now, 0.05);
+  // Jet Turbine Spool on boost (warm air rush from 680Hz to 1150Hz)
+  const turboFreq = 680 + speedNorm * 420 + (isBoosting ? 220 : 0);
+  oscTurbo?.frequency.setTargetAtTime(turboFreq, now, 0.08);
+  const targetTurboVol = isBoosting ? 0.045 : 0.008;
+  turboGain?.gain.setTargetAtTime(targetTurboVol, now, 0.08);
 
-  // Gear Shift Acoustic Transient
+  // Filter sweep (warm cut off: 850Hz idle to 1650Hz boost — zero high-pitch screech)
+  const filterCutoff = 850 + speedNorm * 650 + (isBoosting ? 300 : 0);
+  filterNode?.frequency.setTargetAtTime(filterCutoff, now, 0.08);
+
+  // Heavy Transmission Shift Thud
   if (gear !== lastGear && Math.abs(speed) > 30) {
     lastGear = gear;
     playGearShiftClick(now);

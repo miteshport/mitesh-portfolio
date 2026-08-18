@@ -148,38 +148,52 @@ export default function SpatialHUD({
         </div>
 
         {/* Center: Audio Status & Time */}
-        <div style={{ pointerEvents: "auto" }}>
+        <div style={{ pointerEvents: "auto", display: "flex", justifyContent: "center" }}>
           <button
             onClick={() => {
               audio.playClick();
               toggleMute();
             }}
             style={{
-              background: "none",
-              border: "none",
+              background: isMuted
+                ? "rgba(255, 255, 255, 0.06)"
+                : "linear-gradient(135deg, rgba(48, 209, 88, 0.22) 0%, rgba(255, 255, 255, 0.08) 100%)",
+              border: isMuted
+                ? "1px solid rgba(255, 255, 255, 0.16)"
+                : "1px solid rgba(48, 209, 88, 0.55)",
+              borderRadius: "9999px",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
-              gap: "0.5rem",
+              gap: "0.55rem",
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: "clamp(0.62rem, 1vw, 0.72rem)",
-              letterSpacing: "0.15em",
-              color: "rgba(255, 255, 255, 0.75)",
+              fontSize: "clamp(0.65rem, 1vw, 0.74rem)",
+              letterSpacing: "0.14em",
+              color: isMuted ? "rgba(255, 255, 255, 0.65)" : "#ffffff",
               textTransform: "uppercase",
-              padding: "0.3rem 0.6rem",
+              padding: "0.38rem 0.95rem",
+              boxShadow: isMuted
+                ? "0 4px 16px rgba(0, 0, 0, 0.4)"
+                : "0 0 20px rgba(48, 209, 88, 0.35), 0 4px 16px rgba(0, 0, 0, 0.4)",
+              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
             <span
               style={{
-                width: "6px",
-                height: "6px",
+                width: "7px",
+                height: "7px",
                 borderRadius: "50%",
-                backgroundColor: isMuted ? "rgba(255,255,255,0.25)" : "#30d158",
-                boxShadow: isMuted ? "none" : "0 0 8px #30d158",
+                backgroundColor: isMuted ? "rgba(255,255,255,0.3)" : "#30d158",
+                boxShadow: isMuted ? "none" : "0 0 10px #30d158",
                 display: "inline-block",
+                transition: "all 0.2s ease",
               }}
             />
-            <span>{isMuted ? "AUDIO: OFF" : `AUDIO: ON · ${timeStr}`}</span>
+            <span style={{ fontWeight: 650 }}>
+              {isMuted ? "AUDIO: OFF" : `AUDIO: ON · ${timeStr}`}
+            </span>
           </button>
         </div>
 
