@@ -186,7 +186,7 @@ export default function F1GameCanvas({
     const batUnderbody = new THREE.PointLight(0x0e2444, 4.0, 6.0);
     scene.add(batUnderbody);
 
-    // --- 5. 🦇 1024x1024 RAZOR-SHARP DC BAT-SIGNAL ---
+    // --- 5. 🦇 1024x1024 ICONIC DC / NOLAN BAT-SIGNAL ---
     const batCanvas = document.createElement("canvas");
     batCanvas.width = 1024;
     batCanvas.height = 1024;
@@ -212,44 +212,38 @@ export default function F1GameCanvas({
       bCtx.arc(512, 512, 468, 0, Math.PI * 2);
       bCtx.stroke();
 
-      // 3. Bat Cutout (Scale 2.25 = perfectly framed inside the 480px spotlight circle with clean margins)
+      // 3. Iconic Bat Cutout (Classic Nolan / DC Geometric Proportions)
       bCtx.save();
-      bCtx.translate(512, 515);
-      bCtx.scale(2.25, 2.25);
+      bCtx.translate(512, 512);
+      bCtx.scale(2.6, 2.6);
       bCtx.globalCompositeOperation = "destination-out";
       bCtx.fillStyle = "rgba(0, 0, 0, 1)";
 
       bCtx.beginPath();
-      bCtx.moveTo(0, 30);
+      // Center Head Notch
+      bCtx.moveTo(0, -32);
+      // Right Ear Peak
+      bCtx.lineTo(10, -52);
+      bCtx.lineTo(20, -34);
+      // Right Wing Top Sweeping Arc
+      bCtx.bezierCurveTo(45, -36, 85, -20, 120, 10);
+      // Outer Wingtip
+      bCtx.bezierCurveTo(115, 22, 100, 34, 88, 34);
+      // Right Outer Scallop Notch
+      bCtx.bezierCurveTo(74, 34, 62, 22, 55, 16);
+      // Right Inner Scallop Notch
+      bCtx.bezierCurveTo(46, 28, 30, 42, 0, 52); // Tail Tip
 
-      // RIGHT WING (Scalloped DC / BvS Profile)
-      bCtx.bezierCurveTo(22, 30, 42, 22, 56, 10);
-      bCtx.bezierCurveTo(66, 2, 76, 10, 86, 18);
-      bCtx.bezierCurveTo(94, 24, 102, 8, 110, -2);
-      bCtx.bezierCurveTo(118, -5, 126, 10, 134, 16);
-      bCtx.bezierCurveTo(140, 20, 148, 4, 152, -12);
-      bCtx.bezierCurveTo(157, -24, 161, -36, 164, -44);
-      bCtx.bezierCurveTo(162, -35, 158, -22, 150, -14);
-      bCtx.bezierCurveTo(140, -4, 126, -18, 112, -30);
-      bCtx.bezierCurveTo(94, -42, 74, -48, 54, -52);
-      bCtx.bezierCurveTo(42, -54, 30, -55, 22, -57);
-      bCtx.bezierCurveTo(16, -58, 10, -58, 7, -55);
-      bCtx.bezierCurveTo(4, -52, 1, -48, 0, -46);
-
-      // LEFT WING (Exact Mirror)
-      bCtx.bezierCurveTo(-1, -48, -4, -52, -7, -55);
-      bCtx.bezierCurveTo(-10, -58, -16, -58, -22, -57);
-      bCtx.bezierCurveTo(-30, -55, -42, -54, -54, -52);
-      bCtx.bezierCurveTo(-74, -48, -94, -42, -112, -30);
-      bCtx.bezierCurveTo(-126, -18, -140, -4, -150, -14);
-      bCtx.bezierCurveTo(-158, -22, -162, -35, -164, -44);
-      bCtx.bezierCurveTo(-161, -36, -157, -24, -152, -12);
-      bCtx.bezierCurveTo(-148, 4, -140, 20, -134, 16);
-      bCtx.bezierCurveTo(-126, 10, -118, -5, -110, -2);
-      bCtx.bezierCurveTo(-102, 8, -94, 24, -86, 18);
-      bCtx.bezierCurveTo(-76, 10, -66, 2, -56, 10);
-      bCtx.bezierCurveTo(-42, 22, -22, 30, 0, 30);
-
+      // Left Inner Scallop Notch (Mirror)
+      bCtx.bezierCurveTo(-30, 42, -46, 28, -55, 16);
+      // Left Outer Scallop Notch
+      bCtx.bezierCurveTo(-62, 22, -74, 34, -88, 34);
+      // Left Wingtip
+      bCtx.bezierCurveTo(-100, 34, -115, 22, -120, 10);
+      // Left Wing Top Sweeping Arc
+      bCtx.bezierCurveTo(-85, -20, -45, -36, -20, -34);
+      // Left Ear Peak
+      bCtx.lineTo(-10, -52);
       bCtx.closePath();
       bCtx.fill();
       bCtx.globalCompositeOperation = "source-over";
@@ -737,7 +731,7 @@ export default function F1GameCanvas({
         skylineTex.offset.x = (trackDistance * 0.00045) % 1;
       }
 
-      // 2. Ground-Locked Driving Physics
+      // 2. 🎮 ROCKSTAR AAA VEHICLE WEIGHT & DRIVING DYNAMICS
       const trackHalfW = roadWidth / 2 - 0.8;
       targetCarX = THREE.MathUtils.clamp(
         steerInput * (trackHalfW - 0.5),
@@ -745,16 +739,18 @@ export default function F1GameCanvas({
         trackHalfW - 0.2
       );
 
+      // Heavy vehicle inertia with slip response
+      const steerSpeed = 6.5;
       const prevX = carX;
-      const steerLag = 0.09 + Math.abs(steerInput) * 0.04;
-      carX += (targetCarX - carX) * steerLag;
+      carX += (targetCarX - carX) * (steerSpeed * delta);
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
 
+      // Suspension road vibration
       const roadY = 0.02;
-      const highSpeedShake = Math.sin(time * 90) * 0.003 * (currentSpeed / 200);
+      const suspensionChatter = Math.sin(time * 70) * 0.002 * (currentSpeed / 200);
 
       carGroup.position.x = carX;
-      carGroup.position.y = roadY + Math.abs(highSpeedShake);
+      carGroup.position.y = roadY + suspensionChatter;
       carGroup.position.z = 0;
 
       groundShadow.position.x = carX;
@@ -765,13 +761,18 @@ export default function F1GameCanvas({
         playKerbRumble(isMutedRef.current);
       }
 
-      // Suspension Roll & Ackermann Yaw
-      const suspensionRoll = -carSteerVelocity * 0.028;
-      carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, suspensionRoll, 0.14);
+      // Dynamic Weight Transfer (Pitch & Squat):
+      // Acceleration -> nose lifts slightly; Deceleration -> nose dips
+      const accelPitch = isBoosting ? -0.040 : (currentSpeed < 185 ? 0.022 : -0.008);
+      carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, accelPitch, 0.08);
 
-      const ackermann = -carSteerVelocity * 0.012;
-      carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermann, 0.12);
-      carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, 0, 0.18);
+      // Centrifugal Suspension Body Roll (heavy Tumbler leans into corner)
+      const suspensionRoll = -carSteerVelocity * 0.032;
+      carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, suspensionRoll, 0.12);
+
+      // Ackermann Steering Yaw (nose leads turn with slight rear slip angle)
+      const ackermannYaw = -carSteerVelocity * 0.018 + steerInput * 0.035;
+      carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermannYaw, 0.14);
 
       // 3. Headlight & Underbody Tracking (Normalized Batmobile Width)
       leftHeadlight.position.set(carX - 0.65, 0.38, -0.2);
