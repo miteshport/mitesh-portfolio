@@ -162,7 +162,7 @@ export default function Home() {
                 textShadow: "0 0 16px rgba(56, 189, 248, 0.6)",
               }}
             >
-              FORMULA 1 · GRAND PRIX ENGINE
+              WAYNE ENTERPRISES · BATMOBILE TUMBLER
             </div>
             <h1
               style={{

@@ -662,26 +662,26 @@ export default function F1GameCanvas({
 
     // --- 11. CONTROLS & SPRING PHYSICS STATE ---
     let pointerX = 0;
+    let targetSteerInput = 0;
+    let steerInput = 0;
     let targetCarX = 0;
     let carX = 0;
     let carSteerVelocity = 0;
-    let steerInput = 0;
+    let isBoosting = false;
     let baseSpeed = 190;
     let currentSpeed = baseSpeed;
-    let isBoosting = false;
     let lapTime = 0;
     let trackDistance = 0;
 
-    // Rockstar Spring-Damper Camera State
     let camPosX = 0;
+    let camPosZ = 6.2;
     let camVelX = 0;
-    let camPosZ = initialCamZ;
     let camVelZ = 0;
     let camRoll = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
       pointerX = (e.clientX / window.innerWidth - 0.5) * 2.0;
-      steerInput = THREE.MathUtils.clamp(pointerX, -1, 1);
+      targetSteerInput = THREE.MathUtils.clamp(pointerX, -1, 1);
     };
 
     const handlePointerDown = () => {
@@ -694,9 +694,9 @@ export default function F1GameCanvas({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        steerInput = Math.max(-1.0, steerInput - 0.35);
+        targetSteerInput = Math.max(-1.0, targetSteerInput - 0.4);
       } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        steerInput = Math.min(1.0, steerInput + 0.35);
+        targetSteerInput = Math.min(1.0, targetSteerInput + 0.4);
       } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = true;
       }
@@ -704,9 +704,9 @@ export default function F1GameCanvas({
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        steerInput = 0;
+        targetSteerInput = 0;
       } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        steerInput = 0;
+        targetSteerInput = 0;
       } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = false;
       }
@@ -724,7 +724,7 @@ export default function F1GameCanvas({
       const h = window.innerHeight;
       const isMob = w < 768;
       camera.aspect = w / h;
-      camera.fov = isMob ? 58 : 50;
+      camera.fov = isMob ? 70 : 65;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       composer.setSize(w, h);
@@ -739,6 +739,9 @@ export default function F1GameCanvas({
     const tick = () => {
       const delta = Math.min(clock.getDelta(), 0.08);
       const time = clock.getElapsedTime();
+
+      // 0. Heavy Input Inertia (Progressive steering resistance)
+      steerInput = THREE.MathUtils.lerp(steerInput, targetSteerInput, 0.075);
 
       // 1. Acceleration & Pacing
       const targetSpeed = isBoosting ? 365 : 190;
@@ -765,16 +768,16 @@ export default function F1GameCanvas({
       }
 
       // 2. 🎮 ROCKSTAR AAA VEHICLE WEIGHT & DRIVING DYNAMICS
-      // Strict Lane Envelope: Keeps wide 2.2m Tumbler track locked 100% inside asphalt shoulder
-      const maxSafeAsphaltOffset = 3.2;
+      // Strict Lane Envelope: 2.75 units locks wide 2.2m Tumbler track completely within lane markings
+      const maxSafeAsphaltOffset = 2.75;
       targetCarX = THREE.MathUtils.clamp(
         steerInput * maxSafeAsphaltOffset,
         -maxSafeAsphaltOffset,
         maxSafeAsphaltOffset
       );
 
-      // Heavy vehicle inertia with slip response
-      const steerSpeed = 7.0;
+      // Heavy vehicle inertia with progressive steering resistance
+      const steerSpeed = 5.4;
       const prevX = carX;
       carX += (targetCarX - carX) * (steerSpeed * delta);
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
@@ -790,22 +793,22 @@ export default function F1GameCanvas({
       groundShadow.position.x = carX;
       groundShadow.position.z = 0;
 
-      const onKerb = Math.abs(carX) > maxSafeAsphaltOffset - 0.5;
+      const onKerb = Math.abs(carX) > maxSafeAsphaltOffset - 0.4;
       if (onKerb && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
 
       // Dynamic Weight Transfer (Pitch & Squat):
       // Acceleration -> nose lifts slightly; Deceleration -> nose dips
-      const accelPitch = isBoosting ? -0.040 : (currentSpeed < 185 ? 0.022 : -0.008);
-      carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, accelPitch, 0.08);
+      const accelPitch = isBoosting ? -0.045 : (currentSpeed < 185 ? 0.025 : -0.008);
+      carGroup.rotation.x = THREE.MathUtils.lerp(carGroup.rotation.x, accelPitch, 0.09);
 
-      // Centrifugal Suspension Body Roll (heavy Tumbler leans into corner)
-      const suspensionRoll = -carSteerVelocity * 0.032;
+      // Centrifugal Suspension Body Roll (heavy Tumbler leans out into corner)
+      const suspensionRoll = -carSteerVelocity * 0.038;
       carGroup.rotation.z = THREE.MathUtils.lerp(carGroup.rotation.z, suspensionRoll, 0.12);
 
-      // Ackermann Steering Yaw (nose leads turn with slight rear slip angle)
-      const ackermannYaw = -carSteerVelocity * 0.018 + steerInput * 0.035;
+      // Ackermann Steering Yaw (nose leads turn with calculated slip angle)
+      const ackermannYaw = -carSteerVelocity * 0.024 + steerInput * 0.045;
       carGroup.rotation.y = THREE.MathUtils.lerp(carGroup.rotation.y, ackermannYaw, 0.14);
 
       // 3. Headlight & Underbody Tracking (Normalized Batmobile Width)

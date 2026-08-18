@@ -129,7 +129,7 @@ export default function SpatialHUD({
           ) : (
             <Link href="/" className="spatial-hud-link">
               <span style={{ color: "#38bdf8" }}>←</span>
-              <span>GRAND PRIX</span>
+              <span>BATMOBILE</span>
             </Link>
           )}
 

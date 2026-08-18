@@ -237,7 +237,7 @@ export default function AppleLiquidDock({
         {/* Universal Navigation Links with live route active state */}
         <TextDockItem
           mouseX={mouseX}
-          label="Grand Prix"
+          label="Batmobile"
           href="/"
           isActive={isHomePage}
           isDot={isHomePage}
