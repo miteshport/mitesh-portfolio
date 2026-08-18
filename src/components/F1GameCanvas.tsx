@@ -583,12 +583,8 @@ export default function F1GameCanvas({
     const carGroup = new THREE.Group();
     scene.add(carGroup);
 
-    let leftFrontWheelBone: THREE.Object3D | null = null;
-    let rightFrontWheelBone: THREE.Object3D | null = null;
-    let leftRearWheelBone: THREE.Object3D | null = null;
-    let rightRearWheelBone: THREE.Object3D | null = null;
-    let leftFrontSteerBone: THREE.Object3D | null = null;
-    let rightFrontSteerBone: THREE.Object3D | null = null;
+    const dynamicWheels: THREE.Object3D[] = [];
+    const frontSteerNodes: THREE.Object3D[] = [];
 
     const loader = new GLTFLoader();
     loader.load(
@@ -596,14 +592,48 @@ export default function F1GameCanvas({
       (gltf) => {
         const model = gltf.scene;
 
-        // Isolate wheel rotation bones and front steering pivots
+        // SNIPER FILTER: Auto-detect and isolate exactly the 4 primary wheel nodes
+        const wheelExclusions = [
+          "sus",
+          "brake",
+          "disc",
+          "hub",
+          "arm",
+          "ik",
+          "dummy",
+          "collider",
+          "end",
+          "spline",
+          "piston",
+          "expose",
+          "ctrl",
+        ];
+
         model.traverse((child) => {
-          if (child.name === "bone_left_front_wheel_rot_01_064") leftFrontWheelBone = child;
-          if (child.name === "bone_right_front_wheel_rot_01_085") rightFrontWheelBone = child;
-          if (child.name === "bone_rear_left_wheel_013") leftRearWheelBone = child;
-          if (child.name === "bone_rear_right_wheel_012") rightRearWheelBone = child;
-          if (child.name === "bone_left_front_wheel_dir_root_a_01_068") leftFrontSteerBone = child;
-          if (child.name === "bone_right_front_wheel_dir_root_a_01_086") rightFrontSteerBone = child;
+          const name = child.name.toLowerCase();
+          const isWheelCandidate = name.includes("wheel") || name.includes("tyre") || name.includes("tire");
+          const isExcluded = wheelExclusions.some((k) => name.includes(k));
+
+          if (isWheelCandidate && !isExcluded) {
+            // Isolate primary wheel rotation joints / top groups
+            if (
+              child.name.startsWith("Wheel_") ||
+              child.name.includes("rot_01") ||
+              child.name === "bone_rear_left_wheel_013" ||
+              child.name === "bone_rear_right_wheel_012"
+            ) {
+              if (!dynamicWheels.includes(child)) {
+                dynamicWheels.push(child);
+              }
+            }
+          }
+
+          // Isolate front steering pivot bones
+          if (child.name.includes("dir_root_a_01")) {
+            if (!frontSteerNodes.includes(child)) {
+              frontSteerNodes.push(child);
+            }
+          }
 
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
@@ -628,6 +658,9 @@ export default function F1GameCanvas({
             }
           }
         });
+
+        console.log("🎯 CONFIRMED AXLES BOUND:", dynamicWheels.map((w) => w.name));
+        console.log("🎯 CONFIRMED STEER PIVOTS:", frontSteerNodes.map((w) => w.name));
 
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
@@ -875,28 +908,24 @@ export default function F1GameCanvas({
         }
       }
 
-      // 5B. 🔄 REAL 3D WHEEL ROTATION & FRONT STEERING PIVOTS
-      const wheelDelta = currentSpeed * 0.08 * delta;
-      if (leftFrontWheelBone) leftFrontWheelBone.rotation.y += wheelDelta;
-      if (rightFrontWheelBone) rightFrontWheelBone.rotation.y += wheelDelta;
-      if (leftRearWheelBone) leftRearWheelBone.rotation.y += wheelDelta;
-      if (rightRearWheelBone) rightRearWheelBone.rotation.y += wheelDelta;
+      // 5B. 🔄 SNIPER AUTO-BOUND 3D WHEEL ROTATION & STEERING
+      const tireRadius = 0.38;
+      const roadSpeed = currentSpeed * 0.055;
+      const angularDelta = (roadSpeed * delta) / tireRadius;
 
+      dynamicWheels.forEach((wheel) => {
+        wheel.rotation.y += angularDelta;
+      });
+
+      // Front Steering Angle Pivot
       const targetSteerAngle = -steerInput * 0.42;
-      if (leftFrontSteerBone) {
-        leftFrontSteerBone.rotation.z = THREE.MathUtils.lerp(
-          leftFrontSteerBone.rotation.z,
+      frontSteerNodes.forEach((steerNode) => {
+        steerNode.rotation.z = THREE.MathUtils.lerp(
+          steerNode.rotation.z,
           targetSteerAngle,
           0.20
         );
-      }
-      if (rightFrontSteerBone) {
-        rightFrontSteerBone.rotation.z = THREE.MathUtils.lerp(
-          rightFrontSteerBone.rotation.z,
-          targetSteerAngle,
-          0.20
-        );
-      }
+      });
 
       // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS (ELEVATED 3/4 CHASE VIEW)
       const isMobile = window.innerWidth < 768;
