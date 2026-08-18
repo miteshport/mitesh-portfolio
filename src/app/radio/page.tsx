@@ -33,7 +33,7 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const data = getFrequencyData();
-      const numBars = 28;
+      const numBars = 32;
       const width = canvas.width;
       const height = canvas.height;
       const barWidth = (width / numBars) * 0.65;
@@ -68,12 +68,12 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
   return (
     <canvas
       ref={canvasRef}
-      width={220}
-      height={20}
+      width={240}
+      height={22}
       style={{
         width: "100%",
-        maxWidth: "220px",
-        height: "20px",
+        maxWidth: "240px",
+        height: "22px",
         display: "block",
         margin: "0 auto",
       }}
@@ -82,11 +82,10 @@ function SoundVisualizer({ color = "#38bdf8" }: { color?: string }) {
 }
 
 export default function SoundroomPage() {
-  const [timeStr, setTimeStr] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<string>("user-vault");
-  const [showNowPlayingModal, setShowNowPlayingModal] = useState<boolean>(false);
   const [isShuffle, setIsShuffle] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"player" | "playlist">("player");
 
   const {
     currentTrack,
@@ -108,21 +107,7 @@ export default function SoundroomPage() {
     toggle432Hz,
   } = useSoundroom();
 
-  // Live Digital Clock
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hrs = String(now.getHours()).padStart(2, "0");
-      const mins = String(now.getMinutes()).padStart(2, "0");
-      const secs = String(now.getSeconds()).padStart(2, "0");
-      setTimeStr(`${hrs}:${mins}:${secs}`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Concatenate all tracks across all channels
+  // All 112 Tracks
   const allTracks = useMemo(() => {
     return channels.flatMap((c) => c.tracks);
   }, [channels]);
@@ -134,7 +119,6 @@ export default function SoundroomPage() {
         id: "all",
         title: "All Songs (Full Vault)",
         subtitle: "Complete 112 Master Soundtracks",
-        description: "Every handpicked masterpiece across all genres and eras.",
         themeColor: "#38bdf8",
         tracks: allTracks,
       };
@@ -143,7 +127,7 @@ export default function SoundroomPage() {
     return found || channels[0];
   }, [selectedFolder, channels, allTracks]);
 
-  // Filtered tracks based on search query
+  // Filtered tracks by search
   const displayedTracks = useMemo(() => {
     if (!searchQuery.trim()) return activePlaylist.tracks;
     const q = searchQuery.toLowerCase();
@@ -157,17 +141,28 @@ export default function SoundroomPage() {
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  // Apple Liquid Frosted Glass Style
-  const appleGlassStyle: React.CSSProperties = {
-    borderRadius: "28px",
+  // Fast forward / Rewind 10s
+  const handleFastForward = () => {
+    uiAudio.playClick();
+    seek(Math.min(duration, currentTime + 10));
+  };
+
+  const handleRewind = () => {
+    uiAudio.playClick();
+    seek(Math.max(0, currentTime - 10));
+  };
+
+  // Apple Liquid Glass 10/10 Style
+  const glassCardStyle: React.CSSProperties = {
+    borderRadius: "26px",
     background:
-      "linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.10) 100%)",
+      "linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.12) 100%)",
     backdropFilter: "blur(40px) saturate(220%) brightness(110%)",
     WebkitBackdropFilter: "blur(40px) saturate(220%) brightness(110%)",
     border: "1px solid rgba(255, 255, 255, 0.22)",
     borderTop: "1px solid rgba(255, 255, 255, 0.50)",
     boxShadow:
-      "inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.45), 0 30px 60px -15px rgba(0, 0, 0, 0.8)",
+      "inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.45), 0 28px 56px -12px rgba(0, 0, 0, 0.8)",
   };
 
   return (
@@ -183,9 +178,6 @@ export default function SoundroomPage() {
         fontFamily: "var(--font-apple)",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0.8rem 1rem",
         boxSizing: "border-box",
       }}
     >
@@ -193,21 +185,43 @@ export default function SoundroomPage() {
       <GalaxyStarfield />
       <SpatialHUD />
 
-      {/* CENTER IPAD / APPLE MUSIC CONTAINER */}
+      {/* INJECT SLEEK GLASS SCROLLBAR CSS */}
+      <style jsx global>{`
+        .custom-apple-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-apple-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 9999px;
+        }
+        .custom-apple-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.25);
+          border-radius: 9999px;
+        }
+        .custom-apple-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.45);
+        }
+      `}</style>
+
+      {/* MAIN IPAD / APPLE MUSIC CONTAINER (CLEAN TOP MARGIN — ZERO HUD COLLISION) */}
       <div
         style={{
           flex: 1,
           width: "100%",
-          maxWidth: "680px",
+          maxWidth: "1160px",
+          margin: "0 auto",
+          marginTop: "4.4rem",
+          marginBottom: "1rem",
+          padding: "0 1.2rem",
           display: "flex",
           flexDirection: "column",
           position: "relative",
           zIndex: 10,
           minHeight: 0,
-          padding: "0.5rem 0",
+          boxSizing: "border-box",
         }}
       >
-        {/* 1. IPAD FOLDER / PLAYLIST SELECTOR BAR */}
+        {/* FOLDER / PLAYLIST SELECTOR PILLS */}
         <div
           style={{
             display: "flex",
@@ -215,8 +229,8 @@ export default function SoundroomPage() {
             gap: "0.45rem",
             overflowX: "auto",
             maxWidth: "100%",
-            padding: "0.3rem 0.2rem",
-            marginBottom: "0.65rem",
+            padding: "0.2rem 0.1rem",
+            marginBottom: "0.85rem",
             scrollbarWidth: "none",
             WebkitOverflowScrolling: "touch",
             flexShrink: 0,
@@ -233,7 +247,7 @@ export default function SoundroomPage() {
                 }}
                 style={{
                   flexShrink: 0,
-                  padding: "0.45rem 0.95rem",
+                  padding: "0.42rem 0.95rem",
                   borderRadius: "9999px",
                   fontSize: "0.74rem",
                   fontWeight: 600,
@@ -260,14 +274,11 @@ export default function SoundroomPage() {
                   ●
                 </span>
                 <span>{ch.title}</span>
-                <span style={{ fontSize: "0.64rem", opacity: 0.6 }}>
-                  ({ch.tracks.length})
-                </span>
+                <span style={{ fontSize: "0.64rem", opacity: 0.6 }}>({ch.tracks.length})</span>
               </button>
             );
           })}
 
-          {/* ALL SONGS FOLDER */}
           <button
             onClick={() => {
               uiAudio.playClick();
@@ -275,7 +286,7 @@ export default function SoundroomPage() {
             }}
             style={{
               flexShrink: 0,
-              padding: "0.45rem 0.95rem",
+              padding: "0.42rem 0.95rem",
               borderRadius: "9999px",
               fontSize: "0.74rem",
               fontWeight: 600,
@@ -301,645 +312,551 @@ export default function SoundroomPage() {
           </button>
         </div>
 
-        {/* 2. MAIN TRACKLIST VIEW (APPLE MUSIC PLAYLIST BROWSER) */}
+        {/* IPAD SPLIT VIEW: LEFT (NOW PLAYING HERO DECK) + RIGHT (PLAYLIST TRACKS) */}
         <div
           style={{
-            ...appleGlassStyle,
             flex: 1,
-            display: "flex",
-            flexDirection: "column",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "1.2rem",
             minHeight: 0,
-            overflow: "hidden",
-            padding: "1rem 1.2rem",
           }}
         >
-          {/* Playlist Info Header & Search Bar */}
+          {/* ============================================================== */}
+          {/* LEFT CARD: APPLE / SAMSUNG FULL NOW PLAYING DECK               */}
+          {/* ============================================================== */}
           <div
             style={{
+              ...glassCardStyle,
+              padding: "1.4rem",
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: "0.8rem",
-              paddingBottom: "0.8rem",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
-              flexShrink: 0,
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            <div>
-              <div
-                style={{
-                  fontSize: "1.05rem",
-                  fontWeight: 750,
-                  color: "#ffffff",
-                  letterSpacing: "-0.02em",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <span>{activePlaylist.title}</span>
-                <span
-                  style={{
-                    fontSize: "0.68rem",
-                    padding: "0.15rem 0.5rem",
-                    borderRadius: "9999px",
-                    background: "rgba(255, 255, 255, 0.14)",
-                    color: activePlaylist.themeColor || "#38bdf8",
-                  }}
-                >
-                  {displayedTracks.length} Songs
-                </span>
-              </div>
-              <div
-                style={{
-                  fontSize: "0.68rem",
-                  color: "rgba(255, 255, 255, 0.55)",
-                  marginTop: "0.15rem",
-                }}
-              >
-                {activePlaylist.subtitle}
-              </div>
-            </div>
-
-            {/* Live Search Input */}
-            <div style={{ position: "relative", minWidth: "160px", maxWidth: "220px" }}>
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "0.4rem 0.8rem",
-                  paddingLeft: "1.8rem",
-                  borderRadius: "9999px",
-                  background: "rgba(255, 255, 255, 0.10)",
-                  border: "1px solid rgba(255, 255, 255, 0.20)",
-                  color: "#ffffff",
-                  fontSize: "0.72rem",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  left: "0.6rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  fontSize: "0.7rem",
-                  opacity: 0.5,
-                  pointerEvents: "none",
-                }}
-              >
-                🔍
-              </span>
-            </div>
-          </div>
-
-          {/* Scrollable Song List */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              paddingTop: "0.6rem",
-              paddingRight: "0.2rem",
-              minHeight: 0,
-            }}
-          >
-            {displayedTracks.length === 0 ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "3rem 1rem",
-                  color: "rgba(255, 255, 255, 0.45)",
-                  fontSize: "0.8rem",
-                }}
-              >
-                No matching tracks found in this playlist.
-              </div>
-            ) : (
-              displayedTracks.map((track, idx) => {
-                const isCurrent = currentTrack?.id === track.id;
-                return (
-                  <motion.div
-                    key={track.id}
-                    onClick={() => {
-                      playTrack(track);
-                    }}
-                    whileHover={{ scale: 1.01, backgroundColor: "rgba(255, 255, 255, 0.14)" }}
-                    whileTap={{ scale: 0.99 }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.85rem",
-                      padding: "0.55rem 0.75rem",
-                      borderRadius: "14px",
-                      background: isCurrent
-                        ? "linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 100%)"
-                        : "transparent",
-                      border: isCurrent
-                        ? "1px solid rgba(255, 255, 255, 0.35)"
-                        : "1px solid transparent",
-                      cursor: "pointer",
-                      marginBottom: "0.3rem",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {/* Index or Playing Icon */}
-                    <div
-                      style={{
-                        width: "22px",
-                        textAlign: "center",
-                        fontSize: "0.72rem",
-                        fontWeight: 600,
-                        color: isCurrent ? "#38bdf8" : "rgba(255, 255, 255, 0.4)",
-                      }}
-                    >
-                      {isCurrent && isPlaying ? "▶" : idx + 1}
-                    </div>
-
-                    {/* Artwork Thumbnail */}
-                    <img
-                      src={track.artwork}
-                      alt={track.title}
-                      style={{
-                        width: "38px",
-                        height: "38px",
-                        borderRadius: "8px",
-                        objectFit: "cover",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-                      }}
-                    />
-
-                    {/* Title & Artist */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: "0.82rem",
-                          fontWeight: isCurrent ? 700 : 550,
-                          color: isCurrent ? "#ffffff" : "rgba(255, 255, 255, 0.90)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {track.title}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "rgba(255, 255, 255, 0.50)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          marginTop: "0.1rem",
-                        }}
-                      >
-                        {track.artist} · {track.album}
-                      </div>
-                    </div>
-
-                    {/* Duration */}
-                    <div
-                      style={{
-                        fontSize: "0.7rem",
-                        fontFamily: "var(--font-mono, monospace)",
-                        color: isCurrent ? "#38bdf8" : "rgba(255, 255, 255, 0.45)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {formatTime(track.duration)}
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
-
-          {/* 3. APPLE MUSIC DOCKED MINI-PLAYER (BOTTOM OF TRACKLIST) */}
-          {currentTrack && (
-            <motion.div
-              onClick={() => {
-                uiAudio.playClick();
-                setShowNowPlayingModal(true);
-              }}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+            {/* Dynamic Saturated Ambient Bloom */}
+            <div
               style={{
-                marginTop: "0.6rem",
-                padding: "0.65rem 0.95rem",
-                borderRadius: "18px",
-                background: "rgba(255, 255, 255, 0.18)",
-                backdropFilter: "blur(30px)",
-                WebkitBackdropFilter: "blur(30px)",
-                border: "1px solid rgba(255, 255, 255, 0.35)",
-                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.85rem",
-                cursor: "pointer",
+                position: "absolute",
+                top: "-25%",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "280px",
+                height: "280px",
+                borderRadius: "50%",
+                filter: "blur(80px)",
+                opacity: 0.50,
+                pointerEvents: "none",
+                zIndex: 0,
+                backgroundColor: currentChannel?.themeColor || "#38bdf8",
+                transition: "background-color 0.8s ease",
+              }}
+            />
+
+            {/* Album Artwork */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                width: "min(24vh, 180px)",
+                height: "min(24vh, 180px)",
+                borderRadius: "20px",
+                overflow: "hidden",
+                boxShadow: "0 18px 45px -8px rgba(0, 0, 0, 0.85)",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                marginBottom: "0.8rem",
                 flexShrink: 0,
               }}
             >
               <img
-                src={currentTrack.artwork}
-                alt={currentTrack.title}
-                style={{
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "10px",
-                  objectFit: "cover",
-                }}
+                src={currentTrack?.artwork}
+                alt={currentTrack?.title}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: "0.82rem",
-                    fontWeight: 700,
-                    color: "#ffffff",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {currentTrack.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.68rem",
-                    color: "rgba(255, 255, 255, 0.60)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {currentTrack.artist}
-                </div>
-              </div>
+            </div>
 
-              {/* Mini Controls */}
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={togglePlay}
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "50%",
-                    border: "none",
-                    background: "#ffffff",
-                    color: "#000000",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.95rem",
-                    cursor: "pointer",
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
-                  }}
-                >
-                  {isPlaying ? "❚❚" : "▶"}
-                </button>
-                <button
-                  onClick={nextTrack}
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    border: "none",
-                    background: "rgba(255, 255, 255, 0.15)",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  ⏭
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </div>
+            {/* Live Audio Visualizer */}
+            <div style={{ width: "100%", marginBottom: "0.6rem", position: "relative", zIndex: 1 }}>
+              <SoundVisualizer color={currentChannel?.themeColor || "#38bdf8"} />
+            </div>
 
-      {/* 4. APPLE MUSIC EXPANDED FULL-SCREEN "NOW PLAYING" MODAL */}
-      <AnimatePresence>
-        {showNowPlayingModal && currentTrack && (
-          <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 120, scale: 0.95 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100dvh",
-              zIndex: 100,
-              backgroundColor: "rgba(6, 4, 12, 0.85)",
-              backdropFilter: "blur(50px) saturate(220%)",
-              WebkitBackdropFilter: "blur(50px) saturate(220%)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "1.5rem",
-              boxSizing: "border-box",
-            }}
-          >
+            {/* Track Info */}
             <div
               style={{
-                ...appleGlassStyle,
-                width: "100%",
-                maxWidth: "440px",
-                padding: "1.6rem",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
                 position: "relative",
+                zIndex: 1,
+                textAlign: "center",
+                width: "100%",
+                marginBottom: "0.8rem",
               }}
             >
-              {/* Close / Collapse Handle */}
-              <button
-                onClick={() => {
-                  uiAudio.playClick();
-                  setShowNowPlayingModal(false);
-                }}
+              <div
                 style={{
-                  position: "absolute",
-                  top: "1.2rem",
-                  right: "1.2rem",
-                  background: "rgba(255, 255, 255, 0.15)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "32px",
-                  height: "32px",
+                  fontSize: "1.15rem",
+                  fontWeight: 750,
                   color: "#ffffff",
-                  fontSize: "1.1rem",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                ✕
-              </button>
-
-              {/* Dynamic Colored Ambient Back-Glow */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "-20%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: "280px",
-                  height: "280px",
-                  borderRadius: "50%",
-                  filter: "blur(80px)",
-                  opacity: 0.55,
-                  pointerEvents: "none",
-                  zIndex: 0,
-                  backgroundColor: currentChannel?.themeColor || "#38bdf8",
-                  transition: "background-color 0.6s ease",
-                }}
-              />
-
-              {/* Large Album Artwork */}
-              <motion.div
-                animate={{ scale: isPlaying ? 1.02 : 0.98 }}
-                transition={{ duration: 0.4 }}
-                style={{
-                  position: "relative",
-                  zIndex: 1,
-                  width: "190px",
-                  height: "190px",
-                  borderRadius: "22px",
+                  letterSpacing: "-0.02em",
+                  whiteSpace: "nowrap",
                   overflow: "hidden",
-                  boxShadow: "0 20px 50px -10px rgba(0, 0, 0, 0.85)",
-                  marginBottom: "1.2rem",
+                  textOverflow: "ellipsis",
                 }}
               >
-                <img
-                  src={currentTrack.artwork}
-                  alt={currentTrack.title}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              </motion.div>
-
-              {/* Live Audio Visualizer */}
-              <div style={{ width: "100%", marginBottom: "1rem", position: "relative", zIndex: 1 }}>
-                <SoundVisualizer color={currentChannel?.themeColor || "#38bdf8"} />
+                {currentTrack?.title}
               </div>
-
-              {/* Track Info */}
-              <div style={{ textAlign: "center", width: "100%", marginBottom: "1.2rem", position: "relative", zIndex: 1 }}>
-                <div
-                  style={{
-                    fontSize: "1.2rem",
-                    fontWeight: 800,
-                    color: "#ffffff",
-                    letterSpacing: "-0.02em",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {currentTrack.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.85rem",
-                    color: "rgba(255, 255, 255, 0.65)",
-                    marginTop: "0.2rem",
-                  }}
-                >
-                  {currentTrack.artist}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.72rem",
-                    color: currentChannel?.themeColor || "#38bdf8",
-                    marginTop: "0.2rem",
-                    fontWeight: 600,
-                  }}
-                >
-                  {currentChannel?.title}
-                </div>
-              </div>
-
-              {/* Apple Music Scrubber Bar */}
-              <div style={{ width: "100%", marginBottom: "1.2rem", position: "relative", zIndex: 1 }}>
-                <div
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const percent = clickX / rect.width;
-                    seek(percent * duration);
-                  }}
-                  style={{
-                    width: "100%",
-                    height: "6px",
-                    borderRadius: "9999px",
-                    backgroundColor: "rgba(255, 255, 255, 0.20)",
-                    cursor: "pointer",
-                    position: "relative",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${progressPercent}%`,
-                      borderRadius: "9999px",
-                      backgroundColor: "#ffffff",
-                      boxShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "0.68rem",
-                    fontFamily: "var(--font-mono, monospace)",
-                    color: "rgba(255, 255, 255, 0.45)",
-                    marginTop: "0.4rem",
-                  }}
-                >
-                  <span>{formatTime(currentTime)}</span>
-                  <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
-                </div>
-              </div>
-
-              {/* Transport Controls */}
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "1.5rem",
-                  marginBottom: "1.2rem",
-                  position: "relative",
-                  zIndex: 1,
+                  fontSize: "0.82rem",
+                  color: "rgba(255, 255, 255, 0.70)",
+                  marginTop: "0.2rem",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
-                <button
-                  onClick={() => setIsShuffle((prev) => !prev)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: isShuffle ? "#38bdf8" : "rgba(255, 255, 255, 0.4)",
-                    fontSize: "1.1rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  🔀
-                </button>
-
-                <button
-                  onClick={prevTrack}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#ffffff",
-                    fontSize: "1.4rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  ⏮
-                </button>
-
-                <motion.button
-                  onClick={togglePlay}
-                  whileTap={{ scale: 0.90 }}
-                  style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "50%",
-                    backgroundColor: "#ffffff",
-                    border: "none",
-                    color: "#000000",
-                    fontSize: "1.4rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    boxShadow: "0 10px 25px rgba(255, 255, 255, 0.35)",
-                  }}
-                >
-                  {isPlaying ? "❚❚" : "▶"}
-                </motion.button>
-
-                <button
-                  onClick={nextTrack}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#ffffff",
-                    fontSize: "1.4rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  ⏭
-                </button>
-
-                <button
-                  onClick={toggle432Hz}
-                  style={{
-                    background: is432Hz ? "rgba(56, 189, 248, 0.25)" : "none",
-                    border: is432Hz ? "1px solid #38bdf8" : "1px solid transparent",
-                    borderRadius: "8px",
-                    padding: "0.2rem 0.4rem",
-                    color: is432Hz ? "#38bdf8" : "rgba(255, 255, 255, 0.4)",
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  432Hz
-                </button>
+                {currentTrack?.artist}
               </div>
-
-              {/* Volume Slider */}
               <div
                 style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  position: "relative",
-                  zIndex: 1,
+                  fontSize: "0.68rem",
+                  color: currentChannel?.themeColor || "#38bdf8",
+                  marginTop: "0.2rem",
+                  fontWeight: 600,
                 }}
               >
-                <span
-                  onClick={toggleMute}
-                  style={{ cursor: "pointer", fontSize: "0.85rem", opacity: 0.7 }}
-                >
-                  {isMuted || volume === 0 ? "🔇" : "🔊"}
-                </span>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  style={{
-                    flex: 1,
-                    accentColor: "#ffffff",
-                    height: "4px",
-                    cursor: "pointer",
-                  }}
-                />
+                {currentChannel?.title} · {currentTrack?.album}
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            {/* Scrubber Timeline Bar */}
+            <div style={{ width: "100%", marginBottom: "0.8rem", position: "relative", zIndex: 1 }}>
+              <div
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left;
+                  const percent = clickX / rect.width;
+                  seek(percent * duration);
+                }}
+                style={{
+                  width: "100%",
+                  height: "6px",
+                  borderRadius: "9999px",
+                  backgroundColor: "rgba(255, 255, 255, 0.20)",
+                  cursor: "pointer",
+                  position: "relative",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${progressPercent}%`,
+                    borderRadius: "9999px",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: "0.68rem",
+                  fontFamily: "var(--font-mono, monospace)",
+                  color: "rgba(255, 255, 255, 0.50)",
+                  marginTop: "0.4rem",
+                }}
+              >
+                <span>{formatTime(currentTime)}</span>
+                <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
+              </div>
+            </div>
+
+            {/* Transport Controls (Full Rewind, Prev, Play/Pause, Next, Fast-Forward) */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "1.1rem",
+                marginBottom: "0.9rem",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              {/* Shuffle */}
+              <button
+                onClick={() => setIsShuffle((prev) => !prev)}
+                title="Shuffle"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: isShuffle ? "#38bdf8" : "rgba(255, 255, 255, 0.4)",
+                  fontSize: "1.05rem",
+                  cursor: "pointer",
+                }}
+              >
+                🔀
+              </button>
+
+              {/* Rewind 10s */}
+              <button
+                onClick={handleRewind}
+                title="Rewind 10s"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "rgba(255, 255, 255, 0.75)",
+                  fontSize: "1.1rem",
+                  cursor: "pointer",
+                }}
+              >
+                ↺ 10s
+              </button>
+
+              {/* Previous Track */}
+              <button
+                onClick={prevTrack}
+                title="Previous Song"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "1.35rem",
+                  cursor: "pointer",
+                }}
+              >
+                ⏮
+              </button>
+
+              {/* Big Play / Pause Button */}
+              <motion.button
+                onClick={togglePlay}
+                whileTap={{ scale: 0.92 }}
+                style={{
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ffffff",
+                  border: "none",
+                  color: "#000000",
+                  fontSize: "1.35rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 8px 24px rgba(255, 255, 255, 0.35)",
+                }}
+              >
+                {isPlaying ? "❚❚" : "▶"}
+              </motion.button>
+
+              {/* Next Track */}
+              <button
+                onClick={nextTrack}
+                title="Next Song"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "1.35rem",
+                  cursor: "pointer",
+                }}
+              >
+                ⏭
+              </button>
+
+              {/* Fast Forward 10s */}
+              <button
+                onClick={handleFastForward}
+                title="Fast Forward 10s"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "rgba(255, 255, 255, 0.75)",
+                  fontSize: "1.1rem",
+                  cursor: "pointer",
+                }}
+              >
+                10s ↻
+              </button>
+
+              {/* 432Hz Spatial Toggle */}
+              <button
+                onClick={toggle432Hz}
+                title="432Hz Harmonic Tuning"
+                style={{
+                  background: is432Hz ? "rgba(56, 189, 248, 0.25)" : "none",
+                  border: is432Hz ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.2)",
+                  borderRadius: "8px",
+                  padding: "0.2rem 0.45rem",
+                  color: is432Hz ? "#38bdf8" : "rgba(255, 255, 255, 0.5)",
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                432Hz
+              </button>
+            </div>
+
+            {/* Volume Control Bar */}
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              <span
+                onClick={toggleMute}
+                style={{ cursor: "pointer", fontSize: "0.85rem", opacity: 0.75 }}
+                title={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted || volume === 0 ? "🔇" : "🔉"}
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                style={{
+                  flex: 1,
+                  accentColor: "#ffffff",
+                  height: "4px",
+                  cursor: "pointer",
+                }}
+              />
+              <span style={{ fontSize: "0.85rem", opacity: 0.75 }}>🔊</span>
+            </div>
+          </div>
+
+          {/* ============================================================== */}
+          {/* RIGHT CARD: PLAYLIST TRACKLIST BROWSER                         */}
+          {/* ============================================================== */}
+          <div
+            style={{
+              ...glassCardStyle,
+              padding: "1.2rem",
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+              overflow: "hidden",
+            }}
+          >
+            {/* Playlist Title & Search */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "0.8rem",
+                paddingBottom: "0.8rem",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+                flexShrink: 0,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "1.05rem",
+                    fontWeight: 750,
+                    color: "#ffffff",
+                    letterSpacing: "-0.02em",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <span>{activePlaylist.title}</span>
+                  <span
+                    style={{
+                      fontSize: "0.68rem",
+                      padding: "0.15rem 0.55rem",
+                      borderRadius: "9999px",
+                      background: "rgba(255, 255, 255, 0.15)",
+                      color: activePlaylist.themeColor || "#38bdf8",
+                    }}
+                  >
+                    {displayedTracks.length} Tracks
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.68rem",
+                    color: "rgba(255, 255, 255, 0.55)",
+                    marginTop: "0.15rem",
+                  }}
+                >
+                  {activePlaylist.subtitle}
+                </div>
+              </div>
+
+              {/* Live Search */}
+              <div style={{ position: "relative", minWidth: "150px", maxWidth: "200px" }}>
+                <input
+                  type="text"
+                  placeholder="Search songs..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.38rem 0.75rem",
+                    paddingLeft: "1.8rem",
+                    borderRadius: "9999px",
+                    background: "rgba(255, 255, 255, 0.10)",
+                    border: "1px solid rgba(255, 255, 255, 0.20)",
+                    color: "#ffffff",
+                    fontSize: "0.72rem",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    left: "0.6rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    fontSize: "0.68rem",
+                    opacity: 0.5,
+                    pointerEvents: "none",
+                  }}
+                >
+                  🔍
+                </span>
+              </div>
+            </div>
+
+            {/* Scrollable Song List with Custom Sleek Scrollbar */}
+            <div
+              className="custom-apple-scrollbar"
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                paddingTop: "0.6rem",
+                paddingRight: "0.35rem",
+                minHeight: 0,
+              }}
+            >
+              {displayedTracks.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "3rem 1rem",
+                    color: "rgba(255, 255, 255, 0.45)",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  No matching tracks found.
+                </div>
+              ) : (
+                displayedTracks.map((track, idx) => {
+                  const isCurrent = currentTrack?.id === track.id;
+                  return (
+                    <motion.div
+                      key={track.id}
+                      onClick={() => {
+                        playTrack(track);
+                      }}
+                      whileHover={{ scale: 1.01, backgroundColor: "rgba(255, 255, 255, 0.14)" }}
+                      whileTap={{ scale: 0.99 }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.8rem",
+                        padding: "0.55rem 0.75rem",
+                        borderRadius: "14px",
+                        background: isCurrent
+                          ? "linear-gradient(90deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.08) 100%)"
+                          : "transparent",
+                        border: isCurrent
+                          ? "1px solid rgba(255, 255, 255, 0.35)"
+                          : "1px solid transparent",
+                        cursor: "pointer",
+                        marginBottom: "0.3rem",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {/* Number or Playing Icon */}
+                      <div
+                        style={{
+                          width: "22px",
+                          textAlign: "center",
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                          color: isCurrent ? "#38bdf8" : "rgba(255, 255, 255, 0.4)",
+                        }}
+                      >
+                        {isCurrent && isPlaying ? "▶" : idx + 1}
+                      </div>
+
+                      {/* Artwork Thumbnail */}
+                      <img
+                        src={track.artwork}
+                        alt={track.title}
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                          borderRadius: "8px",
+                          objectFit: "cover",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                        }}
+                      />
+
+                      {/* Title & Artist */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            fontWeight: isCurrent ? 750 : 550,
+                            color: isCurrent ? "#ffffff" : "rgba(255, 255, 255, 0.90)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {track.title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.68rem",
+                            color: "rgba(255, 255, 255, 0.50)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            marginTop: "0.1rem",
+                          }}
+                        >
+                          {track.artist} · {track.album}
+                        </div>
+                      </div>
+
+                      {/* Duration */}
+                      <div
+                        style={{
+                          fontSize: "0.7rem",
+                          fontFamily: "var(--font-mono, monospace)",
+                          color: isCurrent ? "#38bdf8" : "rgba(255, 255, 255, 0.45)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {formatTime(track.duration)}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
