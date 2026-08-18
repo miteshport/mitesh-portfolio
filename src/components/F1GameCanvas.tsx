@@ -820,49 +820,57 @@ export default function F1GameCanvas({
     };
     resetTriggerRef.current = resetGameRound;
 
-    // --- 11. 🎮 UNIFIED 3-LANE CONTROLS (PRECISION MOUSE BOOST & TOUCH STEERING) ---
-    const handlePointerMove = (e: PointerEvent) => {
-      if (currentGameState !== "PLAYING") return;
-      // Continuous smooth mouse glide across the 3 lanes
-      const normX = (e.clientX / window.innerWidth) * 2 - 1;
-      const rawTargetX = THREE.MathUtils.clamp(normX * 3.2, -2.6, 2.6);
-
-      // Intelligent Lane Snap: auto-locks cleanly into lane centers
-      if (rawTargetX < -1.4) {
-        currentLane = 0; // Left Lane (-2.6)
-      } else if (rawTargetX > 1.4) {
-        currentLane = 2; // Right Lane (+2.6)
-      } else {
-        currentLane = 1; // Center Lane (0.0)
-      }
-      targetCarX = lanePositions[currentLane];
-    };
+    // --- 11. 🎮 AAA ARCADE INPUT ENGINE (INSTANT TAP, SWIPE FLICK & MOUSE BOOST) ---
+    let touchStartX = 0;
+    let swipeTriggered = false;
 
     const handlePointerDown = (e: PointerEvent) => {
       if (currentGameState !== "PLAYING") return;
-      // 🖱️ Mouse Left Click = Engage Roaring Afterburner Boost!
-      if (e.pointerType === "mouse" || e.button === 0) {
-        isBoosting = true;
-      }
+      touchStartX = e.clientX;
+      swipeTriggered = false;
 
-      // 📱 Mobile Touch: Tap left/right third to switch lanes
-      if (e.pointerType === "touch") {
-        const normX = (e.clientX / window.innerWidth) * 2 - 1;
-        if (normX < -0.25) {
+      // 📱 MOBILE TOUCH: Instant 1-Frame Tap Response (Left Half / Right Half)
+      if (e.pointerType === "touch" || window.innerWidth < 768) {
+        if (e.clientX < window.innerWidth * 0.5) {
           currentLane = Math.max(0, currentLane - 1);
-        } else if (normX > 0.25) {
-          currentLane = Math.min(2, currentLane + 1);
         } else {
-          currentLane = 1;
+          currentLane = Math.min(2, currentLane + 1);
         }
         targetCarX = lanePositions[currentLane];
       }
+
+      // 🖱️ DESKTOP MOUSE: Hold Left-Click for Afterburner Boost
+      if (e.pointerType === "mouse" || e.button === 0) {
+        isBoosting = true;
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (currentGameState !== "PLAYING") return;
+
+      // 📱 MOBILE SWIPE FLICK GESTURE
+      if (e.pointerType === "touch" || window.innerWidth < 768) {
+        const deltaX = e.clientX - touchStartX;
+        if (!swipeTriggered && Math.abs(deltaX) > 28) {
+          swipeTriggered = true;
+          if (deltaX > 28) currentLane = Math.min(2, currentLane + 1);
+          else if (deltaX < -28) currentLane = Math.max(0, currentLane - 1);
+          targetCarX = lanePositions[currentLane];
+        }
+        return;
+      }
+
+      // 🖱️ DESKTOP MOUSE: Analog Glide with 15% Deadzone
+      const normX = (e.clientX / window.innerWidth) * 2 - 1;
+      if (normX < -0.22) currentLane = 0;
+      else if (normX > 0.22) currentLane = 2;
+      else currentLane = 1;
+      targetCarX = lanePositions[currentLane];
     };
 
     const handlePointerUp = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" || e.button === 0) {
-        isBoosting = false;
-      }
+      swipeTriggered = false;
+      if (e.pointerType === "mouse" || e.button === 0) isBoosting = false;
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -909,7 +917,6 @@ export default function F1GameCanvas({
       composer.setSize(w, h);
       bloomPass.setSize(w / 2, h / 2);
 
-      // Re-calculate responsive lane pitch and lock car inside viewport
       lanePitch = getLanePitch();
       lanePositions = [-lanePitch, 0.0, lanePitch];
       targetCarX = lanePositions[currentLane];
@@ -1040,21 +1047,46 @@ export default function F1GameCanvas({
         spawnWaveFormation(newWaveZ, passedIndices.slice(0, 3));
       }
 
-      // 5. 1:1 CRISP 3-LANE GLIDE (Rock-Solid Grounded, Zero Bouncing)
-      const prevX = carX;
-      carX = THREE.MathUtils.lerp(carX, targetCarX, 0.18);
-      carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
-      steerInput = THREE.MathUtils.clamp((targetCarX - carX) * 0.7, -1, 1);
+      // 5. 🏎️ 3 HEAVY TUMBLER MECHANICAL RIGS & SUSPENSION DYNAMICS
+      const steerDiff = targetCarX - carX;
+      carSteerVelocity = steerDiff * 14.0;
+      carX += steerDiff * Math.min(1.0, delta * 13.5);
 
       const skidWobble = skidTimer > 0 ? Math.sin(time * 40) * 0.14 * skidTimer : 0;
 
-      // Tumbler locked flat on asphalt
       carGroup.position.x = carX + skidWobble;
       carGroup.position.y = 0.02;
       carGroup.position.z = 0;
 
       groundShadow.position.x = carX + skidWobble;
       groundShadow.position.z = 0;
+
+      // 🛞 RIG 1: 4-Wheel Monster Tread Axle Rotation
+      if (carGroup.children[2]) {
+        carGroup.children[2].traverse((child: any) => {
+          if (child.isMesh && (child.name.toLowerCase().includes("wheel") || child.name.toLowerCase().includes("tire") || child.name.toLowerCase().includes("rim"))) {
+            child.rotation.x += forwardDelta * 1.8;
+          }
+        });
+      }
+
+      // 🪽 RIG 2: Active Aero Air-Brake Flaps (Winglets)
+      const targetFlapAngle = (Math.abs(steerDiff) > 0.35 || isBraking) ? 0.45 : (isBoosting ? -0.15 : 0.0);
+      if (carGroup.children[2]) {
+        carGroup.children[2].traverse((child: any) => {
+          if (child.isMesh && (child.name.toLowerCase().includes("wing") || child.name.toLowerCase().includes("flap") || child.name.toLowerCase().includes("aero") || child.name.toLowerCase().includes("spoiler"))) {
+            child.rotation.x += (targetFlapAngle - child.rotation.x) * 0.18;
+          }
+        });
+      }
+
+      // 🏋️ RIG 3: Heavy 2.5-Ton Suspension (6-8° Body Roll, Yaw Counter-Steer, Boost Squat)
+      if (carGroup.children[2]) {
+        const carPivot = carGroup.children[2];
+        carPivot.rotation.z = -steerDiff * 0.14; // Heavy Body Roll into corner
+        carPivot.rotation.y = Math.PI / 2 + steerDiff * 0.08; // Yaw drift
+        carPivot.rotation.x = isBoosting ? 0.035 : (isBraking ? -0.025 : 0.0); // Squat / Dive
+      }
 
       const onKerb = Math.abs(carX) > 2.85;
       if (onKerb && isDriving && Math.random() < 0.08) {

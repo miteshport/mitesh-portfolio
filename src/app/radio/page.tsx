@@ -294,7 +294,7 @@ export default function SoundroomPage() {
         data-lenis-prevent="true"
         style={{
           width: "100%",
-          maxWidth: "430px", height: "min(84dvh, 640px)", minHeight: "480px",
+          maxWidth: "415px", height: "min(92dvh, 660px)", minHeight: "460px",
           position: "relative",
           zIndex: 10,
           marginTop: "2.5rem",
@@ -370,7 +370,7 @@ export default function SoundroomPage() {
                   {isLive ? (
                     <span style={{ color: "#ef4444", fontWeight: 700 }}>● 24/7 LIVE RADIO</span>
                   ) : (
-                    <span>SOUNDROOM // COMMUTE VAULT</span>
+                    <span style={{ fontWeight: 700, color: "#38bdf8" }}>COMMUTE VAULT</span>
                   )}
                 </div>
 
@@ -503,7 +503,7 @@ export default function SoundroomPage() {
                 style={{
                   position: "relative",
                   zIndex: 1,
-                  width: "clamp(120px, 22vh, 175px)", height: "clamp(120px, 22vh, 175px)",
+                  width: "clamp(140px, 28vh, 210px)", height: "clamp(140px, 28vh, 210px)",
                   borderRadius: "20px",
                   overflow: "hidden",
                   boxShadow: "0 20px 45px -8px rgba(0, 0, 0, 0.85)",
@@ -519,10 +519,7 @@ export default function SoundroomPage() {
                 />
               </div>
 
-              {/* Live Audio Visualizer */}
-              <div style={{ width: "100%", position: "relative", zIndex: 1 }}>
-                <SoundVisualizer color={currentChannel?.themeColor || "#38bdf8"} />
-              </div>
+
 
               {/* Track Info */}
               <div
