@@ -62,11 +62,11 @@ export default function F1GameCanvas({
     scene.background = new THREE.Color(0x020409);
     scene.fog = new THREE.FogExp2(0x020409, 0.0055);
 
-    // RESPONSIVE 3RD-PERSON CHASE CAMERA WITH ELEVATION & BREATHING ROOM
+    // RESPONSIVE 3RD-PERSON CHASE CAMERA (ELEVATED 3/4 BATMOBILE PERSPECTIVE)
     const isInitMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    const initialFOV = isInitMobile ? 65 : 58;
-    const initialCamZ = isInitMobile ? 6.2 : 5.4;
-    const initialCamY = isInitMobile ? 2.4 : 2.1;
+    const initialFOV = isInitMobile ? 70 : 65;
+    const initialCamZ = isInitMobile ? 7.0 : 6.2;
+    const initialCamY = isInitMobile ? 3.2 : 2.8;
 
     const camera = new THREE.PerspectiveCamera(
       initialFOV,
@@ -118,6 +118,33 @@ export default function F1GameCanvas({
 
     const studioEnvMap = pmremGenerator.fromScene(envScene, 0.04).texture;
     scene.environment = studioEnvMap;
+
+    // --- 2B. 🛞 PROCEDURAL ROLLING TIRE TREAD TEXTURE ---
+    const tireCanvas = document.createElement("canvas");
+    tireCanvas.width = 256;
+    tireCanvas.height = 256;
+    const tCtx = tireCanvas.getContext("2d");
+    if (tCtx) {
+      tCtx.fillStyle = "#14161c";
+      tCtx.fillRect(0, 0, 256, 256);
+
+      for (let y = 0; y < 256; y += 32) {
+        tCtx.fillStyle = "#040508";
+        tCtx.fillRect(0, y, 256, 8);
+
+        tCtx.fillStyle = "#222630";
+        tCtx.fillRect(12, y + 8, 96, 20);
+        tCtx.fillRect(148, y + 8, 96, 20);
+
+        tCtx.fillStyle = "#0a0c10";
+        tCtx.fillRect(45, y + 14, 35, 4);
+        tCtx.fillRect(180, y + 14, 35, 4);
+      }
+    }
+    const tireTreadTex = new THREE.CanvasTexture(tireCanvas);
+    tireTreadTex.wrapS = THREE.RepeatWrapping;
+    tireTreadTex.wrapT = THREE.RepeatWrapping;
+    tireTreadTex.repeat.set(2, 4);
 
     // --- 3. 💥 POST-PROCESSING & CINEMATIC BLOOM COMPOSER ---
     const composer = new EffectComposer(renderer);
@@ -597,17 +624,17 @@ export default function F1GameCanvas({
               const originalMat = mesh.material as THREE.MeshStandardMaterial;
 
               // Christopher Nolan Tumbler Military Stealth Armor Spec:
-              // Faceted matte carbon armor with subtle specular edges from Studio HDRI
+              // Non-reflective tactical carbon armor + directional rolling tire tread map on wheels
               mesh.material = new THREE.MeshPhysicalMaterial({
-                map: originalMat.map || null,
-                normalMap: originalMat.normalMap || null,
+                map: isWheel ? tireTreadTex : originalMat.map || null,
+                normalMap: isWheel ? null : originalMat.normalMap || null,
                 roughnessMap: originalMat.roughnessMap || null,
-                color: isWheel ? 0x14161b : 0x1e2128,
+                color: isWheel ? 0xffffff : 0x1e2128,
                 metalness: isWheel ? 0.08 : 0.40,
-                roughness: isWheel ? 0.85 : 0.45,
+                roughness: isWheel ? 0.88 : 0.45,
                 clearcoat: isWheel ? 0.0 : 0.45,
                 clearcoatRoughness: 0.20,
-                envMapIntensity: 2.2,
+                envMapIntensity: isWheel ? 1.4 : 2.2,
                 reflectivity: 0.80,
               });
             }
@@ -847,13 +874,16 @@ export default function F1GameCanvas({
         }
       }
 
-      // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS (ELEVATED CHASE VIEW)
-      const isMobile = window.innerWidth < 768;
-      const baseCamZ = isMobile ? 6.2 : 5.4;
-      const baseCamY = isMobile ? 2.4 : 2.1;
+      // 5B. 🔄 PROCEDURAL TIRE TREAD ROLL (Simulates visible spinning wheels at speed)
+      tireTreadTex.offset.y = (trackDistance * 0.16) % 1;
 
-      const targetCamX = carX * 0.32;
-      const targetCamZ = baseCamZ + (isBoosting ? 0.45 : 0);
+      // 6. 📷 ROCKSTAR SPRING-DAMPER CAMERA PHYSICS (ELEVATED 3/4 CHASE VIEW)
+      const isMobile = window.innerWidth < 768;
+      const baseCamZ = isMobile ? 7.0 : 6.2;
+      const baseCamY = isMobile ? 3.2 : 2.8;
+
+      const targetCamX = carX * 0.30;
+      const targetCamZ = baseCamZ + (isBoosting ? 0.55 : 0);
 
       // Spring-damper force integration on X
       const springK = 18.0;
@@ -868,7 +898,7 @@ export default function F1GameCanvas({
       camPosZ += camVelZ * delta;
 
       camera.position.x = camPosX;
-      camera.position.y = baseCamY + (isBoosting ? -0.08 : 0);
+      camera.position.y = baseCamY + (isBoosting ? -0.10 : 0);
       camera.position.z = camPosZ;
 
       // Dutch Tilt (Camera banks subtly on hard turns)
@@ -877,13 +907,13 @@ export default function F1GameCanvas({
       camera.rotation.z = camRoll;
 
       // Dynamic Speed Perspective FOV Warp
-      const baseFOV = isMobile ? 65 : 58;
+      const baseFOV = isMobile ? 70 : 65;
       const targetFOV = isBoosting ? baseFOV + 12 : baseFOV;
       camera.fov += (targetFOV - camera.fov) * 0.08;
       camera.updateProjectionMatrix();
 
       // Look-Ahead (Aimed downward past the hood along the road horizon)
-      camera.lookAt(carX * 0.30 + steerInput * 1.2, 0.65, -14);
+      camera.lookAt(carX * 0.28 + steerInput * 1.2, 0.45, -12);
 
       // 7. Telemetry & Audio Engine Update
       const gear =
@@ -946,6 +976,7 @@ export default function F1GameCanvas({
       renderer.dispose();
       pmremGenerator.dispose();
       studioEnvMap.dispose();
+      tireTreadTex.dispose();
       roadGeometry.dispose();
       roadMaterial.dispose();
       coneGeo.dispose();
