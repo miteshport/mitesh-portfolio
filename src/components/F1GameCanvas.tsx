@@ -255,84 +255,74 @@ export default function F1GameCanvas({
     batSignalSprite.scale.set(22, 22, 1);
     scene.add(batSignalSprite);
 
-    // --- 6. 🏙️ 28 VIVID 3D GOTHAM MONOLITH SKYSCRAPERS (MAJESTIC ROAD FLANKING) ---
-    const buildingGroup = new THREE.Group();
-    scene.add(buildingGroup);
-    const buildingList: THREE.Mesh[] = [];
+    // --- 6. 🌆 CINEMATIC GOTHAM HORIZON SKYLINE (IMAGE 2 STYLE) ---
+    const skylineCanvas = document.createElement("canvas");
+    skylineCanvas.width = 2048;
+    skylineCanvas.height = 512;
+    const sCtx = skylineCanvas.getContext("2d");
+    if (sCtx) {
+      sCtx.fillStyle = "rgba(0, 0, 0, 0)";
+      sCtx.fillRect(0, 0, 2048, 512);
 
-    const bGeoList = [
-      new THREE.BoxGeometry(6.5, 42, 10),
-      new THREE.BoxGeometry(8.5, 62, 12),
-      new THREE.BoxGeometry(5.5, 32, 9),
-      new THREE.BoxGeometry(9.5, 78, 14),
-      new THREE.BoxGeometry(7.0, 52, 11),
-    ];
+      let curX = 0;
+      while (curX < 2048) {
+        const bWidth = 24 + Math.random() * 48;
+        const bHeight = 100 + Math.random() * 260;
+        const bY = 512 - bHeight;
 
-    // High-Contrast Vivid Glowing Window Texture Canvas
-    const winCanvas = document.createElement("canvas");
-    winCanvas.width = 512;
-    winCanvas.height = 1024;
-    const wCtx = winCanvas.getContext("2d");
-    if (wCtx) {
-      // Dark Gotham Obsidian Facade
-      wCtx.fillStyle = "#030712";
-      wCtx.fillRect(0, 0, 512, 1024);
+        // Dark Gotham Silhouette Tower
+        sCtx.fillStyle = "rgba(4, 9, 20, 0.96)";
+        sCtx.fillRect(curX, bY, bWidth, bHeight);
 
-      // Multi-Color Illuminated Office Windows Grid
-      for (let wy = 16; wy < 1000; wy += 18) {
-        for (let wx = 12; wx < 500; wx += 16) {
-          const rand = Math.random();
-          if (rand > 0.35) {
-            if (rand > 0.85) {
-              wCtx.fillStyle = "rgba(255, 235, 160, 0.95)"; // Warm Amber Penthouse
-            } else if (rand > 0.55) {
-              wCtx.fillStyle = "rgba(56, 189, 248, 0.95)"; // Wayne Cyan Tech Lab
-            } else {
-              wCtx.fillStyle = "rgba(240, 248, 255, 0.90)"; // Pure Cool White Office
+        // Rooftop Antenna Spire + Red Aviation Warning Beacon
+        if (Math.random() > 0.35) {
+          sCtx.strokeStyle = "#08142a";
+          sCtx.lineWidth = 1.5;
+          sCtx.beginPath();
+          sCtx.moveTo(curX + bWidth / 2, bY);
+          sCtx.lineTo(curX + bWidth / 2, bY - 24);
+          sCtx.stroke();
+
+          sCtx.fillStyle = "rgba(239, 68, 68, 0.95)";
+          sCtx.beginPath();
+          sCtx.arc(curX + bWidth / 2, bY - 24, 2.0, 0, Math.PI * 2);
+          sCtx.fill();
+        }
+
+        // Scattered Elegant Pin-Light Windows (Warm Gold & Cyan)
+        for (let wy = bY + 14; wy < 500; wy += 12) {
+          for (let wx = curX + 5; wx < curX + bWidth - 5; wx += 8) {
+            const rand = Math.random();
+            if (rand > 0.60) {
+              if (rand > 0.90) {
+                sCtx.fillStyle = "rgba(255, 220, 140, 0.85)"; // Warm Gold Penthouse
+              } else if (rand > 0.75) {
+                sCtx.fillStyle = "rgba(56, 189, 248, 0.80)"; // Wayne Cyan
+              } else {
+                sCtx.fillStyle = "rgba(220, 235, 255, 0.65)"; // Cool White
+              }
+              sCtx.fillRect(wx, wy, 2.5, 4.0);
             }
-            wCtx.fillRect(wx, wy, 8, 11);
           }
         }
+        curX += bWidth + 4;
       }
     }
-    const winTex = new THREE.CanvasTexture(winCanvas);
-    winTex.wrapS = THREE.RepeatWrapping;
-    winTex.wrapT = THREE.RepeatWrapping;
-    winTex.repeat.set(1, 2.5);
 
-    const bMat = new THREE.MeshStandardMaterial({
-      color: 0x080f1e,
-      map: winTex,
-      emissive: 0xffffff,
-      emissiveMap: winTex,
-      emissiveIntensity: 1.25,
-      roughness: 0.20,
-      metalness: 0.85,
+    const skylineTex = new THREE.CanvasTexture(skylineCanvas);
+    skylineTex.wrapS = THREE.RepeatWrapping;
+    skylineTex.wrapT = THREE.ClampToEdgeWrapping;
+    const skylineGeo = new THREE.CylinderGeometry(260, 260, 120, 48, 1, true, -Math.PI / 2, Math.PI);
+    const skylineMat = new THREE.MeshBasicMaterial({
+      map: skylineTex,
+      transparent: true,
+      opacity: 0.88,
+      side: THREE.BackSide,
+      depthWrite: false,
     });
-
-    const beaconGeo = new THREE.SphereGeometry(0.45, 8, 8);
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
-
-    const numSkyscrapers = 28;
-    for (let i = 0; i < numSkyscrapers; i++) {
-      const geo = bGeoList[i % bGeoList.length];
-      const mesh = new THREE.Mesh(geo, bMat);
-      const isLeft = i % 2 === 0;
-
-      // Positioned close to the highway curbs (±5.2m road width) so they tower majestically on mobile & desktop!
-      const xPos = isLeft ? -9.5 - (i % 3) * 3.5 : 9.5 + (i % 3) * 3.5;
-      const zPos = -10.0 - Math.floor(i / 2) * 22.0;
-      const yPos = geo.parameters.height / 2 - 2.0;
-      mesh.position.set(xPos, yPos, zPos);
-
-      // Red Aviation Warning Beacon on Rooftop
-      const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-      beacon.position.set(0, geo.parameters.height / 2 + 0.9, 0);
-      mesh.add(beacon);
-
-      buildingGroup.add(mesh);
-      buildingList.push(mesh);
-    }
+    const skylineMesh = new THREE.Mesh(skylineGeo, skylineMat);
+    skylineMesh.position.set(0, 42, -115);
+    scene.add(skylineMesh);
     // --- 7. 🛣️ UNIFIED 3-LANE ROCK-SOLID ASPHALT HIGHWAY ---
     const roadWidth = 10.4;
     const roadLength = 390.0;
@@ -1008,17 +998,6 @@ export default function F1GameCanvas({
       const forwardDelta = isDriving ? (currentSpeed * 0.16 * delta) : 0;
       trackDistance += forwardDelta;
 
-      // 🏙️ Move 3D Skyscraper Canyon with Road Speed
-      for (let i = 0; i < buildingList.length; i++) {
-        const b = buildingList[i];
-        if (isDriving) {
-          b.position.z += forwardDelta;
-          if (b.position.z > 25.0) {
-            b.position.z -= 22.0 * (numSkyscrapers / 2);
-          }
-        }
-      }
-
       // 🔴 RED AFTERBURNER JET TURBINE OVERDRIVE MODE
       if (isBoosting && isDriving) {
         afterburnerFlame.material.opacity = 0.95 + Math.sin(time * 60) * 0.05;
@@ -1033,6 +1012,9 @@ export default function F1GameCanvas({
 
       // Road texture scroll
       roadUniforms.uDistance.value = trackDistance;
+      if (skylineTex && isDriving) {
+        skylineTex.offset.x = (trackDistance * 0.0002) % 1;
+      }
       const targetLightsOut = isLightsOutRef.current ? 1.0 : 0.0;
       roadUniforms.uLightsOut.value += (targetLightsOut - roadUniforms.uLightsOut.value) * 0.1;
       beamMat.opacity = 0.80 + roadUniforms.uLightsOut.value * 0.15;
@@ -1279,8 +1261,9 @@ export default function F1GameCanvas({
       beamMat.dispose();
       batTex.dispose();
       batMat.dispose();
-      winTex.dispose();
-      bMat.dispose();
+      skylineTex.dispose();
+      skylineMat.dispose();
+      skylineGeo.dispose();
       flameTex.dispose();
       flameMat.dispose();
     };

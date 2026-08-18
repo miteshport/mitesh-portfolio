@@ -50,7 +50,7 @@ export default function SpatialHUD({
           top: 0;
           left: 0;
           width: 100vw;
-          height: 60px;
+          height: 56px;
           z-index: 1000;
           display: flex;
           align-items: center;
@@ -118,17 +118,20 @@ export default function SpatialHUD({
           background: #ffffff !important;
         }
 
-        /* Responsive Audio Pill on Narrow Fold 4 Screens */
-        .spatial-time-text {
-          display: inline;
-        }
+        /* Responsive Breakpoints on Narrow Fold 4 Screens (< 480px) */
         @media (max-width: 480px) {
           .spatial-time-text {
-            display: none;
+            display: none !important;
+          }
+          .spatial-subtext {
+            display: none !important;
+          }
+          .spatial-nav-desktop {
+            display: none !important;
           }
           .spatial-hud-link {
-            font-size: 0.62rem;
-            letter-spacing: 0.08em;
+            font-size: 0.60rem !important;
+            letter-spacing: 0.08em !important;
           }
         }
       `}</style>
@@ -136,7 +139,7 @@ export default function SpatialHUD({
       {/* 1. TOP UNIFIED GLASS SHIELD */}
       <header className="spatial-top-shield">
         {/* Left Link */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", pointerEvents: "auto", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", pointerEvents: "auto", zIndex: 5 }}>
           {isHome ? (
             <Link href="/about" className="spatial-hud-link">
               <span>PORTFOLIO</span>
@@ -150,10 +153,11 @@ export default function SpatialHUD({
 
           {isHome && (
             <span
+              className="spatial-subtext"
               style={{
-                fontSize: "0.62rem",
+                fontSize: "0.60rem",
                 fontFamily: "var(--font-mono)",
-                color: "rgba(255, 255, 255, 0.35)",
+                color: "rgba(255, 255, 255, 0.30)",
                 letterSpacing: "0.1em",
               }}
             >
@@ -162,14 +166,15 @@ export default function SpatialHUD({
           )}
         </div>
 
-        {/* Center: Audio Status Pill (Responsive Flex Spacing) */}
+        {/* Center: Mathematically Exact Dead-Center Audio Status Pill */}
         <div
           style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
             pointerEvents: "auto",
-            display: "flex",
-            justifyContent: "center",
-            flexShrink: 0,
-            margin: "0 0.4rem",
+            zIndex: 10,
           }}
         >
           <button
@@ -192,11 +197,11 @@ export default function SpatialHUD({
               alignItems: "center",
               gap: "0.45rem",
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: "clamp(0.60rem, 0.95vw, 0.72rem)",
+              fontSize: "clamp(0.58rem, 0.90vw, 0.70rem)",
               letterSpacing: "0.12em",
               color: isMuted ? "rgba(255, 255, 255, 0.65)" : "#ffffff",
               textTransform: "uppercase",
-              padding: "0.32rem 0.75rem",
+              padding: "0.28rem 0.70rem",
               boxShadow: isMuted
                 ? "0 4px 16px rgba(0, 0, 0, 0.4)"
                 : "0 0 16px rgba(48, 209, 88, 0.35), 0 4px 16px rgba(0, 0, 0, 0.4)",
@@ -222,43 +227,60 @@ export default function SpatialHUD({
           </button>
         </div>
 
-        {/* Right Links */}
-        <div
+        {/* Right Navigation */}
+        <nav
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "clamp(0.6rem, 2vw, 1.6rem)",
+            gap: "clamp(0.5rem, 1.5vw, 1.4rem)",
             pointerEvents: "auto",
-            flexShrink: 0,
+            zIndex: 5,
           }}
         >
-          {!isPortfolio && (
-            <Link
-              href="/about"
-              className={`spatial-hud-link ${isPortfolio ? "spatial-hud-active" : ""}`}
-            >
-              PORTFOLIO
-            </Link>
+          {isHome ? (
+            <>
+              <Link
+                href="/about"
+                className={`spatial-hud-link spatial-nav-desktop ${isPortfolio ? "spatial-hud-active" : ""}`}
+              >
+                <span>ABOUT</span>
+              </Link>
+              <Link
+                href="/radio"
+                className={`spatial-hud-link ${isSoundroom ? "spatial-hud-active" : ""}`}
+              >
+                <span>SOUNDROOM</span>
+              </Link>
+              <Link
+                href="/card"
+                className={`spatial-hud-link spatial-nav-desktop ${isCard ? "spatial-hud-active" : ""}`}
+              >
+                <span>CARD</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/about"
+                className={`spatial-hud-link ${isPortfolio ? "spatial-hud-active" : ""}`}
+              >
+                <span>ABOUT</span>
+              </Link>
+              <Link
+                href="/radio"
+                className={`spatial-hud-link ${isSoundroom ? "spatial-hud-active" : ""}`}
+              >
+                <span>SOUNDROOM</span>
+              </Link>
+              <Link
+                href="/card"
+                className={`spatial-hud-link spatial-nav-desktop ${isCard ? "spatial-hud-active" : ""}`}
+              >
+                <span>CARD</span>
+              </Link>
+            </>
           )}
-
-          {!isSoundroom && (
-            <Link
-              href="/radio"
-              className={`spatial-hud-link ${isSoundroom ? "spatial-hud-active" : ""}`}
-            >
-              SOUNDROOM
-            </Link>
-          )}
-
-          {!isCard && (
-            <Link
-              href="/card"
-              className={`spatial-hud-link ${isCard ? "spatial-hud-active" : ""}`}
-            >
-              CARD
-            </Link>
-          )}
-        </div>
+        </nav>
       </header>
 
       {/* 2. BOTTOM CORNER TELEMETRY OVERLAYS */}
