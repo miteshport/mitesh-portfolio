@@ -182,9 +182,96 @@ class WebAudioSystem {
         osc.start(startTime);
         osc.stop(startTime + 0.95);
       });
-    } catch {
-      // AudioContext safe
-    }
+    } catch {}
+  }
+
+  // 2048 Tumbler Cascade Harmonic Merge Chime (Ascending Polyphonic Crystals)
+  public playMergeChime(value: number, cascadeIndex = 0) {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const tier = Math.min(11, Math.max(1, Math.round(Math.log2(value))));
+      // Pentatonic root scale starting from 261.6Hz (C4) up to C7
+      const baseFreqs = [261.6, 293.7, 329.6, 392.0, 440.0, 523.2, 587.3, 659.2, 784.0, 880.0, 1046.5];
+      const baseFreq = baseFreqs[tier - 1] || 440;
+      const harmonics = [baseFreq, baseFreq * 1.5, baseFreq * 2.0];
+
+      harmonics.forEach((freq, idx) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = idx === 0 ? "sine" : "triangle";
+        const delay = idx * 0.03 + cascadeIndex * 0.04;
+        const startTime = now + delay;
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        const vol = (idx === 0 ? 0.12 : 0.06) * (1 + cascadeIndex * 0.2);
+        gain.gain.setValueAtTime(vol, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.45);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.48);
+      });
+    } catch {}
+  }
+
+  // Reactor Overload Warning Alarm
+  public playOverloadAlarm() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.setValueAtTime(160, now + 0.08);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.20);
+    } catch {}
+  }
+
+  // 2048 Hyper-Core Supercharge Purge Sweep
+  public playSuperchargePurge() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(1200, now + 1.2);
+
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 1.45);
+    } catch {}
   }
 }
 

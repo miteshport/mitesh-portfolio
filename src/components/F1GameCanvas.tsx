@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
 import { EffectComposer, RenderPass, UnrealBloomPass } from "three-stdlib";
 import { playKerbRumble, updateF1Engine } from "@/utils/f1EngineAudio";
+import { audio } from "@/utils/audioSystem";
 
 export interface TelemetryData {
   speed: number;
@@ -18,6 +19,13 @@ export interface TelemetryData {
   onKerb: boolean;
   currentSector: number;
   sectorsCrossed: number;
+  cargoStack: number[];
+  score: number;
+  multiplier: number;
+  lastMergeVal: number;
+  isOverloaded: boolean;
+  isHyperCharged: boolean;
+  targetMatch: number | null;
 }
 
 interface F1GameCanvasProps {
@@ -413,6 +421,10 @@ export default function F1GameCanvas({
         pos.x += curve;
         vWorldX = pos.x;
 
+        // 🌐 CURVED WORLD VERTEX SHADER (Bends road into Gotham horizon)
+        float horizonDist = max(0.0, zDist - 12.0);
+        pos.z -= horizonDist * horizonDist * 0.0013;
+
         vec4 modelViewPosition = modelViewMatrix * vec4(pos, 1.0);
         vDepth = -modelViewPosition.z;
         gl_Position = projectionMatrix * modelViewPosition;
@@ -487,6 +499,182 @@ export default function F1GameCanvas({
     roadMesh.rotation.x = -Math.PI / 2;
     roadMesh.position.set(0, 0, roadCenterZ);
     scene.add(roadMesh);
+
+    // --- 8B. ⚡ WAYNETECH 2048 TUMBLER CASCADE POWER BLOCKS ---
+    const BLOCK_COLORS: Record<number, { color: number; hex: string }> = {
+      2: { color: 0x38bdf8, hex: "#38bdf8" },   // Ice Blue
+      4: { color: 0x3b82f6, hex: "#3b82f6" },   // Cobalt
+      8: { color: 0x8b5cf6, hex: "#8b5cf6" },   // Amethyst
+      16: { color: 0xec4899, hex: "#ec4899" },  // Fuchsia
+      32: { color: 0xf59e0b, hex: "#f59e0b" },  // Amber Gold
+      64: { color: 0x10b981, hex: "#10b981" },  // Emerald
+      128: { color: 0xef4444, hex: "#ef4444" }, // Crimson
+      256: { color: 0x06b6d4, hex: "#06b6d4" }, // Cyan Plasma
+      512: { color: 0xa855f7, hex: "#a855f7" }, // Violet Ultra
+      1024: { color: 0xffffff, hex: "#ffffff" },// Diamond White
+      2048: { color: 0xffd700, hex: "#ffd700" },// Hyper-Core Gold
+    };
+
+    // Curved World Shader Injector for Three.js Materials
+    const applyCurvedWorldShader = (material: THREE.Material) => {
+      material.onBeforeCompile = (shader) => {
+        shader.vertexShader = shader.vertexShader.replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+           vec4 worldPos = modelMatrix * vec4(transformed, 1.0);
+           float distZ = max(0.0, -worldPos.z - 8.0);
+           transformed.y -= (distZ * distZ) * 0.0013;
+          `
+        );
+      };
+    };
+
+    // Canvas Texture Cache for Dynamic Number Decals
+    const numberTextureCache = new Map<number, THREE.CanvasTexture>();
+    const getNumberTexture = (val: number, hexColor: string) => {
+      if (numberTextureCache.has(val)) return numberTextureCache.get(val)!;
+      const canvas = document.createElement("canvas");
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        // Dark futuristic WayneTech plate
+        ctx.fillStyle = "rgba(6, 9, 16, 0.95)";
+        ctx.beginPath();
+        ctx.roundRect(8, 8, 240, 240, 36);
+        ctx.fill();
+
+        // Neon glowing rim
+        ctx.strokeStyle = hexColor;
+        ctx.lineWidth = 14;
+        ctx.shadowColor = hexColor;
+        ctx.shadowBlur = 18;
+        ctx.stroke();
+
+        // Glowing center number
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `900 ${val >= 1000 ? "68px" : val >= 100 ? "82px" : "106px"} system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(val), 128, 128);
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      numberTextureCache.set(val, tex);
+      return tex;
+    };
+
+    interface PowerBlockItem {
+      group: THREE.Group;
+      boxMesh: THREE.Mesh;
+      frontDecal: THREE.Mesh;
+      backDecal: THREE.Mesh;
+      topDecal: THREE.Mesh;
+      light: THREE.PointLight;
+      value: number;
+      laneIndex: number;
+      z: number;
+      active: boolean;
+    }
+
+    const lanePositions = [-2.4, 0.0, 2.4];
+    const powerBlockPool: PowerBlockItem[] = [];
+    const blockCount = 8;
+
+    const blockBoxGeo = new THREE.BoxGeometry(1.15, 0.65, 1.15);
+    const decalGeo = new THREE.PlaneGeometry(0.85, 0.85);
+
+    for (let i = 0; i < blockCount; i++) {
+      const group = new THREE.Group();
+
+      const boxMat = new THREE.MeshStandardMaterial({
+        color: 0x0c1220,
+        metalness: 0.85,
+        roughness: 0.20,
+        emissive: 0x38bdf8,
+        emissiveIntensity: 0.45,
+      });
+      applyCurvedWorldShader(boxMat);
+
+      const boxMesh = new THREE.Mesh(blockBoxGeo, boxMat);
+      boxMesh.position.y = 0.35;
+      group.add(boxMesh);
+
+      // Decal Material
+      const initInfo = BLOCK_COLORS[2];
+      const decalTex = getNumberTexture(2, initInfo.hex);
+      const decalMat = new THREE.MeshBasicMaterial({
+        map: decalTex,
+        transparent: true,
+        side: THREE.DoubleSide,
+      });
+      applyCurvedWorldShader(decalMat);
+
+      const frontDecal = new THREE.Mesh(decalGeo, decalMat);
+      frontDecal.position.set(0, 0.35, 0.58);
+      group.add(frontDecal);
+
+      const backDecal = new THREE.Mesh(decalGeo, decalMat.clone());
+      backDecal.position.set(0, 0.35, -0.58);
+      backDecal.rotation.y = Math.PI;
+      group.add(backDecal);
+
+      const topDecal = new THREE.Mesh(decalGeo, decalMat.clone());
+      topDecal.position.set(0, 0.68, 0);
+      topDecal.rotation.x = -Math.PI / 2;
+      group.add(topDecal);
+
+      const pLight = new THREE.PointLight(0x38bdf8, 1.5, 6.0);
+      pLight.position.set(0, 0.8, 0);
+      group.add(pLight);
+
+      const initZ = -45 - i * 28;
+      const initLane = i % 3;
+      group.position.set(lanePositions[initLane], 0, initZ);
+
+      scene.add(group);
+
+      powerBlockPool.push({
+        group,
+        boxMesh,
+        frontDecal,
+        backDecal,
+        topDecal,
+        light: pLight,
+        value: 2,
+        laneIndex: initLane,
+        z: initZ,
+        active: true,
+      });
+    }
+
+    const updateBlockVisuals = (item: PowerBlockItem, val: number) => {
+      item.value = val;
+      const info = BLOCK_COLORS[val] || BLOCK_COLORS[2];
+      const tex = getNumberTexture(val, info.hex);
+
+      const bMat = item.boxMesh.material as THREE.MeshStandardMaterial;
+      bMat.emissive.setHex(info.color);
+
+      (item.frontDecal.material as THREE.MeshBasicMaterial).map = tex;
+      (item.backDecal.material as THREE.MeshBasicMaterial).map = tex;
+      (item.topDecal.material as THREE.MeshBasicMaterial).map = tex;
+      item.light.color.setHex(info.color);
+    };
+
+    // Merge Shockwave Ring Particle Effect
+    const shockwaveGeo = new THREE.RingGeometry(0.2, 0.45, 32);
+    const shockwaveMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+    });
+    const shockwaveMesh = new THREE.Mesh(shockwaveGeo, shockwaveMat);
+    shockwaveMesh.rotation.x = -Math.PI / 2;
+    shockwaveMesh.position.y = 0.15;
+    scene.add(shockwaveMesh);
+    let shockwaveLife = 0;
 
     // --- 9. TIRE VAPOR & GROUND CONTACT AO SHADOW ---
     const smokeCanvas = document.createElement("canvas");
@@ -698,6 +886,13 @@ export default function F1GameCanvas({
       }
     );
 
+    // --- 11B. ⚡ 2048 TUMBLER CASCADE LIFO STACK STATE ---
+    let cargoStack: number[] = [];
+    let gameScore = 0;
+    let comboMultiplier = 1;
+    let lastMergeValue = 0;
+    let hyperChargeTime = 0;
+    let consecutiveMerges = 0;
     // --- 11. CONTROLS & SPRING PHYSICS STATE ---
     let pointerX = 0;
     let targetSteerInput = 0;
@@ -784,12 +979,30 @@ export default function F1GameCanvas({
       const delta = Math.min(clock.getDelta(), 0.08);
       const time = clock.getElapsedTime();
 
-      // 0. Heavy Input Inertia (Progressive steering resistance)
-      steerInput = THREE.MathUtils.lerp(steerInput, targetSteerInput, 0.075);
+      // 0. ⚡ 2048 TUMBLER CASCADE GAME TICKS
+      const isOverloaded = cargoStack.length >= 4;
+      const isHyperCharged = hyperChargeTime > 0;
+      if (hyperChargeTime > 0) {
+        hyperChargeTime -= delta;
+      }
+
+      // Shockwave Ring Animation
+      if (shockwaveLife > 0) {
+        shockwaveLife -= delta * 3.2;
+        shockwaveMesh.scale.addScalar(delta * 18.0);
+        (shockwaveMesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0, shockwaveLife);
+      } else {
+        (shockwaveMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+      }
+
+      // Heavy Input Inertia (Sluggish resistance if reactor is overloaded)
+      const steerInertia = isOverloaded ? 0.038 : 0.075;
+      steerInput = THREE.MathUtils.lerp(steerInput, targetSteerInput, steerInertia);
 
       // 1. Acceleration & Pacing
-      const targetSpeed = isBoosting ? 365 : 190;
-      currentSpeed += (targetSpeed - currentSpeed) * (isBoosting ? 0.08 : 0.045);
+      const boostActive = isBoosting || isHyperCharged;
+      const targetSpeed = boostActive ? 365 : (isOverloaded ? 170 : 190);
+      currentSpeed += (targetSpeed - currentSpeed) * (boostActive ? 0.08 : 0.045);
       lapTime += delta;
 
       const forwardDelta = currentSpeed * 0.20 * delta;
@@ -806,6 +1019,109 @@ export default function F1GameCanvas({
       // Bat-Signal Aura Pulse
       batSignalSprite.material.opacity = 0.90 + Math.sin(time * 1.5) * 0.06;
 
+      // 1B. ⚡ POWER BLOCKS TICK & LIFO CASCADE COLLISIONS
+      for (let i = 0; i < powerBlockPool.length; i++) {
+        const item = powerBlockPool[i];
+        item.z += forwardDelta;
+        item.group.position.z = item.z;
+        item.group.position.x = lanePositions[item.laneIndex];
+        item.group.position.y = 0.42 + Math.sin(time * 3.6 + i * 1.2) * 0.12;
+        item.group.rotation.y += 0.022;
+
+        // Collision Check with Batmobile Tumbler
+        if (
+          item.active &&
+          Math.abs(item.z - 0) < 1.65 &&
+          Math.abs(carX - lanePositions[item.laneIndex]) < 1.35
+        ) {
+          item.active = false;
+          item.group.visible = false;
+          cargoStack.push(item.value);
+
+          // 🔄 LIFO Cascade Stack Resolver
+          let cascades = 0;
+          let lastMerged = 0;
+          while (cargoStack.length >= 2) {
+            const top = cargoStack[cargoStack.length - 1];
+            const second = cargoStack[cargoStack.length - 2];
+            if (top === second) {
+              cargoStack.pop();
+              const merged = top * 2;
+              cargoStack[cargoStack.length - 1] = merged;
+              cascades++;
+              lastMerged = merged;
+              audio.playMergeChime(merged, cascades);
+            } else {
+              break;
+            }
+          }
+
+          if (cascades > 0) {
+            consecutiveMerges += cascades;
+            comboMultiplier = Math.min(8, 1 + Math.floor(consecutiveMerges / 2));
+            lastMergeValue = lastMerged;
+            shockwaveMesh.position.set(carX, 0.15, 0);
+            shockwaveMesh.scale.set(1, 1, 1);
+            const mCol = BLOCK_COLORS[lastMerged]?.color || 0x38bdf8;
+            (shockwaveMesh.material as THREE.MeshBasicMaterial).color.setHex(mCol);
+            (shockwaveMesh.material as THREE.MeshBasicMaterial).opacity = 0.95;
+            shockwaveLife = 1.0;
+          } else {
+            audio.playClick();
+            consecutiveMerges = Math.max(0, consecutiveMerges - 1);
+            comboMultiplier = Math.max(1, comboMultiplier - 1);
+          }
+
+          gameScore += item.value * 10 * (1 + cascades * 2) * comboMultiplier;
+
+          // 2048 Hyper-Core Supercharge Check
+          if (cargoStack.includes(2048) || lastMerged >= 2048) {
+            cargoStack = cargoStack.filter((v) => v < 2048);
+            gameScore += 10000;
+            hyperChargeTime = 10.0;
+            audio.playSuperchargePurge();
+          }
+
+          // Reactor Overload Warning / Safety Purge
+          if (cargoStack.length >= 6) {
+            cargoStack.shift(); // Eject bottom block on critical overflow
+            audio.playOverloadAlarm();
+          } else if (cargoStack.length >= 4 && cascades === 0) {
+            audio.playOverloadAlarm();
+          }
+        }
+
+        // Reset Block Ahead when passed
+        if (item.z > 8.0) {
+          const minZ = Math.min(...powerBlockPool.map((b) => b.z));
+          item.z = minZ - 26 - Math.random() * 8;
+          item.laneIndex = Math.floor(Math.random() * 3);
+
+          // Intelligent Spawn Weighting (35% chance to spawn needed stack top match)
+          let spawnVal = 2;
+          const topVal = cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null;
+          const rand = Math.random();
+
+          if (topVal && rand < 0.35 && topVal <= 512) {
+            spawnVal = topVal;
+          } else if (rand < 0.60) {
+            spawnVal = 2;
+          } else if (rand < 0.85) {
+            spawnVal = 4;
+          } else if (rand < 0.95) {
+            spawnVal = 8;
+          } else {
+            spawnVal = 16;
+          }
+
+          updateBlockVisuals(item, spawnVal);
+          item.active = true;
+          item.group.visible = true;
+          item.group.position.x = lanePositions[item.laneIndex];
+          item.group.position.z = item.z;
+        }
+      }
+
       // 2. 🎮 ROCKSTAR AAA VEHICLE WEIGHT & DRIVING DYNAMICS
       // Strict Lane Envelope: 2.75 units locks wide 2.2m Tumbler track completely within lane markings
       const maxSafeAsphaltOffset = 2.75;
@@ -816,7 +1132,7 @@ export default function F1GameCanvas({
       );
 
       // Heavy vehicle inertia with progressive steering resistance
-      const steerSpeed = 5.4;
+      const steerSpeed = isOverloaded ? 3.2 : 5.4;
       const prevX = carX;
       carX += (targetCarX - carX) * (steerSpeed * delta);
       carSteerVelocity = (carX - prevX) / Math.max(0.001, delta);
@@ -1037,18 +1353,25 @@ export default function F1GameCanvas({
       updateF1Engine(rpm, currentSpeed, isBoosting, isMutedRef.current, gear);
 
       if (onTelemetryUpdate) {
-        onTelemetryUpdate({
+                onTelemetryUpdate({
           speed: Math.round(currentSpeed),
           gear,
           rpm,
           lapTime,
-          isBoosting,
+          isBoosting: boostActive,
           isDrifting: Math.abs(carSteerVelocity) > 3.6,
           isFlying: false,
           isLightsOut: isLightsOutRef.current,
           onKerb,
           currentSector: sectorCycle,
           sectorsCrossed: Math.floor(lapTime / 30),
+          cargoStack: [...cargoStack],
+          score: gameScore,
+          multiplier: comboMultiplier,
+          lastMergeVal: lastMergeValue,
+          isOverloaded,
+          isHyperCharged,
+          targetMatch: cargoStack.length > 0 ? cargoStack[cargoStack.length - 1] : null,
         });
       }
 
