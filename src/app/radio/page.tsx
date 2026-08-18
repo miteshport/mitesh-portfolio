@@ -128,11 +128,9 @@ export default function SoundroomPage() {
     }
   }, []);
 
-  // All 112 Master Tracks (Excluding live radio streams from the main vault list)
-  const masterVaultTracks = useMemo(() => {
-    return channels
-      .filter((c) => c.id !== "live-radio")
-      .flatMap((c) => c.tracks);
+  // All 118 Tracks (112 Master Soundtracks + 6 Live 24/7 Radio Streams)
+  const allVaultTracks = useMemo(() => {
+    return channels.flatMap((c) => c.tracks);
   }, [channels]);
 
   // Current Active Playlist based on Selected Folder
@@ -141,16 +139,16 @@ export default function SoundroomPage() {
       return {
         id: "all",
         title: "All Songs (Master Vault)",
-        subtitle: "Complete 112 Master Soundtracks",
-        description: "All Hindi, Sufi, Punjabi, Symphony, and Hans Zimmer tracks.",
-        maestros: ["A.R. Rahman", "Sonu Nigam", "Lucky Ali", "Nusrat", "Hans Zimmer"],
+        subtitle: `Complete Library (${allVaultTracks.length} Tracks & Live Radio)`,
+        description: "All Hindi, Sufi, Punjabi, Symphony, Hans Zimmer tracks & 24/7 Live Radio.",
+        maestros: ["A.R. Rahman", "Sonu Nigam", "Lucky Ali", "Nusrat", "Hans Zimmer", "Live DJs"],
         themeColor: "#38bdf8",
-        tracks: masterVaultTracks,
+        tracks: allVaultTracks,
       };
     }
     const found = channels.find((c) => c.id === selectedFolder);
     return found || channels[0];
-  }, [selectedFolder, channels, masterVaultTracks]);
+  }, [selectedFolder, channels, allVaultTracks]);
 
   // Filtered tracks by search query
   const displayedTracks = useMemo(() => {
@@ -972,7 +970,7 @@ export default function SoundroomPage() {
                   }}
                 >
                   <span>🎧 All Vault</span>
-                  <span style={{ fontSize: "0.62rem", opacity: 0.75 }}>({masterVaultTracks.length})</span>
+                  <span style={{ fontSize: "0.62rem", opacity: 0.75 }}>({allVaultTracks.length})</span>
                 </button>
 
                 {/* 2. 24/7 Live Radio Station Pill */}
