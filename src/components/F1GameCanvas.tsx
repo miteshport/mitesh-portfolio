@@ -72,15 +72,18 @@ export default function F1GameCanvas({
     scene.background = new THREE.Color(0x020409);
     scene.fog = new THREE.FogExp2(0x020409, 0.0055);
 
-    const isMobInit = window.innerWidth < 768;
+    const wInit = window.innerWidth;
+    const hInit = window.innerHeight;
+    const aspectInit = wInit / hInit;
+    const isNarrowFold = wInit < 500 || aspectInit < 0.65;
     const camera = new THREE.PerspectiveCamera(
-      isMobInit ? 68 : 64,
-      window.innerWidth / window.innerHeight,
+      isNarrowFold ? 72 : 64,
+      aspectInit,
       0.1,
       600
     );
-    // Elevated 3/4 chase camera: stable, cinematic, zero spring wobble
-    camera.position.set(0, 2.85, 6.2);
+    // Dynamic Camera Pull-Back: Guarantees 100% full view of highway on Fold 4 closed screen
+    camera.position.set(0, isNarrowFold ? 3.4 : 2.85, isNarrowFold ? 8.4 : 6.2);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -400,7 +403,16 @@ export default function F1GameCanvas({
     scene.add(roadMesh);
 
     // --- 8. ⚡ ROAD FIGHTER 3-LANE ENTITIES (TRAFFIC & RARE FUEL CORES) ---
-    const lanePositions = [-2.6, 0.0, 2.6];
+    const getLanePitch = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const aspect = w / h;
+      if (w < 440 || aspect < 0.55) return 1.75; // Galaxy Z Fold 4 Narrow Cover Screen
+      if (w < 768 || aspect < 0.65) return 2.15; // Standard Phone
+      return 2.60; // Desktop / Wide
+    };
+    let lanePitch = getLanePitch();
+    let lanePositions = [-lanePitch, 0.0, lanePitch];
     let currentLane = 1; // 0 = Left, 1 = Center, 2 = Right
     let targetCarX = lanePositions[currentLane];
 
@@ -886,14 +898,21 @@ export default function F1GameCanvas({
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      const isMob = w < 768;
-      camera.aspect = w / h;
-      camera.fov = isMob ? 68 : 64;
+      const aspect = w / h;
+      const isMob = w < 768 || aspect < 0.65;
+      camera.aspect = aspect;
+      camera.fov = isMob ? 72 : 64;
+      camera.position.set(0, isMob ? 3.4 : 2.85, isMob ? (aspect < 0.55 ? 8.6 : 7.8) : 6.2);
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       composer.setSize(w, h);
       bloomPass.setSize(w / 2, h / 2);
+
+      // Re-calculate responsive lane pitch and lock car inside viewport
+      lanePitch = getLanePitch();
+      lanePositions = [-lanePitch, 0.0, lanePitch];
+      targetCarX = lanePositions[currentLane];
     };
     window.addEventListener("resize", handleResize);
 
