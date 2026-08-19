@@ -637,135 +637,123 @@ export default function SoundroomPage() {
                 )}
               </div>
 
-              {/* Transport Controls Row */}
+              {/* Clean 5-Button Samsung Music Transport Row */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: "clamp(0.35rem, 2vw, 0.95rem)",
+                  justifyContent: "space-between",
+                  padding: "0 clamp(0.2rem, 2.5vw, 1.2rem)",
                   position: "relative",
                   zIndex: 1,
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
               >
-                {/* Shuffle */}
+                {/* 1. Shuffle */}
                 <button
                   onClick={toggleShuffle}
                   title={isShuffle ? "Shuffle is ON" : "Shuffle is OFF"}
                   style={{
-                    background: isShuffle ? "rgba(56, 189, 248, 0.2)" : "none",
-                    border: isShuffle ? "1px solid #38bdf8" : "1px solid transparent",
-                    borderRadius: "8px",
-                    padding: "0.2rem 0.4rem",
-                    color: isShuffle ? "#38bdf8" : "rgba(255, 255, 255, 0.4)",
+                    background: isShuffle ? "rgba(56, 189, 248, 0.25)" : "rgba(255, 255, 255, 0.06)",
+                    border: isShuffle ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.12)",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: isShuffle ? "#38bdf8" : "rgba(255, 255, 255, 0.6)",
                     fontSize: "1.05rem",
                     cursor: "pointer",
-                    transition: "all 0.15s ease",
+                    transition: "all 0.2s ease",
                   }}
                 >
                   🔀
                 </button>
 
-                {/* Rewind 10s */}
-                <button
-                  onClick={handleRewind}
-                  disabled={isLive}
-                  title="Rewind 10s"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: isLive ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.75)",
-                    fontSize: "1.05rem",
-                    cursor: isLive ? "default" : "pointer",
-                  }}
-                >
-                  ↺ 10s
-                </button>
-
-                {/* Previous */}
+                {/* 2. Previous */}
                 <button
                   onClick={prevTrack}
-                  title="Previous Song"
+                  title="Previous Track"
                   style={{
                     background: "none",
                     border: "none",
                     color: "#ffffff",
-                    fontSize: "1.35rem",
+                    fontSize: "1.45rem",
                     cursor: "pointer",
+                    padding: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   ⏮
                 </button>
 
-                {/* Big Play / Pause */}
+                {/* 3. Hero Play / Pause (Big 58px Glowing Button) */}
                 <motion.button
                   onClick={togglePlay}
-                  whileTap={{ scale: 0.90 }}
+                  whileTap={{ scale: 0.92 }}
                   style={{
-                    width: "54px",
-                    height: "54px",
+                    width: "58px",
+                    height: "58px",
                     borderRadius: "50%",
                     backgroundColor: "#ffffff",
                     border: "none",
                     color: "#000000",
-                    fontSize: "1.35rem",
+                    fontSize: "1.45rem",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     cursor: "pointer",
-                    boxShadow: "0 8px 24px rgba(255, 255, 255, 0.35)",
+                    boxShadow: "0 0 28px rgba(255, 255, 255, 0.45), 0 6px 20px rgba(0, 0, 0, 0.4)",
                   }}
                 >
                   {isPlaying ? "❚❚" : "▶"}
                 </motion.button>
 
-                {/* Next */}
+                {/* 4. Next */}
                 <button
                   onClick={nextTrack}
-                  title="Next Song"
+                  title="Next Track"
                   style={{
                     background: "none",
                     border: "none",
                     color: "#ffffff",
-                    fontSize: "1.35rem",
+                    fontSize: "1.45rem",
                     cursor: "pointer",
+                    padding: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   ⏭
                 </button>
 
-                {/* Fast Forward 10s */}
-                <button
-                  onClick={handleFastForward}
-                  disabled={isLive}
-                  title="Fast Forward 10s"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: isLive ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.75)",
-                    fontSize: "1.05rem",
-                    cursor: isLive ? "default" : "pointer",
-                  }}
-                >
-                  10s ↻
-                </button>
-
-                {/* 432Hz Tuning */}
+                {/* 5. 432Hz Mode */}
                 <button
                   onClick={toggle432Hz}
-                  title="432Hz Harmonic Tuning"
+                  title="432Hz Audiophile Tuning"
                   style={{
-                    background: is432Hz ? "rgba(56, 189, 248, 0.25)" : "none",
-                    border: is432Hz ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.2)",
-                    borderRadius: "8px",
-                    padding: "0.2rem 0.4rem",
-                    color: is432Hz ? "#38bdf8" : "rgba(255, 255, 255, 0.5)",
+                    background: is432Hz ? "rgba(56, 189, 248, 0.25)" : "rgba(255, 255, 255, 0.06)",
+                    border: is432Hz ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.12)",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: is432Hz ? "#38bdf8" : "rgba(255, 255, 255, 0.6)",
                     fontSize: "0.68rem",
-                    fontWeight: 700,
+                    fontFamily: "var(--font-mono, monospace)",
+                    fontWeight: 800,
                     cursor: "pointer",
+                    transition: "all 0.2s ease",
                   }}
                 >
-                  432Hz
+                  432
                 </button>
               </div>
 

@@ -111,10 +111,11 @@ export default function ProjectsSection() {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           grid-template-rows: repeat(2, 1fr);
-          gap: 1.2rem;
+          gap: clamp(1rem, 1.8vw, 1.8rem);
           width: 100%;
-          height: calc(100vh - 165px);
-          max-width: 1280px;
+          height: min(84vh, 760px);
+          min-height: 540px;
+          max-width: min(92vw, 1720px);
         }
 
         /* APPLE LIQUID GLASS CARD STYLING (iOS 18 Refraction + Specular Glint) */
