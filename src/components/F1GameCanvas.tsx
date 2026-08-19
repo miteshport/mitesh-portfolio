@@ -461,8 +461,6 @@ export default function F1GameCanvas({
     };
     let lanePitch = getLanePitch();
     let lanePositions = [-lanePitch, 0.0, lanePitch];
-    let currentLane = 1; // 0 = Left, 1 = Center, 2 = Right
-    let targetCarX = lanePositions[currentLane];
 
     interface RoadFighterEntity {
       group: THREE.Group;
@@ -838,13 +836,48 @@ export default function F1GameCanvas({
     let nearMissCount = 0;
     let skidTimer = 0;
 
-    let carX = 0;
+    // 🏎️ TRUE DISCRETE 3-LANE STATE ENGINE VARIABLES
+    let currentLane = 1; // Discrete Slot: 0 = Left, 1 = Center, 2 = Right
+    let fromX = lanePositions[currentLane];
+    let targetCarX = lanePositions[currentLane];
+    let carX = lanePositions[currentLane];
+    let laneTransitionTime = 0.18; // Frame-exact 180ms AAA arcade Hermite curve
+    let laneTransitionElapsed = 0.18; // When >= laneTransitionTime, 100% locked
+    let steerDirection = 0;
+
     let steerInput = 0;
     let carSteerVelocity = 0;
     let isBoosting = false;
     let isBraking = false;
     let lapTime = 0;
     let trackDistance = 0;
+
+    // Discrete Lane Shift Execution (Deterministic AAA Transition)
+    const shiftLane = (direction: -1 | 1) => {
+      if (currentGameState !== "PLAYING") return;
+      const newLane = THREE.MathUtils.clamp(currentLane + direction, 0, 2);
+      if (newLane === currentLane) return;
+
+      fromX = carX; // Start from current exact coordinates (instant responsive double-taps)
+      currentLane = newLane;
+      targetCarX = lanePositions[currentLane];
+      laneTransitionElapsed = 0;
+      steerDirection = direction;
+      if (!isMutedRef.current) audio.playClick();
+    };
+
+    const setTargetLane = (targetLaneIndex: number) => {
+      if (currentGameState !== "PLAYING") return;
+      const validLane = THREE.MathUtils.clamp(targetLaneIndex, 0, 2);
+      if (validLane === currentLane) return;
+
+      fromX = carX;
+      currentLane = validLane;
+      targetCarX = lanePositions[currentLane];
+      laneTransitionElapsed = 0;
+      steerDirection = targetCarX > fromX ? 1 : -1;
+      if (!isMutedRef.current) audio.playClick();
+    };
 
     // Reset Round Handler
     const resetGameRound = () => {
@@ -859,7 +892,9 @@ export default function F1GameCanvas({
       lapTime = 0;
       currentLane = 1;
       targetCarX = lanePositions[currentLane];
-      carX = 0;
+      fromX = targetCarX;
+      carX = targetCarX;
+      laneTransitionElapsed = laneTransitionTime;
 
       // Re-initialize entities
       for (let i = 0; i < poolSize; i++) {
@@ -872,7 +907,7 @@ export default function F1GameCanvas({
     };
     resetTriggerRef.current = resetGameRound;
 
-    // --- 11. 🎮 AAA ARCADE INPUT ENGINE (INSTANT TAP, SWIPE FLICK & MOUSE BOOST) ---
+    // --- 11. 🎮 AAA DISCRETE INPUT ENGINE (INSTANT TAP, SWIPE FLICK & 3-SECTOR MOUSE) ---
     let touchStartX = 0;
     let swipeTriggered = false;
 
@@ -881,14 +916,13 @@ export default function F1GameCanvas({
       touchStartX = e.clientX;
       swipeTriggered = false;
 
-      // 📱 MOBILE TOUCH: Instant 1-Frame Tap Response (Left Half / Right Half)
+      // 📱 MOBILE TOUCH: Instant 1-Frame Discrete Tap
       if (e.pointerType === "touch" || window.innerWidth < 768) {
         if (e.clientX < window.innerWidth * 0.5) {
-          currentLane = Math.max(0, currentLane - 1);
+          shiftLane(-1);
         } else {
-          currentLane = Math.min(2, currentLane + 1);
+          shiftLane(1);
         }
-        targetCarX = lanePositions[currentLane];
       }
 
       // 🖱️ DESKTOP MOUSE: Hold Left-Click for Afterburner Boost
@@ -903,21 +937,18 @@ export default function F1GameCanvas({
       // 📱 MOBILE SWIPE FLICK GESTURE
       if (e.pointerType === "touch" || window.innerWidth < 768) {
         const deltaX = e.clientX - touchStartX;
-        if (!swipeTriggered && Math.abs(deltaX) > 28) {
+        if (!swipeTriggered && Math.abs(deltaX) > 26) {
           swipeTriggered = true;
-          if (deltaX > 28) currentLane = Math.min(2, currentLane + 1);
-          else if (deltaX < -28) currentLane = Math.max(0, currentLane - 1);
-          targetCarX = lanePositions[currentLane];
+          shiftLane(deltaX > 0 ? 1 : -1);
         }
         return;
       }
 
-      // 🖱️ DESKTOP MOUSE: Analog Glide with 15% Deadzone
+      // 🖱️ DESKTOP MOUSE: Discrete 3-Sector Lane Snap
       const normX = (e.clientX / window.innerWidth) * 2 - 1;
-      if (normX < -0.22) currentLane = 0;
-      else if (normX > 0.22) currentLane = 2;
-      else currentLane = 1;
-      targetCarX = lanePositions[currentLane];
+      if (normX < -0.22) setTargetLane(0);
+      else if (normX > 0.22) setTargetLane(2);
+      else setTargetLane(1);
     };
 
     const handlePointerUp = (e: PointerEvent) => {
@@ -928,11 +959,9 @@ export default function F1GameCanvas({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (currentGameState !== "PLAYING") return;
       if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        currentLane = Math.max(0, currentLane - 1);
-        targetCarX = lanePositions[currentLane];
+        shiftLane(-1);
       } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        currentLane = Math.min(2, currentLane + 1);
-        targetCarX = lanePositions[currentLane];
+        shiftLane(1);
       } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " " || e.key === "Shift") {
         isBoosting = true;
       } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
@@ -952,9 +981,7 @@ export default function F1GameCanvas({
     window.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    // --- 12. RESIZE HANDLER ---
+    window.addEventListener("keyup", handleKeyUp);    // --- 12. RESIZE HANDLER ---
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -1062,7 +1089,8 @@ export default function F1GameCanvas({
         const distZ = Math.abs(item.z - 0);
         const distX = Math.abs(carX - lanePositions[item.laneIndex]);
 
-        if (isDriving && item.active && distZ < 1.55 && distX < 1.25) {
+        const sameLane = currentLane === item.laneIndex;
+        if (isDriving && item.active && distZ < 1.45 && sameLane) {
           item.active = false;
           item.group.visible = false;
 
@@ -1114,16 +1142,18 @@ export default function F1GameCanvas({
         spawnWaveFormation(newWaveZ, passedIndices.slice(0, 3));
       }
 
-      // 5. 🏎️ VELVETY SMOOTH CRITICALLY-DAMPED SPRING PHYSICS & BODY ROLL
-      const springConstant = 88.0; // Crisp arcade responsiveness
-      const dampingFactor = 16.8; // Critical damping (buttery smooth settle, zero jumpiness)
-      const force = (targetCarX - carX) * springConstant - carSteerVelocity * dampingFactor;
-      carSteerVelocity += force * delta;
-      carX += carSteerVelocity * delta;
-
-      if (Math.abs(targetCarX - carX) < 0.005 && Math.abs(carSteerVelocity) < 0.05) {
-        carX = targetCarX;
+      // 5. 🏎️ TRUE DISCRETE 3-LANE HERMITE S-CURVE EXECUTION & SUSPENSION DYNAMICS
+      if (laneTransitionElapsed < laneTransitionTime) {
+        laneTransitionElapsed += delta;
+        const t = Math.min(1.0, laneTransitionElapsed / laneTransitionTime);
+        // Cubic Hermite S-Curve: smooth acceleration, peak velocity, cushioned settle
+        const easeT = t * t * (3.0 - 2.0 * t);
+        carX = THREE.MathUtils.lerp(fromX, targetCarX, easeT);
+        carSteerVelocity = (1.0 - t) * steerDirection * 8.5;
+      } else {
+        carX = targetCarX; // 100% mathematically locked in lane center!
         carSteerVelocity = 0;
+        steerDirection = 0;
       }
 
       const steerDiff = targetCarX - carX;
@@ -1146,11 +1176,11 @@ export default function F1GameCanvas({
       }
 
       // 🪽 RIG 2: Active Aero Air-Brake Flaps (Winglets)
-      const targetFlapAngle = (Math.abs(carSteerVelocity) > 1.2 || isBraking) ? 0.45 : (isBoosting ? -0.15 : 0.0);
+      const targetFlapAngle = (Math.abs(carSteerVelocity) > 0.8 || isBraking) ? 0.45 : (isBoosting ? -0.15 : 0.0);
       if (carGroup.children[2]) {
         carGroup.children[2].traverse((child: any) => {
           if (child.isMesh && (child.name.toLowerCase().includes("wing") || child.name.toLowerCase().includes("flap") || child.name.toLowerCase().includes("aero") || child.name.toLowerCase().includes("spoiler"))) {
-            child.rotation.x += (targetFlapAngle - child.rotation.x) * 0.18;
+            child.rotation.x += (targetFlapAngle - child.rotation.x) * 0.20;
           }
         });
       }
@@ -1158,12 +1188,10 @@ export default function F1GameCanvas({
       // 🏋️ RIG 3: Heavy 2.5-Ton Suspension (6-8° Body Roll, Yaw Counter-Steer, Boost Squat)
       if (carGroup.children[2]) {
         const carPivot = carGroup.children[2];
-        carPivot.rotation.z = -carSteerVelocity * 0.065; // Proportional smooth body roll
-        carPivot.rotation.y = Math.PI / 2 + carSteerVelocity * 0.035; // Gentle yaw counter-steer
+        carPivot.rotation.z = -carSteerVelocity * 0.055; // Body roll 6-8°
+        carPivot.rotation.y = Math.PI / 2 + carSteerVelocity * 0.025; // Yaw Drift
         carPivot.rotation.x = isBoosting ? 0.035 : (isBraking ? -0.025 : 0.0); // Squat / Dive
-      }
-
-      const onKerb = Math.abs(carX) > 2.85;
+      }      const onKerb = Math.abs(carX) > 2.85;
       if (onKerb && isDriving && Math.random() < 0.08) {
         playKerbRumble(isMutedRef.current);
       }
