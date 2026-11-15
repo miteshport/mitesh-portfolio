@@ -7,24 +7,19 @@ import { useSoundroom } from "@/context/SoundroomContext";
 import { audio } from "@/utils/audioSystem";
 
 interface SpatialHUDProps {
-  isLightsOut?: boolean;
-  onToggleLightsOut?: () => void;
   bottomLeftExtra?: React.ReactNode;
   bottomRightExtra?: React.ReactNode;
 }
 
 export default function SpatialHUD({
-  isLightsOut = false,
-  onToggleLightsOut,
   bottomLeftExtra,
   bottomRightExtra,
-}: SpatialHUDProps) {
+}: SpatialHUDProps = {}) {
   const pathname = usePathname();
   const { isMuted, toggleMute } = useSoundroom();
   const [timeStr, setTimeStr] = useState("");
 
-  const isHome = pathname === "/" || pathname === "/game";
-  const isPortfolio = pathname === "/about";
+  const isHome = pathname === "/";
   const isSoundroom = pathname === "/radio";
   const isCard = pathname === "/card";
 
@@ -40,6 +35,13 @@ export default function SpatialHUD({
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleBrandClick = (e: React.MouseEvent) => {
+    if (pathname === "/") {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   return (
     <>
@@ -82,7 +84,7 @@ export default function SpatialHUD({
           padding: 0.35rem 0;
           display: inline-flex;
           align-items: center;
-          gap: 0.3rem;
+          gap: 0.35rem;
           pointer-events: auto;
           white-space: nowrap;
         }
@@ -115,10 +117,16 @@ export default function SpatialHUD({
 
         .spatial-hud-active::after {
           transform: scaleX(1) !important;
-          background: #ffffff !important;
+          background: #38bdf8 !important;
         }
 
-        /* Responsive Breakpoints on Narrow Fold 4 Screens (< 480px) */
+        /* Responsive Breakpoints for Mobile & Fold 4 Cover Screen */
+        @media (max-width: 768px) {
+          .spatial-nav-secondary {
+            display: none !important;
+          }
+        }
+
         @media (max-width: 480px) {
           .spatial-time-text {
             display: none !important;
@@ -126,11 +134,8 @@ export default function SpatialHUD({
           .spatial-subtext {
             display: none !important;
           }
-          .spatial-nav-desktop {
-            display: none !important;
-          }
           .spatial-hud-link {
-            font-size: 0.60rem !important;
+            font-size: 0.62rem !important;
             letter-spacing: 0.08em !important;
           }
         }
@@ -138,32 +143,24 @@ export default function SpatialHUD({
 
       {/* 1. TOP UNIFIED GLASS SHIELD */}
       <header className="spatial-top-shield">
-        {/* Left Link */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", pointerEvents: "auto", zIndex: 5 }}>
-          {isHome ? (
-            <Link href="/about" className="spatial-hud-link">
-              <span>PORTFOLIO</span>
-            </Link>
-          ) : (
-            <Link href="/" className="spatial-hud-link">
-              <span style={{ color: "#38bdf8" }}>←</span>
-              <span>BATMOBILE</span>
-            </Link>
-          )}
-
-          {isHome && (
-            <span
-              className="spatial-subtext"
-              style={{
-                fontSize: "0.60rem",
-                fontFamily: "var(--font-mono)",
-                color: "rgba(255, 255, 255, 0.30)",
-                letterSpacing: "0.1em",
-              }}
-            >
-              / 01
+        {/* Left: Brand Identity */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", pointerEvents: "auto", zIndex: 5 }}>
+          <Link href="/" className="spatial-hud-link" onClick={handleBrandClick}>
+            <span style={{ fontWeight: 800, letterSpacing: "0.14em", color: "#ffffff" }}>
+              MITESH SHAH
             </span>
-          )}
+          </Link>
+          <span
+            className="spatial-subtext"
+            style={{
+              fontSize: "0.60rem",
+              fontFamily: "var(--font-mono)",
+              color: "rgba(56, 189, 248, 0.70)",
+              letterSpacing: "0.1em",
+            }}
+          >
+            / ARCHITECT
+          </span>
         </div>
 
         {/* Center: Mathematically Exact Dead-Center Audio Status Pill */}
@@ -182,6 +179,7 @@ export default function SpatialHUD({
               audio.playClick();
               toggleMute();
             }}
+            title={isMuted ? "Click to enable audio" : "Click to mute audio"}
             style={{
               background: isMuted
                 ? "rgba(255, 255, 255, 0.06)"
@@ -237,74 +235,54 @@ export default function SpatialHUD({
             zIndex: 5,
           }}
         >
-          {isHome ? (
-            <>
-              <Link
-                href="/about"
-                className={`spatial-hud-link spatial-nav-desktop ${isPortfolio ? "spatial-hud-active" : ""}`}
-              >
-                <span>ABOUT</span>
-              </Link>
-              <Link
-                href="/radio"
-                className={`spatial-hud-link ${isSoundroom ? "spatial-hud-active" : ""}`}
-              >
-                <span>SOUNDROOM</span>
-              </Link>
-              <Link
-                href="/card"
-                className={`spatial-hud-link spatial-nav-desktop ${isCard ? "spatial-hud-active" : ""}`}
-              >
-                <span>CARD</span>
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/about"
-                className={`spatial-hud-link ${isPortfolio ? "spatial-hud-active" : ""}`}
-              >
-                <span>ABOUT</span>
-              </Link>
-              <Link
-                href="/radio"
-                className={`spatial-hud-link ${isSoundroom ? "spatial-hud-active" : ""}`}
-              >
-                <span>SOUNDROOM</span>
-              </Link>
-              <Link
-                href="/card"
-                className={`spatial-hud-link spatial-nav-desktop ${isCard ? "spatial-hud-active" : ""}`}
-              >
-                <span>CARD</span>
-              </Link>
-            </>
-          )}
+          <Link
+            href="/#projects"
+            className="spatial-hud-link spatial-nav-secondary"
+          >
+            <span>SHOWROOM</span>
+          </Link>
+          <Link
+            href="/radio"
+            className={`spatial-hud-link ${isSoundroom ? "spatial-hud-active" : ""}`}
+          >
+            <span>SOUNDROOM</span>
+          </Link>
+          <Link
+            href="/card"
+            className={`spatial-hud-link ${isCard ? "spatial-hud-active" : ""}`}
+          >
+            <span>CARD</span>
+          </Link>
+          <Link
+            href="/#contact"
+            className="spatial-hud-link spatial-nav-secondary"
+          >
+            <span>CONTACT</span>
+          </Link>
         </nav>
       </header>
 
-      {/* 2. BOTTOM CORNER TELEMETRY OVERLAYS */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          width: "100vw",
-          padding: "clamp(0.75rem, 2.5vw, 1.8rem)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          zIndex: 40,
-          pointerEvents: "none",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Bottom-Left Component */}
-        <div style={{ pointerEvents: "auto" }}>{bottomLeftExtra}</div>
-
-        {/* Bottom-Right Component */}
-        <div style={{ pointerEvents: "auto" }}>{bottomRightExtra}</div>
-      </div>
+      {/* 2. OPTIONAL BOTTOM CORNER OVERLAYS */}
+      {(bottomLeftExtra || bottomRightExtra) && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            width: "100vw",
+            padding: "clamp(0.75rem, 2.5vw, 1.8rem)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            zIndex: 40,
+            pointerEvents: "none",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ pointerEvents: "auto" }}>{bottomLeftExtra}</div>
+          <div style={{ pointerEvents: "auto" }}>{bottomRightExtra}</div>
+        </div>
+      )}
     </>
   );
 }
